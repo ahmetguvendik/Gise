@@ -1,0 +1,29 @@
+upstreams:
+  - id: catalog
+    type: roundrobin
+    nodes:
+      "catalog-api:8080": 1
+  - id: client
+    type: roundrobin
+    nodes:
+      "client:80": 1
+
+routes:
+  - id: catalog-events
+    uris: ["/api/events", "/api/events/*"]
+    upstream_id: catalog
+    # "/*" istemci route'undan önce eşleşsin.
+    priority: 10
+    plugins:
+      limit-count:
+        count: 300
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        policy: local
+        rejected_code: 429
+
+  - id: client
+    uri: /*
+    upstream_id: client
+#END

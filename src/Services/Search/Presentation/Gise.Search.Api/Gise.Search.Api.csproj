@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Gise.Search.Application\Gise.Search.Application.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Gise.Search.Persistence\Gise.Search.Persistence.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Gise.Search.Infrastructure\Gise.Search.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

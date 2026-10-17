@@ -1,0 +1,25 @@
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+
+# IDE
+.idea/
+.vs/
+.vscode/
+*.DotSettings.user
+
+# Node
+node_modules/
+dist/
+
+# Ortam ve sırlar
+.env
+*.env.local
+
+# macOS
+.DS_Store
+
+# Kişisel Claude Code ayarları
+.claude/settings.local.json

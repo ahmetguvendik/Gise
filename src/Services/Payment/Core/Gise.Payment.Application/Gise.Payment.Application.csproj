@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Gise.Payment.Domain\Gise.Payment.Domain.csproj" />
+  </ItemGroup>
+</Project>

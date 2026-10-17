@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Gise.Order.Application\Gise.Order.Application.csproj" />
+  </ItemGroup>
+</Project>

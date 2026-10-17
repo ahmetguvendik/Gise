@@ -1,0 +1,11 @@
+# Bağımsız (standalone) mod: route'lar apisix.yaml dosyasından okunur. etcd ve yönetim API'si
+# yok; dışarıya açık bir yönetim portu da yok. Dosya değişince APISIX kendini yeniden yükler.
+deployment:
+  role: data_plane
+  role_data_plane:
+    config_provider: yaml
+
+apisix:
+  # Konteyner yeniden oluşturulunca yeni IP'si en geç 10 sn'de görülür. Telgraf'ta varsayılan
+  # süre yüzünden gateway dakikalarca eski IP'ye gidiyordu.
+  dns_resolver_valid: 10

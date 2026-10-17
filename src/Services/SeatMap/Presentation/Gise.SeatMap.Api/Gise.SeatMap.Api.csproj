@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Gise.SeatMap.Application\Gise.SeatMap.Application.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Gise.SeatMap.Persistence\Gise.SeatMap.Persistence.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Gise.SeatMap.Infrastructure\Gise.SeatMap.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

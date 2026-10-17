@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Gise.Ticket.Domain\Gise.Ticket.Domain.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,98 @@
+# Çalıştırma (repo kökünden):  docker compose -f deploy/docker-compose.yml up -d --build
+# Dışarıya yalnızca gateway (8000) ve Keycloak (8180) açılır; veritabanı ve servis portları kapalı.
+name: gise
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gise
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?deploy/.env içinde POSTGRES_PASSWORD tanımlı olmalı}
+      POSTGRES_DB: gise_catalog
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gise -d gise_catalog"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?deploy/.env içinde KEYCLOAK_ADMIN_PASSWORD tanımlı olmalı}
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8180:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      # Realm yalnızca ilk açılışta içe aktarılır; sonraki değişiklikler mevcut kurulumu etkilemez.
+      - ./keycloak/gise-realm.json:/opt/keycloak/data/import/gise-realm.json:ro
+    healthcheck:
+      # Keycloak 25+ sağlık uçları yönetim portunda (9000); imajda curl yok.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # Migration'lar servis açılırken değil, bu tek seferlik adımda uygulanır; servis ancak bu
+  # başarıyla bittikten sonra başlar.
+  catalog-migrate:
+    image: gise/catalog-api:dev
+    build:
+      context: ..
+      dockerfile: src/Services/Catalog/Presentation/Gise.Catalog.Api/Dockerfile
+    command: ["migrate"]
+    restart: "no"
+    environment:
+      ConnectionStrings__Catalog: Host=postgres;Database=gise_catalog;Username=gise;Password=${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  catalog-api:
+    image: gise/catalog-api:dev
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Catalog: Host=postgres;Database=gise_catalog;Username=gise;Password=${POSTGRES_PASSWORD}
+      Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
+      Keycloak__PublicAuthority: http://localhost:8180/realms/gise
+      Keycloak__RequireHttpsMetadata: "false"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      catalog-migrate:
+        condition: service_completed_successfully
+
+  client:
+    image: gise/client:dev
+    build:
+      context: ../src/Client
+    restart: unless-stopped
+
+  apisix:
+    image: apache/apisix:3.16.0-debian
+    restart: unless-stopped
+    ports:
+      - "8000:9080"
+    volumes:
+      - ./apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ./apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    depends_on:
+      catalog-api:
+        condition: service_healthy
+      client:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  keycloak_data:

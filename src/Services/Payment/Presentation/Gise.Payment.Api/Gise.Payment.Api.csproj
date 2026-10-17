@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Gise.Payment.Application\Gise.Payment.Application.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Gise.Payment.Persistence\Gise.Payment.Persistence.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Gise.Payment.Infrastructure\Gise.Payment.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

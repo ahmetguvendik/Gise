@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Gise.SeatMap.Domain\Gise.SeatMap.Domain.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,108 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Gise.Contracts/Gise.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Catalog/" />
+  <Folder Name="/src/Services/Catalog/Core/">
+    <Project Path="src/Services/Catalog/Core/Gise.Catalog.Application/Gise.Catalog.Application.csproj" />
+    <Project Path="src/Services/Catalog/Core/Gise.Catalog.Domain/Gise.Catalog.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Catalog/Infrastructure/">
+    <Project Path="src/Services/Catalog/Infrastructure/Gise.Catalog.Infrastructure/Gise.Catalog.Infrastructure.csproj" />
+    <Project Path="src/Services/Catalog/Infrastructure/Gise.Catalog.Persistence/Gise.Catalog.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Catalog/Presentation/">
+    <Project Path="src/Services/Catalog/Presentation/Gise.Catalog.Api/Gise.Catalog.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Notification/" />
+  <Folder Name="/src/Services/Notification/Core/">
+    <Project Path="src/Services/Notification/Core/Gise.Notification.Application/Gise.Notification.Application.csproj" />
+    <Project Path="src/Services/Notification/Core/Gise.Notification.Domain/Gise.Notification.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Notification/Infrastructure/">
+    <Project Path="src/Services/Notification/Infrastructure/Gise.Notification.Infrastructure/Gise.Notification.Infrastructure.csproj" />
+    <Project Path="src/Services/Notification/Infrastructure/Gise.Notification.Persistence/Gise.Notification.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Notification/Presentation/">
+    <Project Path="src/Services/Notification/Presentation/Gise.Notification.Api/Gise.Notification.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Order/" />
+  <Folder Name="/src/Services/Order/Core/">
+    <Project Path="src/Services/Order/Core/Gise.Order.Application/Gise.Order.Application.csproj" />
+    <Project Path="src/Services/Order/Core/Gise.Order.Domain/Gise.Order.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Order/Infrastructure/">
+    <Project Path="src/Services/Order/Infrastructure/Gise.Order.Infrastructure/Gise.Order.Infrastructure.csproj" />
+    <Project Path="src/Services/Order/Infrastructure/Gise.Order.Persistence/Gise.Order.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Order/Presentation/">
+    <Project Path="src/Services/Order/Presentation/Gise.Order.Api/Gise.Order.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Payment/" />
+  <Folder Name="/src/Services/Payment/Core/">
+    <Project Path="src/Services/Payment/Core/Gise.Payment.Application/Gise.Payment.Application.csproj" />
+    <Project Path="src/Services/Payment/Core/Gise.Payment.Domain/Gise.Payment.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Payment/Infrastructure/">
+    <Project Path="src/Services/Payment/Infrastructure/Gise.Payment.Infrastructure/Gise.Payment.Infrastructure.csproj" />
+    <Project Path="src/Services/Payment/Infrastructure/Gise.Payment.Persistence/Gise.Payment.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Payment/Presentation/">
+    <Project Path="src/Services/Payment/Presentation/Gise.Payment.Api/Gise.Payment.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Reservation/" />
+  <Folder Name="/src/Services/Reservation/Core/">
+    <Project Path="src/Services/Reservation/Core/Gise.Reservation.Application/Gise.Reservation.Application.csproj" />
+    <Project Path="src/Services/Reservation/Core/Gise.Reservation.Domain/Gise.Reservation.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Reservation/Infrastructure/">
+    <Project Path="src/Services/Reservation/Infrastructure/Gise.Reservation.Infrastructure/Gise.Reservation.Infrastructure.csproj" />
+    <Project Path="src/Services/Reservation/Infrastructure/Gise.Reservation.Persistence/Gise.Reservation.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Reservation/Presentation/">
+    <Project Path="src/Services/Reservation/Presentation/Gise.Reservation.Api/Gise.Reservation.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Search/" />
+  <Folder Name="/src/Services/Search/Core/">
+    <Project Path="src/Services/Search/Core/Gise.Search.Application/Gise.Search.Application.csproj" />
+    <Project Path="src/Services/Search/Core/Gise.Search.Domain/Gise.Search.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Search/Infrastructure/">
+    <Project Path="src/Services/Search/Infrastructure/Gise.Search.Infrastructure/Gise.Search.Infrastructure.csproj" />
+    <Project Path="src/Services/Search/Infrastructure/Gise.Search.Persistence/Gise.Search.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Search/Presentation/">
+    <Project Path="src/Services/Search/Presentation/Gise.Search.Api/Gise.Search.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/SeatMap/" />
+  <Folder Name="/src/Services/SeatMap/Core/">
+    <Project Path="src/Services/SeatMap/Core/Gise.SeatMap.Application/Gise.SeatMap.Application.csproj" />
+    <Project Path="src/Services/SeatMap/Core/Gise.SeatMap.Domain/Gise.SeatMap.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/SeatMap/Infrastructure/">
+    <Project Path="src/Services/SeatMap/Infrastructure/Gise.SeatMap.Infrastructure/Gise.SeatMap.Infrastructure.csproj" />
+    <Project Path="src/Services/SeatMap/Infrastructure/Gise.SeatMap.Persistence/Gise.SeatMap.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/SeatMap/Presentation/">
+    <Project Path="src/Services/SeatMap/Presentation/Gise.SeatMap.Api/Gise.SeatMap.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Ticket/" />
+  <Folder Name="/src/Services/Ticket/Core/">
+    <Project Path="src/Services/Ticket/Core/Gise.Ticket.Application/Gise.Ticket.Application.csproj" />
+    <Project Path="src/Services/Ticket/Core/Gise.Ticket.Domain/Gise.Ticket.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Ticket/Infrastructure/">
+    <Project Path="src/Services/Ticket/Infrastructure/Gise.Ticket.Infrastructure/Gise.Ticket.Infrastructure.csproj" />
+    <Project Path="src/Services/Ticket/Infrastructure/Gise.Ticket.Persistence/Gise.Ticket.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Ticket/Presentation/">
+    <Project Path="src/Services/Ticket/Presentation/Gise.Ticket.Api/Gise.Ticket.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Catalog/">
+    <Project Path="tests/Catalog/Gise.Catalog.IntegrationTests/Gise.Catalog.IntegrationTests.csproj" />
+    <Project Path="tests/Catalog/Gise.Catalog.UnitTests/Gise.Catalog.UnitTests.csproj" />
+  </Folder>
+</Solution>

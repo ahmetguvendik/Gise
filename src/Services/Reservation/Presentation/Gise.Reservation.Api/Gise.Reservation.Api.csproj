@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Gise.Reservation.Application\Gise.Reservation.Application.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Gise.Reservation.Persistence\Gise.Reservation.Persistence.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Gise.Reservation.Infrastructure\Gise.Reservation.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

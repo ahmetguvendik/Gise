@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Gise.Reservation.Application\Gise.Reservation.Application.csproj" />
+  </ItemGroup>
+</Project>

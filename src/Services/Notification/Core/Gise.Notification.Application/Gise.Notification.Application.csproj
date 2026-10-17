@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Gise.Notification.Domain\Gise.Notification.Domain.csproj" />
+  </ItemGroup>
+</Project>

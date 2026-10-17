@@ -1,0 +1,71 @@
+{
+  "realm": "gise",
+  "displayName": "Gişe",
+  "enabled": true,
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["tr"],
+  "defaultLocale": "tr",
+  "roles": {
+    "realm": [
+      { "name": "customer", "description": "Bilet alan kullanıcı" },
+      { "name": "organizer", "description": "Etkinlik oluşturan" },
+      { "name": "gate-staff", "description": "Kapıda bilet okutan" },
+      { "name": "admin", "description": "Yönetici" },
+      {
+        "name": "default-roles-gise",
+        "composite": true,
+        "composites": { "realm": ["customer"] }
+      }
+    ]
+  },
+  "defaultRole": { "name": "default-roles-gise" },
+  "clients": [
+    {
+      "clientId": "gise-web",
+      "name": "Gişe Web",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "redirectUris": ["http://localhost:8000/*", "http://localhost:5180/*"],
+      "webOrigins": ["http://localhost:8000", "http://localhost:5180"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:8000/*##http://localhost:5180/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "gise-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "gise-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

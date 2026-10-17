@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Gise.Search.Domain\Gise.Search.Domain.csproj" />
+  </ItemGroup>
+</Project>
