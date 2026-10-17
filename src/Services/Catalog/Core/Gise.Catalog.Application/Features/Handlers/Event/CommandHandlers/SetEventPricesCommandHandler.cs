@@ -49,6 +49,14 @@ public sealed class SetEventPricesCommandHandler : IRequestHandler<SetEventPrice
         // Aynı bölümün iki kez gelmediğini validator garanti eder.
         var requested = request.Prices.ToDictionary(p => p.SectionId, p => p.Price);
 
+        // Yayındaki etkinlikte fiyatsız bölüm kalamaz; o bölümün koltukları satılamaz hale gelirdi.
+        if (entity.Status == EventStatus.Published)
+        {
+            var unpriced = sections.Where(s => !requested.ContainsKey(s.Id)).Select(s => s.Name).ToList();
+            if (unpriced.Count > 0)
+                throw BusinessException.MissingSectionPrices(unpriced);
+        }
+
         foreach (var removed in entity.PriceCategories.Where(p => !requested.ContainsKey(p.SectionId)).ToList())
             entity.PriceCategories.Remove(removed);
 

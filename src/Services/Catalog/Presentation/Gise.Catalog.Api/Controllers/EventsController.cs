@@ -51,4 +51,18 @@ public sealed class EventsController : ControllerBase
 
         return Ok(await _mediator.Send(command, cancellationToken));
     }
+
+    [Authorize(Policy = Policies.Organizer)]
+    [HttpPost("{id:guid}/publish")]
+    public async Task<ActionResult<PublishEventResponse>> Publish(Guid id, CancellationToken cancellationToken)
+    {
+        var command = new PublishEventCommand
+        {
+            EventId = id,
+            UserId = User.FindFirst("sub")?.Value ?? throw UnauthorizedException.MissingClaim("sub"),
+            IsAdmin = User.IsInRole(Roles.Admin)
+        };
+
+        return Ok(await _mediator.Send(command, cancellationToken));
+    }
 }

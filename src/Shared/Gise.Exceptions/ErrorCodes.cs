@@ -23,10 +23,13 @@ public static class ErrorCodes
         public const string NotFound = "EVENT_NOT_FOUND";
         public const string NotOwner = "EVENT_NOT_OWNER";
         public const string Cancelled = "EVENT_CANCELLED";
+        public const string AlreadyPublished = "EVENT_ALREADY_PUBLISHED";
+        public const string AlreadyStarted = "EVENT_ALREADY_STARTED";
     }
 
     public static class Price
     {
         public const string SectionNotInVenue = "PRICE_SECTION_NOT_IN_VENUE";
+        public const string MissingSections = "PRICE_MISSING_SECTIONS";
     }
 }

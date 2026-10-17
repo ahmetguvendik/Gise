@@ -13,6 +13,16 @@ public class BusinessException : AppException
         "İptal edilmiş etkinlikte değişiklik yapılamaz.",
         $"'{eventId}' ID'li etkinlik iptal edilmiş.");
 
+    public static BusinessException EventAlreadyStarted(Guid eventId) => new(
+        ErrorCodes.Event.AlreadyStarted,
+        "Başlamış ya da geçmiş etkinlik yayınlanamaz.",
+        $"'{eventId}' ID'li etkinliğin başlangıç zamanı geçmiş.");
+
+    public static BusinessException MissingSectionPrices(IEnumerable<string> sectionNames) => new(
+        ErrorCodes.Price.MissingSections,
+        "Mekânın her bölümünün fiyatı girilmelidir.",
+        $"Fiyatı olmayan bölümler: {string.Join(", ", sectionNames)}.");
+
     public static BusinessException SectionNotInVenue(Guid sectionId) => new(
         ErrorCodes.Price.SectionNotInVenue,
         "Fiyat girilen bölümlerden biri bu etkinliğin mekânına ait değil.",

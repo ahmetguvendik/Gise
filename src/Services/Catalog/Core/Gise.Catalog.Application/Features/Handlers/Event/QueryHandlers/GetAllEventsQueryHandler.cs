@@ -26,7 +26,8 @@ public sealed class GetAllEventsQueryHandler : IRequestHandler<GetAllEventsQuery
                 Id = e.Id,
                 Title = e.Title,
                 VenueId = e.VenueId,
-                StartsAt = e.StartsAt
+                StartsAt = e.StartsAt,
+                MinPrice = e.PriceCategories.Count > 0 ? e.PriceCategories.Min(p => p.Price) : null
             })
             .ToList();
     }

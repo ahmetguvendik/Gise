@@ -7,4 +7,9 @@ public class ConflictException : AppException
         : base(409, errorCode, message, description)
     {
     }
+
+    public static ConflictException EventAlreadyPublished(Guid eventId) => new(
+        ErrorCodes.Event.AlreadyPublished,
+        "Etkinlik zaten yayında.",
+        $"'{eventId}' ID'li etkinlik daha önce yayınlanmış.");
 }

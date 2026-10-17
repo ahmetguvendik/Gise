@@ -9,5 +9,6 @@ public interface IEventRepository
     // Fiyatlarıyla birlikte, değişiklikler izlenir.
     Task<Domain.Entities.Event?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken);
 
+    // Fiyatlarıyla birlikte, tarihe göre sıralı.
     Task<IReadOnlyList<Domain.Entities.Event>> GetUpcomingPublishedAsync(DateTime from, CancellationToken cancellationToken);
 }
