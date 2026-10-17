@@ -35,6 +35,9 @@ h2 { font-size: 18px; margin: 0 0 12px; }
   border-radius: 8px;
   font: inherit;
   cursor: pointer;
+  /* <a> olarak kullanıldığında da düğme gibi görünsün. */
+  display: inline-block;
+  text-decoration: none;
 }
 .button:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
 .button:disabled { opacity: 0.6; cursor: not-allowed; }
