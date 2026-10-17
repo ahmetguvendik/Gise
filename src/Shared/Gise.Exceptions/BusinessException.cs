@@ -1,0 +1,20 @@
+namespace Gise.Exceptions;
+
+// İstek biçim olarak doğru ama iş kuralına aykırı. → 422
+public class BusinessException : AppException
+{
+    public BusinessException(string errorCode, string message, string description)
+        : base(422, errorCode, message, description)
+    {
+    }
+
+    public static BusinessException EventCancelled(Guid eventId) => new(
+        ErrorCodes.Event.Cancelled,
+        "İptal edilmiş etkinlikte değişiklik yapılamaz.",
+        $"'{eventId}' ID'li etkinlik iptal edilmiş.");
+
+    public static BusinessException SectionNotInVenue(Guid sectionId) => new(
+        ErrorCodes.Price.SectionNotInVenue,
+        "Fiyat girilen bölümlerden biri bu etkinliğin mekânına ait değil.",
+        $"'{sectionId}' ID'li bölüm etkinliğin mekânında yok.");
+}

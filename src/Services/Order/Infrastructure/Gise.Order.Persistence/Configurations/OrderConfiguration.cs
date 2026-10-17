@@ -16,7 +16,6 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Domain.Entitie
         builder.Property(o => o.TotalAmount).HasPrecision(10, 2);
 
         builder.HasMany(o => o.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
-        builder.Navigation(o => o.Items).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         // "Siparişlerim" sorgusu için.
         builder.HasIndex(o => new { o.CustomerId, o.CreatedAt });

@@ -3,6 +3,7 @@ using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Features.Commands.Event.Response;
 using Gise.Catalog.Application.Features.Queries.Event.Request;
 using Gise.Catalog.Application.Features.Queries.Event.Response;
+using Gise.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,7 +34,7 @@ public sealed class EventsController : ControllerBase
     public async Task<ActionResult<CreateEventResponse>> Create([FromBody] CreateEventCommand command, CancellationToken cancellationToken)
     {
         command.OrganizerId = User.FindFirst("sub")?.Value
-            ?? throw new InvalidOperationException("Token'da sub claim'i yok.");
+            ?? throw UnauthorizedException.MissingClaim("sub");
 
         var result = await _mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
@@ -45,7 +46,7 @@ public sealed class EventsController : ControllerBase
     {
         command.EventId = id;
         command.UserId = User.FindFirst("sub")?.Value
-            ?? throw new InvalidOperationException("Token'da sub claim'i yok.");
+            ?? throw UnauthorizedException.MissingClaim("sub");
         command.IsAdmin = User.IsInRole(Roles.Admin);
 
         return Ok(await _mediator.Send(command, cancellationToken));

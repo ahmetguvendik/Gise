@@ -2,9 +2,9 @@ namespace Gise.Search.Domain.Common;
 
 public abstract class BaseEntity
 {
-    public Guid Id { get; protected set; } = Guid.CreateVersion7();
+    public Guid Id { get; set; } = Guid.CreateVersion7();
 
-    // DbContext kayıt sırasında doldurur; entity'nin kendisi set etmez.
-    public DateTime CreatedAt { get; private set; }
-    public DateTime? UpdatedAt { get; private set; }
+    // DbContext kayıt sırasında doldurur.
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }

@@ -137,7 +137,7 @@ Fiyat **bölüm başına** belirlenir: her bölümün bir etkinlikte tek fiyatı
 - Fiyatı yalnızca etkinliğin sahibi olan organizatör ya da admin belirler. Başka organizatörün etkinliği 403 döner.
 - Bölüm, etkinliğin mekânına ait olmalıdır. Fiyat 0'dan büyük, en fazla 1.000.000 ₺ ve en fazla 2 ondalık basamaklı olur.
 - Yayındaki etkinliğin fiyatı da değişebilir; satılmış biletler etkilenmez, çünkü Order fiyatı sipariş anında kendine kaydeder. İptal edilmiş etkinliğin fiyatı değişmez.
-- Fiyatlar `Event` aggregate'inin parçasıdır (`Event.SetPrices`), tıpkı bölümlerin `Venue`'nun parçası olması gibi.
+- Biçim kuralları (fiyat aralığı, ondalık, tekrar eden bölüm) validator'da; veritabanına bakan kurallar (sahiplik, iptal, bölümün mekâna ait olması) `SetEventPricesCommandHandler`'da.
 
 ---
 
@@ -269,7 +269,8 @@ Gişe/
 │   └── scripts/                   # dev-users.sh
 ├── src/
 │   ├── Shared/
-│   │   └── Gise.Contracts/        # yalnızca servisler arası mesajlar: Commands/, Events/
+│   │   ├── Gise.Contracts/        # yalnızca servisler arası mesajlar: Commands/, Events/
+│   │   └── Gise.Exceptions/       # merkezi hata türleri ve ErrorCodes; her servisin Application'ı kullanır
 │   ├── Services/
 │   │   ├── Catalog/  Reservation/  Order/  Payment/
 │   │   ├── Ticket/   Notification/  Search/  SeatMap/
@@ -284,19 +285,22 @@ Her servis aynı düzendedir:
 ```text
 <Servis>/
 ├── Core/
-│   ├── Gise.<Servis>.Domain/          Entities/, Exceptions/
+│   ├── Gise.<Servis>.Domain/          Common/, Entities/, Enums/, Constants/
 │   └── Gise.<Servis>.Application/     Features/{Commands,Queries,Handlers}/<Varlık>/…,
-│                                      Validators/, Exceptions/, Interfaces/, UnitOfWorks/
+│                                      Behaviors/, Validators/, Interfaces/, UnitOfWorks/
 ├── Infrastructure/
 │   ├── Gise.<Servis>.Persistence/     Contexts/, Configurations/, Repositories/, UnitOfWorks/, Migrations/
 │   └── Gise.<Servis>.Infrastructure/  servise özel: Messaging/, Caching/, Grpc/, Storage/ …
 └── Presentation/
-    └── Gise.<Servis>.Api/             Controllers/, Authentication/, Filters/, ErrorHandling/
+    └── Gise.<Servis>.Api/             Controllers/, Authentication/, ErrorHandling/
 ```
 
 - `Features` düzeni Telgraf'taki gibidir: `Commands/<Varlık>/Request|Response`, `Queries/<Varlık>/Request|Response`, `Handlers/<Varlık>/CommandHandlers|QueryHandlers`.
 - Komut ve sorgular Telgraf'taki gibi MediatR (14.1.0) üzerinden gider: controller'lar yalnızca `_mediator.Send(...)` çağırır, handler'lar `IRequestHandler<,>` uygular. Kayıt Application'daki `ServiceRegistration` içindedir (`AddMediatR` + `RegisterServicesFromAssembly`).
-- Girdi doğrulaması FluentValidation ile `Application/Behaviors/ValidationBehavior` (`IPipelineBehavior<,>`) içinde, handler'dan önce yapılır; hata `GlobalExceptionHandler`'da 400 ValidationProblemDetails'e çevrilir. Domain yalnızca iş kurallarını korur.
+- Girdi doğrulaması FluentValidation ile `Application/Behaviors/ValidationBehavior` (`IPipelineBehavior<,>`) içinde, handler'dan önce yapılır; hata `GlobalExceptionHandler`'da 400 ValidationProblemDetails'e çevrilir.
+- Entity'ler Telgraf'taki gibi düz sınıflardır: `get; set;` özellikler, kural ve `throw` yok. Uzunluk ve sınır sabitleri `Domain/Constants`'tadır; validator'lar ve EF yapılandırmaları oradan okur.
+- İş kuralları handler'larda uygulanır. Hatalar merkezidir (`src/Shared/Gise.Exceptions`): `AppException` tabanından türeyen `ValidationException` (400), `UnauthorizedException` (401), `ForbiddenException` (403), `NotFoundException` (404), `ConflictException` (409), `BusinessException` (422). Her hata bir `ErrorCode` taşır (`ErrorCodes`); hazır fabrika metotlarıyla atılır, ör. `throw NotFoundException.Event(id)`.
+- `GlobalExceptionHandler` her `AppException`'ı aynı biçimde ProblemDetails'e çevirir: `title` = mesaj, `detail` = açıklama, `errorCode` = kod. Tanınmayan hata 500 olur ve loglanır.
 - Hatalar RFC 7807 **ProblemDetails** biçiminde ve Türkçe döner.
 - Payment ve Notification'ın dışarıya açık API'si yoktur. SeatMap controller yerine SignalR **hub**'ı (`Hubs/`) kullanır.
 

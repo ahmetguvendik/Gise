@@ -1,7 +1,7 @@
-using Gise.Catalog.Application.Exceptions;
 using Gise.Catalog.Application.Features.Queries.Event.Request;
 using Gise.Catalog.Application.Features.Queries.Event.Response;
 using Gise.Catalog.Application.Interfaces;
+using Gise.Exceptions;
 using MediatR;
 
 namespace Gise.Catalog.Application.Features.Handlers.Event.QueryHandlers;
@@ -20,7 +20,7 @@ public sealed class GetEventByIdQueryHandler : IRequestHandler<GetEventByIdQuery
     public async Task<GetEventByIdResponse> Handle(GetEventByIdQuery request, CancellationToken cancellationToken)
     {
         var entity = await _eventRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new NotFoundException("Etkinlik bulunamadı.");
+            ?? throw NotFoundException.Event(request.Id);
 
         var sectionNames = (await _venueRepository.GetSectionsAsync(entity.VenueId, cancellationToken))
             .ToDictionary(s => s.Id, s => s.Name);

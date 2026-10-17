@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Shared\Gise.Exceptions\Gise.Exceptions.csproj" />
     <ProjectReference Include="..\Gise.Reservation.Domain\Gise.Reservation.Domain.csproj" />
   </ItemGroup>
 </Project>

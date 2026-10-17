@@ -2,6 +2,7 @@ using Gise.Catalog.Application.Features.Commands.Venue.Request;
 using Gise.Catalog.Application.Features.Commands.Venue.Response;
 using Gise.Catalog.Application.Interfaces;
 using Gise.Catalog.Application.UnitOfWorks;
+using Gise.Catalog.Domain.Entities;
 using MediatR;
 
 namespace Gise.Catalog.Application.Features.Handlers.Venue.CommandHandlers;
@@ -19,14 +20,22 @@ public sealed class CreateVenueCommandHandler : IRequestHandler<CreateVenueComma
 
     public async Task<CreateVenueResponse> Handle(CreateVenueCommand request, CancellationToken cancellationToken)
     {
-        var venue = Domain.Entities.Venue.Create(request.Name, request.City);
-
-        foreach (var sectionRequest in request.Sections)
+        // Koltuklar sıra tanımından üretilir: her sıradaki koltuklar 1'den başlayarak numaralanır.
+        var venue = new Domain.Entities.Venue
         {
-            var section = venue.AddSection(sectionRequest.Name);
-            foreach (var row in sectionRequest.Rows)
-                section.AddRow(row.Row, row.SeatCount);
-        }
+            Name = request.Name.Trim(),
+            City = request.City.Trim(),
+            Sections = request.Sections
+                .Select(section => new Section
+                {
+                    Name = section.Name.Trim(),
+                    Seats = section.Rows
+                        .SelectMany(row => Enumerable.Range(1, row.SeatCount)
+                            .Select(number => new Seat { Row = row.Row.Trim(), Number = number }))
+                        .ToList()
+                })
+                .ToList()
+        };
 
         await _venueRepository.AddAsync(venue, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

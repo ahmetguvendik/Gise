@@ -1,6 +1,6 @@
 using FluentValidation;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
-using Gise.Catalog.Domain.Entities;
+using Gise.Catalog.Domain.Constants;
 
 namespace Gise.Catalog.Application.Validators;
 
@@ -24,7 +24,7 @@ public sealed class SetEventPricesCommandValidator : AbstractValidator<SetEventP
 
             item.RuleFor(p => p.Price)
                 .GreaterThan(0).WithMessage("Fiyat 0'dan büyük olmalıdır.")
-                .LessThanOrEqualTo(PriceCategory.MaxPrice).WithMessage("Fiyat en fazla 1.000.000 ₺ olabilir.")
+                .LessThanOrEqualTo(PriceCategoryConstants.MaxPrice).WithMessage("Fiyat en fazla 1.000.000 ₺ olabilir.")
                 .PrecisionScale(10, 2, ignoreTrailingZeros: true).WithMessage("Fiyat en fazla 2 ondalık basamak içerebilir.");
         });
     }

@@ -1,7 +1,7 @@
-using Gise.Catalog.Application.Exceptions;
 using Gise.Catalog.Application.Features.Queries.Venue.Request;
 using Gise.Catalog.Application.Features.Queries.Venue.Response;
 using Gise.Catalog.Application.Interfaces;
+using Gise.Exceptions;
 using MediatR;
 
 namespace Gise.Catalog.Application.Features.Handlers.Venue.QueryHandlers;
@@ -18,7 +18,7 @@ public sealed class GetVenueByIdQueryHandler : IRequestHandler<GetVenueByIdQuery
     public async Task<GetVenueByIdResponse> Handle(GetVenueByIdQuery request, CancellationToken cancellationToken)
     {
         var venue = await _venueRepository.GetWithLayoutAsync(request.Id, cancellationToken)
-            ?? throw new NotFoundException("Mekân bulunamadı.");
+            ?? throw NotFoundException.Venue(request.Id);
 
         return new GetVenueByIdResponse
         {

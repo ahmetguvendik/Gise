@@ -1,12 +1,11 @@
-using System.Text.Json;
-using FluentValidation;
-using Gise.Catalog.Application.Exceptions;
-using Gise.Catalog.Domain.Exceptions;
+using Gise.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gise.Catalog.Api.ErrorHandling;
 
+// Merkezi hataları (Gise.Exceptions) ProblemDetails'e çevirir: title = Message, detail = Description,
+// errorCode = ErrorCode. Tanınmayan her hata 500 olur ve loglanır.
 public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly IProblemDetailsService _problemDetails;
@@ -22,15 +21,27 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
     {
         var problem = exception switch
         {
-            ValidationException validation => ToValidationProblem(validation),
-            ForbiddenException => new ProblemDetails { Status = StatusCodes.Status403Forbidden, Title = exception.Message },
-            NotFoundException => new ProblemDetails { Status = StatusCodes.Status404NotFound, Title = exception.Message },
-            DomainException => new ProblemDetails { Status = StatusCodes.Status422UnprocessableEntity, Title = exception.Message },
-            _ => new ProblemDetails { Status = StatusCodes.Status500InternalServerError, Title = "Beklenmeyen bir hata oluştu." }
+            ValidationException validation => new ValidationProblemDetails(new Dictionary<string, string[]>(validation.Errors)),
+            AppException => new ProblemDetails(),
+            _ => new ProblemDetails
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Title = "Beklenmeyen bir hata oluştu."
+            }
         };
 
-        if (problem.Status == StatusCodes.Status500InternalServerError)
+        if (exception is AppException app)
+        {
+            problem.Status = app.StatusCode;
+            problem.Title = app.Message;
+            problem.Detail = app.Description;
+        }
+        else
+        {
             _logger.LogError(exception, "İşlenmeyen hata.");
+        }
+
+        problem.Extensions["errorCode"] = (exception as AppException)?.ErrorCode ?? ErrorCodes.General.InternalError;
 
         httpContext.Response.StatusCode = problem.Status!.Value;
         return await _problemDetails.TryWriteAsync(new ProblemDetailsContext
@@ -40,22 +51,4 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             ProblemDetails = problem
         });
     }
-
-    private static ValidationProblemDetails ToValidationProblem(ValidationException exception)
-    {
-        var errors = exception.Errors
-            .GroupBy(e => ToCamelCasePath(e.PropertyName))
-            .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
-
-        return new ValidationProblemDetails(errors)
-        {
-            Status = StatusCodes.Status400BadRequest,
-            Title = "Bazı bilgiler hatalı.",
-            Detail = "Aşağıdaki alanları düzeltip tekrar deneyin."
-        };
-    }
-
-    // "Sections[0].Rows[1].SeatCount" → "sections[0].rows[1].seatCount": istemcideki alan adlarıyla aynı.
-    private static string ToCamelCasePath(string path)
-        => string.Join('.', path.Split('.').Select(JsonNamingPolicy.CamelCase.ConvertName));
 }

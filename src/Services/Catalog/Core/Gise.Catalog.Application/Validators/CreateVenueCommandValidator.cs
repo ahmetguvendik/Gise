@@ -1,6 +1,6 @@
 using FluentValidation;
 using Gise.Catalog.Application.Features.Commands.Venue.Request;
-using Gise.Catalog.Domain.Entities;
+using Gise.Catalog.Domain.Constants;
 
 namespace Gise.Catalog.Application.Validators;
 
@@ -15,11 +15,11 @@ public sealed class CreateVenueCommandValidator : AbstractValidator<CreateVenueC
 
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Mekân adı gereklidir.")
-            .MaximumLength(Venue.NameMaxLength).WithMessage($"Mekân adı en fazla {Venue.NameMaxLength} karakter olabilir.");
+            .MaximumLength(VenueConstants.NameMaxLength).WithMessage($"Mekân adı en fazla {VenueConstants.NameMaxLength} karakter olabilir.");
 
         RuleFor(x => x.City)
             .NotEmpty().WithMessage("Şehir gereklidir.")
-            .MaximumLength(Venue.CityMaxLength).WithMessage($"Şehir en fazla {Venue.CityMaxLength} karakter olabilir.");
+            .MaximumLength(VenueConstants.CityMaxLength).WithMessage($"Şehir en fazla {VenueConstants.CityMaxLength} karakter olabilir.");
 
         RuleFor(x => x.Sections)
             .NotEmpty().WithMessage("En az bir bölüm eklenmelidir.")
@@ -35,7 +35,7 @@ public sealed class CreateVenueCommandValidator : AbstractValidator<CreateVenueC
 
             section.RuleFor(s => s.Name)
                 .NotEmpty().WithMessage("Bölüm adı gereklidir.")
-                .MaximumLength(Section.NameMaxLength).WithMessage($"Bölüm adı en fazla {Section.NameMaxLength} karakter olabilir.");
+                .MaximumLength(SectionConstants.NameMaxLength).WithMessage($"Bölüm adı en fazla {SectionConstants.NameMaxLength} karakter olabilir.");
 
             section.RuleFor(s => s.Rows)
                 .NotEmpty().WithMessage("Her bölümde en az bir sıra olmalıdır.")
@@ -46,11 +46,11 @@ public sealed class CreateVenueCommandValidator : AbstractValidator<CreateVenueC
             {
                 row.RuleFor(r => r.Row)
                     .NotEmpty().WithMessage("Sıra adı gereklidir.")
-                    .MaximumLength(Seat.RowMaxLength).WithMessage($"Sıra adı en fazla {Seat.RowMaxLength} karakter olabilir.");
+                    .MaximumLength(SeatConstants.RowMaxLength).WithMessage($"Sıra adı en fazla {SeatConstants.RowMaxLength} karakter olabilir.");
 
                 row.RuleFor(r => r.SeatCount)
-                    .InclusiveBetween(1, Section.MaxSeatsPerRow)
-                    .WithMessage($"Bir sırada 1 ile {Section.MaxSeatsPerRow} arasında koltuk olabilir.");
+                    .InclusiveBetween(1, SectionConstants.MaxSeatsPerRow)
+                    .WithMessage($"Bir sırada 1 ile {SectionConstants.MaxSeatsPerRow} arasında koltuk olabilir.");
             });
         });
     }

@@ -1,3 +1,4 @@
+using Gise.Ticket.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -11,7 +12,7 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Domain.Entiti
         builder.Property(t => t.Id).ValueGeneratedNever();
 
         builder.Property(t => t.CustomerId).HasMaxLength(64).IsRequired();
-        builder.Property(t => t.Code).HasMaxLength(Domain.Entities.Ticket.CodeMaxLength).IsRequired();
+        builder.Property(t => t.Code).HasMaxLength(TicketConstants.CodeMaxLength).IsRequired();
         builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(t => t.PdfKey).HasMaxLength(300);
         builder.Property(t => t.CheckedInBy).HasMaxLength(64);

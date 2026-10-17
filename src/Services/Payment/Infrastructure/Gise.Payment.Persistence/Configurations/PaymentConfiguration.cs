@@ -1,3 +1,4 @@
+using Gise.Payment.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,7 +14,7 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Domain.Entit
         builder.Property(p => p.Amount).HasPrecision(10, 2);
         builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(p => p.CardLast4).HasMaxLength(4).IsFixedLength().IsRequired();
-        builder.Property(p => p.FailureReason).HasMaxLength(Domain.Entities.Payment.FailureReasonMaxLength);
+        builder.Property(p => p.FailureReason).HasMaxLength(PaymentConstants.FailureReasonMaxLength);
 
         builder.HasIndex(p => p.OrderId).IsUnique();
     }

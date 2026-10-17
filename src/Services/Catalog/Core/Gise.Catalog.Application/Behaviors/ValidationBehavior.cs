@@ -1,5 +1,8 @@
+using System.Text.Json;
 using FluentValidation;
 using MediatR;
+// FluentValidation'ın kendi ValidationException'ı ile isim çakışıyor; burada her zaman merkezi olan kastediliyor.
+using ValidationException = Gise.Exceptions.ValidationException;
 
 namespace Gise.Catalog.Application.Behaviors;
 
@@ -30,8 +33,18 @@ public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<
             .ToList();
 
         if (failures.Count > 0)
-            throw new ValidationException(failures);
+        {
+            var errors = failures
+                .GroupBy(failure => ToCamelCasePath(failure.PropertyName))
+                .ToDictionary(g => g.Key, g => g.Select(failure => failure.ErrorMessage).ToArray());
+
+            throw new ValidationException(errors);
+        }
 
         return await next(cancellationToken);
     }
+
+    // "Sections[0].Rows[1].SeatCount" → "sections[0].rows[1].seatCount": istemcideki alan adlarıyla aynı.
+    private static string ToCamelCasePath(string path)
+        => string.Join('.', path.Split('.').Select(JsonNamingPolicy.CamelCase.ConvertName));
 }
