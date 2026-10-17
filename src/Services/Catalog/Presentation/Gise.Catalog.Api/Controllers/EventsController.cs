@@ -38,4 +38,16 @@ public sealed class EventsController : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
+
+    [Authorize(Policy = Policies.Organizer)]
+    [HttpPut("{id:guid}/prices")]
+    public async Task<ActionResult<SetEventPricesResponse>> SetPrices(Guid id, [FromBody] SetEventPricesCommand command, CancellationToken cancellationToken)
+    {
+        command.EventId = id;
+        command.UserId = User.FindFirst("sub")?.Value
+            ?? throw new InvalidOperationException("Token'da sub claim'i yok.");
+        command.IsAdmin = User.IsInRole(Roles.Admin);
+
+        return Ok(await _mediator.Send(command, cancellationToken));
+    }
 }

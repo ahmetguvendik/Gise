@@ -19,7 +19,15 @@ public sealed class EventRepository : IEventRepository
         => await _context.Events.AddAsync(entity, cancellationToken);
 
     public Task<Event?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
-        => _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+        => _context.Events
+            .AsNoTracking()
+            .Include(e => e.PriceCategories)
+            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+
+    public Task<Event?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
+        => _context.Events
+            .Include(e => e.PriceCategories)
+            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<Event>> GetUpcomingPublishedAsync(DateTime from, CancellationToken cancellationToken)
         => await _context.Events

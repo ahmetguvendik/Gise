@@ -19,7 +19,7 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
     context.ProblemDetails.Title = context.ProblemDetails.Status switch
     {
         StatusCodes.Status401Unauthorized => "Bu işlem için giriş yapmalısınız.",
-        StatusCodes.Status403Forbidden => "Bu işlem için yetkiniz yok.",
+        StatusCodes.Status403Forbidden when context.Exception is null => "Bu işlem için yetkiniz yok.",
         StatusCodes.Status404NotFound when context.Exception is null => "İstenen adres bulunamadı.",
         _ => context.ProblemDetails.Title
     };

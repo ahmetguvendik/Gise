@@ -6,6 +6,9 @@ public interface IVenueRepository
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken);
     Task<IReadOnlyList<Domain.Entities.Venue>> GetAllAsync(CancellationToken cancellationToken);
 
+    // Koltuklar olmadan, yalnızca bölümler.
+    Task<IReadOnlyList<Domain.Entities.Section>> GetSectionsAsync(Guid venueId, CancellationToken cancellationToken);
+
     // Bölümler ve koltuklarla birlikte.
     Task<Domain.Entities.Venue?> GetWithLayoutAsync(Guid id, CancellationToken cancellationToken);
 }

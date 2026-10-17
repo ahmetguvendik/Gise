@@ -9,4 +9,12 @@ public sealed class GetEventByIdResponse
     public DateTime StartsAt { get; set; }
     public string OrganizerId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public List<EventPriceResponse> Prices { get; set; } = [];
+}
+
+public sealed class EventPriceResponse
+{
+    public Guid SectionId { get; set; }
+    public string SectionName { get; set; } = string.Empty;
+    public decimal Price { get; set; }
 }

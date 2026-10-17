@@ -26,6 +26,13 @@ public sealed class VenueRepository : IVenueRepository
             .OrderBy(v => v.City).ThenBy(v => v.Name)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Section>> GetSectionsAsync(Guid venueId, CancellationToken cancellationToken)
+        => await _context.Sections
+            .AsNoTracking()
+            .Where(s => s.VenueId == venueId)
+            .OrderBy(s => s.Name)
+            .ToListAsync(cancellationToken);
+
     public Task<Venue?> GetWithLayoutAsync(Guid id, CancellationToken cancellationToken)
         => _context.Venues
             .AsNoTracking()

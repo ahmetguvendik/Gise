@@ -18,6 +18,9 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<Event>
         // Etkinliği olan mekân silinemez.
         builder.HasOne<Venue>().WithMany().HasForeignKey(e => e.VenueId).OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasMany(e => e.PriceCategories).WithOne().HasForeignKey(p => p.EventId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(e => e.PriceCategories).UsePropertyAccessMode(PropertyAccessMode.Field);
+
         // Liste sorgusu "yayındaki, başlamamış etkinlikler, tarihe göre" — bu indeksle karşılanır.
         builder.HasIndex(e => new { e.Status, e.StartsAt });
     }

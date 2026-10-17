@@ -129,6 +129,16 @@ Payment servisi gerçek bir sağlayıcıya bağlanmaz. Sonuç, kart numarasını
 
 İade (`RefundPayment`) her zaman başarılıdır; telafi yolunun kendisini test etmek için ayrıca bir "iade başarısız" kartı eklenebilir.
 
+### 3.3 Catalog: fiyatlar
+
+Fiyat **bölüm başına** belirlenir: her bölümün bir etkinlikte tek fiyatı olur (A Blok 750 ₺, Balkon 400 ₺). Para birimi şimdilik TRY.
+
+- `PUT /api/events/{id}/prices` listeyi bütün olarak ayarlar; listede olmayan bölümün fiyatı kalkar.
+- Fiyatı yalnızca etkinliğin sahibi olan organizatör ya da admin belirler. Başka organizatörün etkinliği 403 döner.
+- Bölüm, etkinliğin mekânına ait olmalıdır. Fiyat 0'dan büyük, en fazla 1.000.000 ₺ ve en fazla 2 ondalık basamaklı olur.
+- Yayındaki etkinliğin fiyatı da değişebilir; satılmış biletler etkilenmez, çünkü Order fiyatı sipariş anında kendine kaydeder. İptal edilmiş etkinliğin fiyatı değişmez.
+- Fiyatlar `Event` aggregate'inin parçasıdır (`Event.SetPrices`), tıpkı bölümlerin `Venue`'nun parçası olması gibi.
+
 ---
 
 ## 4. Satın alma saga'sı

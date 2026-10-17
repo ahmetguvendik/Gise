@@ -23,6 +23,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         var problem = exception switch
         {
             ValidationException validation => ToValidationProblem(validation),
+            ForbiddenException => new ProblemDetails { Status = StatusCodes.Status403Forbidden, Title = exception.Message },
             NotFoundException => new ProblemDetails { Status = StatusCodes.Status404NotFound, Title = exception.Message },
             DomainException => new ProblemDetails { Status = StatusCodes.Status422UnprocessableEntity, Title = exception.Message },
             _ => new ProblemDetails { Status = StatusCodes.Status500InternalServerError, Title = "Beklenmeyen bir hata oluştu." }

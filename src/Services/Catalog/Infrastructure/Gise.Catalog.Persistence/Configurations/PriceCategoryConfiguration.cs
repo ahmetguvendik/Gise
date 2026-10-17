@@ -13,7 +13,7 @@ public sealed class PriceCategoryConfiguration : IEntityTypeConfiguration<PriceC
 
         builder.Property(p => p.Price).HasPrecision(10, 2);
 
-        builder.HasOne<Event>().WithMany().HasForeignKey(p => p.EventId).OnDelete(DeleteBehavior.Cascade);
+        // Event tarafı EventConfiguration'da (Event fiyatlarını kendisi yönetir).
         builder.HasOne<Section>().WithMany().HasForeignKey(p => p.SectionId).OnDelete(DeleteBehavior.Restrict);
 
         // Bir bölümün bir etkinlikte tek fiyatı olur.
