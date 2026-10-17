@@ -12,7 +12,7 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY Directory.Build.props Directory.Packages.props ./
-COPY src/BuildingBlocks/ src/BuildingBlocks/
+COPY src/Shared/ src/Shared/
 COPY src/Services/Notification/ src/Services/Notification/
 # NuGet paketleri build'ler arasında önbellekte kalır; kod değişince restore saniyeler sürer.
 RUN --mount=type=cache,target=/root/.nuget/packages \

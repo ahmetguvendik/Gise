@@ -258,7 +258,7 @@ Gişe/
 │   ├── keycloak/                  # gise-realm.json
 │   └── scripts/                   # dev-users.sh
 ├── src/
-│   ├── BuildingBlocks/
+│   ├── Shared/
 │   │   └── Gise.Contracts/        # yalnızca servisler arası mesajlar: Commands/, Events/
 │   ├── Services/
 │   │   ├── Catalog/  Reservation/  Order/  Payment/
@@ -321,6 +321,5 @@ Kodda ve konteyner adlarında ASCII **`gise`** kullanılır; klasör adındaki `
 ## 13. Açık sorular
 
 1. **MassTransit sürümü ve lisansı:** v8 açık kaynak; sonraki ana sürüm ticari lisansa geçti. Hangi sürümün kullanılacağı 3. aşamadan önce güncel lisans durumuna bakılarak seçilmeli.
-2. **Outbox/inbox kodu nerede duracak:** Her serviste kendi kopyası mı (Telgraf'taki gibi), yoksa `BuildingBlocks` altında ortak bir kütüphane mi? İkincisi tekrarı önler ama Shared'ı yalnızca sözleşmelere ayırma kuralını esnetir. 1. aşamada karar verilecek.
 
-**Karara bağlananlar (2026-10-17):** Kafka olayları için kendi outbox/inbox'ımız yazılır; Kafka KRaft modunda çalışır; ödeme test sağlayıcıyla yapılır (bkz. 3.2).
+**Karara bağlananlar (2026-10-17):** Kafka olayları için kendi outbox/inbox'ımız yazılır ve entity'leri her servisin kendi içinde durur; Kafka KRaft modunda çalışır; ödeme test sağlayıcıyla yapılır (bkz. 3.2).

@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/src/" />
-  <Folder Name="/src/BuildingBlocks/">
-    <Project Path="src/BuildingBlocks/Gise.Contracts/Gise.Contracts.csproj" />
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/Gise.Contracts/Gise.Contracts.csproj" />
   </Folder>
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/Catalog/" />
