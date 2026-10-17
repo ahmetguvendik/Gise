@@ -1,34 +1,37 @@
 using FluentValidation;
-using Mediator;
+using MediatR;
 
 namespace Gise.Catalog.Application.Behaviors;
 
-// Mesajın validator'larını handler'dan önce çalıştırır; geçersiz istek handler'a ulaşmaz.
-public sealed class ValidationBehavior<TMessage, TResponse> : IPipelineBehavior<TMessage, TResponse>
-    where TMessage : notnull, IMessage
+// Handler'a ulaşmadan önce ilgili command/query için kayıtlı validator'ları çalıştırır.
+// Hata varsa ValidationException fırlatır; GlobalExceptionHandler bunu 400'e çevirir.
+public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : notnull
 {
-    private readonly IEnumerable<IValidator<TMessage>> _validators;
+    private readonly IEnumerable<IValidator<TRequest>> _validators;
 
-    public ValidationBehavior(IEnumerable<IValidator<TMessage>> validators)
+    public ValidationBehavior(IEnumerable<IValidator<TRequest>> validators)
     {
         _validators = validators;
     }
 
-    public async ValueTask<TResponse> Handle(
-        TMessage message,
-        MessageHandlerDelegate<TMessage, TResponse> next,
+    public async Task<TResponse> Handle(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        var failures = new List<FluentValidation.Results.ValidationFailure>();
-        foreach (var validator in _validators)
-        {
-            var result = await validator.ValidateAsync(message, cancellationToken);
-            failures.AddRange(result.Errors);
-        }
+        if (!_validators.Any())
+            return await next(cancellationToken);
+
+        var context = new ValidationContext<TRequest>(request);
+
+        var failures = (await Task.WhenAll(_validators.Select(v => v.ValidateAsync(context, cancellationToken))))
+            .SelectMany(result => result.Errors)
+            .ToList();
 
         if (failures.Count > 0)
             throw new ValidationException(failures);
 
-        return await next(message, cancellationToken);
+        return await next(cancellationToken);
     }
 }

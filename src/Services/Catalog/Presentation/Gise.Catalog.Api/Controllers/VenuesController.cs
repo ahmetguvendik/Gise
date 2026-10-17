@@ -3,7 +3,7 @@ using Gise.Catalog.Application.Features.Commands.Venue.Request;
 using Gise.Catalog.Application.Features.Commands.Venue.Response;
 using Gise.Catalog.Application.Features.Queries.Venue.Request;
 using Gise.Catalog.Application.Features.Queries.Venue.Response;
-using Mediator;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

@@ -285,8 +285,8 @@ Her servis aynı düzendedir:
 ```
 
 - `Features` düzeni Telgraf'taki gibidir: `Commands/<Varlık>/Request|Response`, `Queries/<Varlık>/Request|Response`, `Handlers/<Varlık>/CommandHandlers|QueryHandlers`.
-- Komut ve sorgular mediator üzerinden gider: controller'lar yalnızca `_mediator.Send(...)` çağırır, handler'lar `IRequestHandler<,>` uygular. Kütüphane [Mediator](https://github.com/martinothamar/Mediator) (MIT; MediatR'a benzer API, kodu derlemede üretir). Kaynak üretici Api projesinde durur, `AddMediator` orada çağrılır; handler'lar DbContext kullandığı için ömür `Scoped`'tır.
-- Girdi doğrulaması FluentValidation ile `Application/Behaviors/ValidationBehavior` içinde, handler'dan önce yapılır; hata `GlobalExceptionHandler`'da 400 ValidationProblemDetails'e çevrilir. Domain yalnızca iş kurallarını korur.
+- Komut ve sorgular Telgraf'taki gibi MediatR (14.1.0) üzerinden gider: controller'lar yalnızca `_mediator.Send(...)` çağırır, handler'lar `IRequestHandler<,>` uygular. Kayıt Application'daki `ServiceRegistration` içindedir (`AddMediatR` + `RegisterServicesFromAssembly`).
+- Girdi doğrulaması FluentValidation ile `Application/Behaviors/ValidationBehavior` (`IPipelineBehavior<,>`) içinde, handler'dan önce yapılır; hata `GlobalExceptionHandler`'da 400 ValidationProblemDetails'e çevrilir. Domain yalnızca iş kurallarını korur.
 - Hatalar RFC 7807 **ProblemDetails** biçiminde ve Türkçe döner.
 - Payment ve Notification'ın dışarıya açık API'si yoktur. SeatMap controller yerine SignalR **hub**'ı (`Hubs/`) kullanır.
 

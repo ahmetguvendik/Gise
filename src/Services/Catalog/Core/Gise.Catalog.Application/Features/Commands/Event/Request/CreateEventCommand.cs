@@ -1,5 +1,5 @@
 using Gise.Catalog.Application.Features.Commands.Event.Response;
-using Mediator;
+using MediatR;
 using System.Text.Json.Serialization;
 
 namespace Gise.Catalog.Application.Features.Commands.Event.Request;

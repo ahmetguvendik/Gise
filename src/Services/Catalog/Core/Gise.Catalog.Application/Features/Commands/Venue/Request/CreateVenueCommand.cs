@@ -1,5 +1,5 @@
 using Gise.Catalog.Application.Features.Commands.Venue.Response;
-using Mediator;
+using MediatR;
 
 namespace Gise.Catalog.Application.Features.Commands.Venue.Request;
 
