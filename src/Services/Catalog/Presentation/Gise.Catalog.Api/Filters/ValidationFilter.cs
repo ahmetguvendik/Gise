@@ -24,7 +24,7 @@ public sealed class ValidationFilter : IAsyncActionFilter
                 continue;
 
             var errors = result.Errors
-                .GroupBy(e => JsonNamingPolicy.CamelCase.ConvertName(e.PropertyName))
+                .GroupBy(e => ToCamelCasePath(e.PropertyName))
                 .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
 
             context.Result = new BadRequestObjectResult(new ValidationProblemDetails(errors)
@@ -38,4 +38,8 @@ public sealed class ValidationFilter : IAsyncActionFilter
 
         await next();
     }
+
+    // "Sections[0].Rows[1].SeatCount" → "sections[0].rows[1].seatCount": istemcideki alan adlarıyla aynı.
+    private static string ToCamelCasePath(string path)
+        => string.Join('.', path.Split('.').Select(JsonNamingPolicy.CamelCase.ConvertName));
 }

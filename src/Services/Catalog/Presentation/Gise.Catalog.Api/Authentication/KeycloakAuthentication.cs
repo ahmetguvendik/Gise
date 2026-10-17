@@ -28,7 +28,9 @@ public static class KeycloakAuthentication
             });
 
         services.AddAuthorizationBuilder()
-            .AddPolicy(Policies.Organizer, policy => policy.RequireRole(Roles.Organizer, Roles.Admin));
+            .AddPolicy(Policies.Organizer, policy => policy.RequireRole(Roles.Organizer, Roles.Admin))
+            // Mekânlar platformun ortak verisi; organizatör yalnızca var olan mekânlarda etkinlik açar.
+            .AddPolicy(Policies.VenueManager, policy => policy.RequireRole(Roles.Admin));
 
         return services;
     }

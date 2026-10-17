@@ -13,7 +13,9 @@ public sealed class SectionConfiguration : IEntityTypeConfiguration<Section>
 
         builder.Property(s => s.Name).HasMaxLength(Section.NameMaxLength).IsRequired();
 
-        builder.HasOne<Venue>().WithMany().HasForeignKey(s => s.VenueId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(s => s.Seats).WithOne().HasForeignKey(seat => seat.SectionId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(s => s.Seats).UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasIndex(s => new { s.VenueId, s.Name }).IsUnique();
     }
 }

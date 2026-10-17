@@ -14,7 +14,8 @@ public sealed class Seat : BaseEntity
 
     private Seat() { }
 
-    public static Seat Create(Guid sectionId, string row, int number)
+    // Yalnızca Section.AddRow üzerinden.
+    internal static Seat Create(Guid sectionId, string row, int number)
     {
         row = row.Trim();
 

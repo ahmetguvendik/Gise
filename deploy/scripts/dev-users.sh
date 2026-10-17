@@ -2,6 +2,7 @@
 # Yerel geliştirme için Keycloak'ta test kullanıcıları oluşturur:
 #   organizer@gise.local  (organizer rolü)
 #   customer@gise.local   (yalnızca varsayılan customer rolü)
+#   admin@gise.local      (admin rolü)
 # Parola deploy/.env'deki DEV_USERS_PASSWORD; ekrana yazılmaz. Tekrar çalıştırılabilir.
 #
 # Kullanım (repo kökünden):  ./deploy/scripts/dev-users.sh
@@ -28,4 +29,5 @@ create_user() {
 
 create_user organizer@gise.local Organizatör organizer
 create_user customer@gise.local Müşteri
+create_user admin@gise.local Yönetici admin
 EOF

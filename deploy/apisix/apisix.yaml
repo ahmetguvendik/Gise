@@ -9,8 +9,8 @@ upstreams:
       "client:80": 1
 
 routes:
-  - id: catalog-events
-    uris: ["/api/events", "/api/events/*"]
+  - id: catalog
+    uris: ["/api/events", "/api/events/*", "/api/venues", "/api/venues/*"]
     upstream_id: catalog
     # "/*" istemci route'undan önce eşleşsin.
     priority: 10
