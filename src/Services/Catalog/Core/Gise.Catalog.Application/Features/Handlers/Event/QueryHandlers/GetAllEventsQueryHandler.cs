@@ -1,10 +1,11 @@
 using Gise.Catalog.Application.Features.Queries.Event.Request;
 using Gise.Catalog.Application.Features.Queries.Event.Response;
 using Gise.Catalog.Application.Interfaces;
+using Mediator;
 
 namespace Gise.Catalog.Application.Features.Handlers.Event.QueryHandlers;
 
-public sealed class GetAllEventsQueryHandler
+public sealed class GetAllEventsQueryHandler : IRequestHandler<GetAllEventsQuery, IReadOnlyList<GetAllEventsResponse>>
 {
     private readonly IEventRepository _eventRepository;
     private readonly TimeProvider _timeProvider;
@@ -15,7 +16,7 @@ public sealed class GetAllEventsQueryHandler
         _timeProvider = timeProvider;
     }
 
-    public async Task<IReadOnlyList<GetAllEventsResponse>> Handle(GetAllEventsQuery request, CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyList<GetAllEventsResponse>> Handle(GetAllEventsQuery request, CancellationToken cancellationToken)
     {
         var events = await _eventRepository.GetUpcomingPublishedAsync(_timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
 

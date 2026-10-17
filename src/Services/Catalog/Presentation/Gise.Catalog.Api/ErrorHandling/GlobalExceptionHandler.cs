@@ -1,3 +1,5 @@
+using System.Text.Json;
+using FluentValidation;
 using Gise.Catalog.Application.Exceptions;
 using Gise.Catalog.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
@@ -18,22 +20,41 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
 
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
-        var (status, title) = exception switch
+        var problem = exception switch
         {
-            NotFoundException => (StatusCodes.Status404NotFound, exception.Message),
-            DomainException => (StatusCodes.Status422UnprocessableEntity, exception.Message),
-            _ => (StatusCodes.Status500InternalServerError, "Beklenmeyen bir hata oluştu.")
+            ValidationException validation => ToValidationProblem(validation),
+            NotFoundException => new ProblemDetails { Status = StatusCodes.Status404NotFound, Title = exception.Message },
+            DomainException => new ProblemDetails { Status = StatusCodes.Status422UnprocessableEntity, Title = exception.Message },
+            _ => new ProblemDetails { Status = StatusCodes.Status500InternalServerError, Title = "Beklenmeyen bir hata oluştu." }
         };
 
-        if (status == StatusCodes.Status500InternalServerError)
+        if (problem.Status == StatusCodes.Status500InternalServerError)
             _logger.LogError(exception, "İşlenmeyen hata.");
 
-        httpContext.Response.StatusCode = status;
+        httpContext.Response.StatusCode = problem.Status!.Value;
         return await _problemDetails.TryWriteAsync(new ProblemDetailsContext
         {
             HttpContext = httpContext,
             Exception = exception,
-            ProblemDetails = new ProblemDetails { Status = status, Title = title }
+            ProblemDetails = problem
         });
     }
+
+    private static ValidationProblemDetails ToValidationProblem(ValidationException exception)
+    {
+        var errors = exception.Errors
+            .GroupBy(e => ToCamelCasePath(e.PropertyName))
+            .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+
+        return new ValidationProblemDetails(errors)
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Bazı bilgiler hatalı.",
+            Detail = "Aşağıdaki alanları düzeltip tekrar deneyin."
+        };
+    }
+
+    // "Sections[0].Rows[1].SeatCount" → "sections[0].rows[1].seatCount": istemcideki alan adlarıyla aynı.
+    private static string ToCamelCasePath(string path)
+        => string.Join('.', path.Split('.').Select(JsonNamingPolicy.CamelCase.ConvertName));
 }

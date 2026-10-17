@@ -1,16 +1,17 @@
 using System.Diagnostics;
 using Gise.Catalog.Api.Authentication;
 using Gise.Catalog.Api.ErrorHandling;
-using Gise.Catalog.Api.Filters;
 using Gise.Catalog.Application;
+using Gise.Catalog.Application.Behaviors;
 using Gise.Catalog.Persistence;
 using Gise.Catalog.Persistence.Contexts;
+using Mediator;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>());
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -29,6 +30,12 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 
 builder.Services.AddKeycloakAuthentication(builder.Configuration);
 builder.Services.AddApplicationServices();
+builder.Services.AddMediator((MediatorOptions options) =>
+{
+    // Handler'lar DbContext kullandığı için istek ömründe (scoped) yaşar.
+    options.ServiceLifetime = ServiceLifetime.Scoped;
+    options.PipelineBehaviors = [typeof(ValidationBehavior<,>)];
+});
 builder.Services.AddPersistenceServices(builder.Configuration);
 
 builder.Services.AddHealthChecks()

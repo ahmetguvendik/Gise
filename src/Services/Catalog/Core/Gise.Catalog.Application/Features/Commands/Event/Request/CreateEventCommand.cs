@@ -1,8 +1,10 @@
+using Gise.Catalog.Application.Features.Commands.Event.Response;
+using Mediator;
 using System.Text.Json.Serialization;
 
 namespace Gise.Catalog.Application.Features.Commands.Event.Request;
 
-public sealed class CreateEventCommand
+public sealed class CreateEventCommand : IRequest<CreateEventResponse>
 {
     public string Title { get; set; } = string.Empty;
     public Guid VenueId { get; set; }

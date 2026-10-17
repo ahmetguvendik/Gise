@@ -2,10 +2,11 @@ using Gise.Catalog.Application.Features.Commands.Venue.Request;
 using Gise.Catalog.Application.Features.Commands.Venue.Response;
 using Gise.Catalog.Application.Interfaces;
 using Gise.Catalog.Application.UnitOfWorks;
+using Mediator;
 
 namespace Gise.Catalog.Application.Features.Handlers.Venue.CommandHandlers;
 
-public sealed class CreateVenueCommandHandler
+public sealed class CreateVenueCommandHandler : IRequestHandler<CreateVenueCommand, CreateVenueResponse>
 {
     private readonly IVenueRepository _venueRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -16,7 +17,7 @@ public sealed class CreateVenueCommandHandler
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<CreateVenueResponse> Handle(CreateVenueCommand request, CancellationToken cancellationToken)
+    public async ValueTask<CreateVenueResponse> Handle(CreateVenueCommand request, CancellationToken cancellationToken)
     {
         var venue = Domain.Entities.Venue.Create(request.Name, request.City);
 

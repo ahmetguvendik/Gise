@@ -5,6 +5,11 @@
     <ProjectReference Include="..\..\Infrastructure\Gise.Catalog.Infrastructure\Gise.Catalog.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Mediator kodu derlemede üretilir; üretici en dıştaki projede durur. -->
+    <PackageReference Include="Mediator.SourceGenerator">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />

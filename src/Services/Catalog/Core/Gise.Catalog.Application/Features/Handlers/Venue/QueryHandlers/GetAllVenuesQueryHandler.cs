@@ -1,10 +1,11 @@
 using Gise.Catalog.Application.Features.Queries.Venue.Request;
 using Gise.Catalog.Application.Features.Queries.Venue.Response;
 using Gise.Catalog.Application.Interfaces;
+using Mediator;
 
 namespace Gise.Catalog.Application.Features.Handlers.Venue.QueryHandlers;
 
-public sealed class GetAllVenuesQueryHandler
+public sealed class GetAllVenuesQueryHandler : IRequestHandler<GetAllVenuesQuery, IReadOnlyList<GetAllVenuesResponse>>
 {
     private readonly IVenueRepository _venueRepository;
 
@@ -13,7 +14,7 @@ public sealed class GetAllVenuesQueryHandler
         _venueRepository = venueRepository;
     }
 
-    public async Task<IReadOnlyList<GetAllVenuesResponse>> Handle(GetAllVenuesQuery request, CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyList<GetAllVenuesResponse>> Handle(GetAllVenuesQuery request, CancellationToken cancellationToken)
     {
         var venues = await _venueRepository.GetAllAsync(cancellationToken);
 

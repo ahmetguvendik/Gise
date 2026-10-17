@@ -3,10 +3,11 @@ using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Features.Commands.Event.Response;
 using Gise.Catalog.Application.Interfaces;
 using Gise.Catalog.Application.UnitOfWorks;
+using Mediator;
 
 namespace Gise.Catalog.Application.Features.Handlers.Event.CommandHandlers;
 
-public sealed class CreateEventCommandHandler
+public sealed class CreateEventCommandHandler : IRequestHandler<CreateEventCommand, CreateEventResponse>
 {
     private readonly IEventRepository _eventRepository;
     private readonly IVenueRepository _venueRepository;
@@ -25,7 +26,7 @@ public sealed class CreateEventCommandHandler
         _timeProvider = timeProvider;
     }
 
-    public async Task<CreateEventResponse> Handle(CreateEventCommand request, CancellationToken cancellationToken)
+    public async ValueTask<CreateEventResponse> Handle(CreateEventCommand request, CancellationToken cancellationToken)
     {
         if (!await _venueRepository.ExistsAsync(request.VenueId, cancellationToken))
             throw new NotFoundException("Mekân bulunamadı.");
