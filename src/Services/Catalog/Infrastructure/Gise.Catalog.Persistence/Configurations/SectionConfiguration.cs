@@ -1,4 +1,3 @@
-using Gise.Catalog.Domain.Constants;
 using Gise.Catalog.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -12,7 +11,7 @@ public sealed class SectionConfiguration : IEntityTypeConfiguration<Section>
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id).ValueGeneratedNever();
 
-        builder.Property(s => s.Name).HasMaxLength(SectionConstants.NameMaxLength).IsRequired();
+        builder.Property(s => s.Name).HasMaxLength(100).IsRequired();
 
         builder.HasMany(s => s.Seats).WithOne().HasForeignKey(seat => seat.SectionId).OnDelete(DeleteBehavior.Cascade);
 

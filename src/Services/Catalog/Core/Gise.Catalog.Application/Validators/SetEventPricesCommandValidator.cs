@@ -1,13 +1,17 @@
+using System.Globalization;
 using FluentValidation;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
-using Gise.Catalog.Domain.Constants;
+using Microsoft.Extensions.Configuration;
 
 namespace Gise.Catalog.Application.Validators;
 
 public sealed class SetEventPricesCommandValidator : AbstractValidator<SetEventPricesCommand>
 {
-    public SetEventPricesCommandValidator()
+    public SetEventPricesCommandValidator(IConfiguration configuration)
     {
+        // Sınır appsettings'teki CatalogRules bölümünden okunur.
+        var maxPrice = configuration.GetRequiredSection("CatalogRules").GetValue<decimal>("MaxPrice");
+
         RuleLevelCascadeMode = CascadeMode.Stop;
 
         RuleFor(x => x.Prices)
@@ -24,7 +28,7 @@ public sealed class SetEventPricesCommandValidator : AbstractValidator<SetEventP
 
             item.RuleFor(p => p.Price)
                 .GreaterThan(0).WithMessage("Fiyat 0'dan büyük olmalıdır.")
-                .LessThanOrEqualTo(PriceCategoryConstants.MaxPrice).WithMessage("Fiyat en fazla 1.000.000 ₺ olabilir.")
+                .LessThanOrEqualTo(maxPrice).WithMessage($"Fiyat en fazla {maxPrice.ToString("#,0.##", CultureInfo.GetCultureInfo("tr-TR"))} ₺ olabilir.")
                 .PrecisionScale(10, 2, ignoreTrailingZeros: true).WithMessage("Fiyat en fazla 2 ondalık basamak içerebilir.");
         });
     }

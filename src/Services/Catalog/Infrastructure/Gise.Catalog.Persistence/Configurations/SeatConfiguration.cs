@@ -1,4 +1,3 @@
-using Gise.Catalog.Domain.Constants;
 using Gise.Catalog.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -12,7 +11,7 @@ public sealed class SeatConfiguration : IEntityTypeConfiguration<Seat>
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id).ValueGeneratedNever();
 
-        builder.Property(s => s.Row).HasMaxLength(SeatConstants.RowMaxLength).IsRequired();
+        builder.Property(s => s.Row).HasMaxLength(10).IsRequired();
 
         // Aynı bölümde aynı sıra ve numarada ikinci bir koltuk olamaz.
         builder.HasIndex(s => new { s.SectionId, s.Row, s.Number }).IsUnique();

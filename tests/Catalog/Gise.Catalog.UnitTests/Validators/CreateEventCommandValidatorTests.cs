@@ -1,12 +1,17 @@
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Validators;
+using Microsoft.Extensions.Configuration;
 
 namespace Gise.Catalog.UnitTests.Validators;
 
 public sealed class CreateEventCommandValidatorTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 17, 12, 0, 0, TimeSpan.Zero);
-    private readonly CreateEventCommandValidator _validator = new(new FixedTimeProvider(Now));
+    private readonly CreateEventCommandValidator _validator = new(
+        new FixedTimeProvider(Now),
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["CatalogRules:EventTitleMaxLength"] = "200" })
+            .Build());
 
     private static CreateEventCommand ValidCommand() => new()
     {

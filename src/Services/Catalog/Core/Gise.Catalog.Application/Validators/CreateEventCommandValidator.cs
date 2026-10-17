@@ -1,17 +1,20 @@
 using FluentValidation;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
-using Gise.Catalog.Domain.Constants;
+using Microsoft.Extensions.Configuration;
 
 namespace Gise.Catalog.Application.Validators;
 
 public sealed class CreateEventCommandValidator : AbstractValidator<CreateEventCommand>
 {
-    public CreateEventCommandValidator(TimeProvider timeProvider)
+    public CreateEventCommandValidator(TimeProvider timeProvider, IConfiguration configuration)
     {
+        // Sınır appsettings'teki CatalogRules bölümünden okunur.
+        var titleMaxLength = configuration.GetRequiredSection("CatalogRules").GetValue<int>("EventTitleMaxLength");
+
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Etkinlik adı gereklidir.")
-            .MaximumLength(EventConstants.TitleMaxLength)
-            .WithMessage($"Etkinlik adı en fazla {EventConstants.TitleMaxLength} karakter olabilir.");
+            .MaximumLength(titleMaxLength)
+            .WithMessage($"Etkinlik adı en fazla {titleMaxLength} karakter olabilir.");
 
         RuleFor(x => x.VenueId)
             .NotEmpty().WithMessage("Mekân seçilmelidir.");

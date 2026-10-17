@@ -7,5 +7,6 @@
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="MediatR" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
   </ItemGroup>
 </Project>

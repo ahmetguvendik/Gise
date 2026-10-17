@@ -1,4 +1,3 @@
-using Gise.Catalog.Domain.Constants;
 using Gise.Catalog.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -12,7 +11,7 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).ValueGeneratedNever();
 
-        builder.Property(e => e.Title).HasMaxLength(EventConstants.TitleMaxLength).IsRequired();
+        builder.Property(e => e.Title).HasMaxLength(200).IsRequired();
         builder.Property(e => e.OrganizerId).HasMaxLength(64).IsRequired();
         builder.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
 
