@@ -3,8 +3,9 @@ using Gise.Notification.Domain.Enums;
 
 namespace Gise.Notification.Domain.Entities;
 
-// Gönderilmiş bildirimin kaydı. (ReferenceId, Type, RecipientId) tekil: aynı bildirim iki kez gitmez.
-public sealed class NotificationLog : BaseEntity
+// Gönderilmiş bir bildirim. Uygulama logu değil, iş kaydıdır: (ReferenceId, Type, RecipientId)
+// tekil olduğu için aynı olay iki kez gelse de müşteriye ikinci bildirim gitmez.
+public sealed class SentNotification : BaseEntity
 {
     public const int SubjectMaxLength = 300;
 
@@ -15,9 +16,9 @@ public sealed class NotificationLog : BaseEntity
     // Bildirimi tetikleyen kayıt: sipariş ya da bilet grubu.
     public Guid ReferenceId { get; private set; }
 
-    private NotificationLog() { }
+    private SentNotification() { }
 
-    public static NotificationLog Create(NotificationType type, string recipientId, string subject, Guid referenceId) => new()
+    public static SentNotification Create(NotificationType type, string recipientId, string subject, Guid referenceId) => new()
     {
         Type = type,
         RecipientId = recipientId,

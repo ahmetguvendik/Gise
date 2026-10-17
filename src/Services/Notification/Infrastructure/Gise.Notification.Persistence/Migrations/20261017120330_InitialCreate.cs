@@ -34,7 +34,7 @@ namespace Gise.Notification.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "notification_logs",
+                name: "sent_notifications",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -47,7 +47,7 @@ namespace Gise.Notification.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_notification_logs", x => x.id);
+                    table.PrimaryKey("pk_sent_notifications", x => x.id);
                 });
 
             migrationBuilder.CreateIndex(
@@ -63,8 +63,8 @@ namespace Gise.Notification.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "ix_notification_logs_reference_id_type_recipient_id",
-                table: "notification_logs",
+                name: "ix_sent_notifications_reference_id_type_recipient_id",
+                table: "sent_notifications",
                 columns: new[] { "reference_id", "type", "recipient_id" },
                 unique: true);
         }
@@ -76,7 +76,7 @@ namespace Gise.Notification.Persistence.Migrations
                 name: "inbox_messages");
 
             migrationBuilder.DropTable(
-                name: "notification_logs");
+                name: "sent_notifications");
         }
     }
 }

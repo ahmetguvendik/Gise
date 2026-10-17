@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gise.Notification.Persistence.Migrations
 {
     [DbContext(typeof(NotificationDbContext))]
-    [Migration("20261017112433_InitialCreate")]
+    [Migration("20261017120330_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -96,7 +96,7 @@ namespace Gise.Notification.Persistence.Migrations
                     b.ToTable("inbox_messages", (string)null);
                 });
 
-            modelBuilder.Entity("Gise.Notification.Domain.Entities.NotificationLog", b =>
+            modelBuilder.Entity("Gise.Notification.Domain.Entities.SentNotification", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
@@ -133,13 +133,13 @@ namespace Gise.Notification.Persistence.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_notification_logs");
+                        .HasName("pk_sent_notifications");
 
                     b.HasIndex("ReferenceId", "Type", "RecipientId")
                         .IsUnique()
-                        .HasDatabaseName("ix_notification_logs_reference_id_type_recipient_id");
+                        .HasDatabaseName("ix_sent_notifications_reference_id_type_recipient_id");
 
-                    b.ToTable("notification_logs", (string)null);
+                    b.ToTable("sent_notifications", (string)null);
                 });
 #pragma warning restore 612, 618
         }
