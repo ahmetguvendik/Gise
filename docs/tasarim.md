@@ -298,7 +298,7 @@ Kodda ve konteyner adlarında ASCII **`gise`** kullanılır; klasör adındaki `
 - Kafka, PostgreSQL ve Redis için kalıcı volume; Kafka'da replikasyon ayarı bilinçli seçilir.
 - Dışarıya yalnızca gateway ve Keycloak açılır; veritabanı, Redis, RabbitMQ ve Kafka portları açılmaz.
 - Parolalar repoda durmaz; `.env.example` yalnızca değişken adlarını içerir.
-- Migration'lar servis açılırken değil, ayrı bir adımda uygulanır.
+- Migration'lar servis açılırken uygulanır. Telgraf'ta birden fazla kopyanın aynı anda migration çalıştırması bir riskti; EF Core 9'dan beri migration sırasında veritabanında kilit alındığı için kopyalar sırayla bekler.
 - Outbox okuyan worker'lar `FOR UPDATE SKIP LOCKED` ile birden fazla kopyada güvenle çalışır.
 - Servislerin `Production` modu ilk günden denenir.
 

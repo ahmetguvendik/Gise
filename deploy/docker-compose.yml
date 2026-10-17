@@ -1,7 +1,7 @@
 # Çalıştırma (repo kökünden):  docker compose -f deploy/docker-compose.yml up -d --build
-# Dışarıya yalnızca gateway (8000) ve Keycloak (8180) açılır; veritabanı, Redis, Kafka ve RabbitMQ
-# portları kapalı. Geliştirme araçları (PostgreSQL 5432, RabbitMQ 15672, Kafka UI 8085, MinIO
-# konsolu 9001) yalnızca 127.0.0.1'e açılır; ağdaki başka makineler erişemez.
+# Dışarıya yalnızca gateway (8000) ve Keycloak (8180) açılır; Redis, Kafka ve RabbitMQ portları
+# kapalı. Geliştirme araçları (PostgreSQL 5432, RabbitMQ 15672, MinIO konsolu 9001) yalnızca
+# 127.0.0.1'e açılır; ağdaki başka makineler erişemez.
 name: gise
 
 services:
@@ -94,18 +94,6 @@ services:
       retries: 20
       start_period: 20s
 
-  kafka-ui:
-    image: kafbat/kafka-ui:v1.5.0
-    restart: unless-stopped
-    environment:
-      KAFKA_CLUSTERS_0_NAME: gise
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-    ports:
-      - "127.0.0.1:8085:8080"
-    depends_on:
-      kafka:
-        condition: service_healthy
-
   rabbitmq:
     image: rabbitmq:4.3.6-management-alpine
     restart: unless-stopped
@@ -162,23 +150,11 @@ services:
       retries: 30
       start_period: 30s
 
-  # Migration'lar servis açılırken değil, bu tek seferlik adımda uygulanır; servis ancak bu
-  # başarıyla bittikten sonra başlar.
-  catalog-migrate:
+  catalog-api:
     image: gise/catalog-api:dev
     build:
       context: ..
       dockerfile: src/Services/Catalog/Presentation/Gise.Catalog.Api/Dockerfile
-    command: ["migrate"]
-    restart: "no"
-    environment:
-      ConnectionStrings__Catalog: Host=postgres;Database=gise_catalog;Username=gise;Password=${POSTGRES_PASSWORD}
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  catalog-api:
-    image: gise/catalog-api:dev
     restart: unless-stopped
     environment:
       ConnectionStrings__Catalog: Host=postgres;Database=gise_catalog;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -192,24 +168,14 @@ services:
       retries: 5
       start_period: 15s
     depends_on:
-      catalog-migrate:
-        condition: service_completed_successfully
-
-  reservation-migrate:
-    image: gise/reservation-api:dev
-    build:
-      context: ..
-      dockerfile: src/Services/Reservation/Presentation/Gise.Reservation.Api/Dockerfile
-    command: ["migrate"]
-    restart: "no"
-    environment:
-      ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
-    depends_on:
       postgres:
         condition: service_healthy
 
   reservation-api:
     image: gise/reservation-api:dev
+    build:
+      context: ..
+      dockerfile: src/Services/Reservation/Presentation/Gise.Reservation.Api/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -219,25 +185,15 @@ services:
       timeout: 3s
       retries: 5
       start_period: 15s
-    depends_on:
-      reservation-migrate:
-        condition: service_completed_successfully
-
-  order-migrate:
-    image: gise/order-api:dev
-    build:
-      context: ..
-      dockerfile: src/Services/Order/Presentation/Gise.Order.Api/Dockerfile
-    command: ["migrate"]
-    restart: "no"
-    environment:
-      ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
 
   order-api:
     image: gise/order-api:dev
+    build:
+      context: ..
+      dockerfile: src/Services/Order/Presentation/Gise.Order.Api/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -248,24 +204,14 @@ services:
       retries: 5
       start_period: 15s
     depends_on:
-      order-migrate:
-        condition: service_completed_successfully
-
-  payment-migrate:
-    image: gise/payment-api:dev
-    build:
-      context: ..
-      dockerfile: src/Services/Payment/Presentation/Gise.Payment.Api/Dockerfile
-    command: ["migrate"]
-    restart: "no"
-    environment:
-      ConnectionStrings__Payment: Host=postgres;Database=gise_payment;Username=gise;Password=${POSTGRES_PASSWORD}
-    depends_on:
       postgres:
         condition: service_healthy
 
   payment-api:
     image: gise/payment-api:dev
+    build:
+      context: ..
+      dockerfile: src/Services/Payment/Presentation/Gise.Payment.Api/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Payment: Host=postgres;Database=gise_payment;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -275,25 +221,15 @@ services:
       timeout: 3s
       retries: 5
       start_period: 15s
-    depends_on:
-      payment-migrate:
-        condition: service_completed_successfully
-
-  ticket-migrate:
-    image: gise/ticket-api:dev
-    build:
-      context: ..
-      dockerfile: src/Services/Ticket/Presentation/Gise.Ticket.Api/Dockerfile
-    command: ["migrate"]
-    restart: "no"
-    environment:
-      ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
 
   ticket-api:
     image: gise/ticket-api:dev
+    build:
+      context: ..
+      dockerfile: src/Services/Ticket/Presentation/Gise.Ticket.Api/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -304,24 +240,14 @@ services:
       retries: 5
       start_period: 15s
     depends_on:
-      ticket-migrate:
-        condition: service_completed_successfully
-
-  notification-migrate:
-    image: gise/notification-api:dev
-    build:
-      context: ..
-      dockerfile: src/Services/Notification/Presentation/Gise.Notification.Api/Dockerfile
-    command: ["migrate"]
-    restart: "no"
-    environment:
-      ConnectionStrings__Notification: Host=postgres;Database=gise_notification;Username=gise;Password=${POSTGRES_PASSWORD}
-    depends_on:
       postgres:
         condition: service_healthy
 
   notification-api:
     image: gise/notification-api:dev
+    build:
+      context: ..
+      dockerfile: src/Services/Notification/Presentation/Gise.Notification.Api/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Notification: Host=postgres;Database=gise_notification;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -331,25 +257,15 @@ services:
       timeout: 3s
       retries: 5
       start_period: 15s
-    depends_on:
-      notification-migrate:
-        condition: service_completed_successfully
-
-  search-migrate:
-    image: gise/search-api:dev
-    build:
-      context: ..
-      dockerfile: src/Services/Search/Presentation/Gise.Search.Api/Dockerfile
-    command: ["migrate"]
-    restart: "no"
-    environment:
-      ConnectionStrings__Search: Host=postgres;Database=gise_search;Username=gise;Password=${POSTGRES_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
 
   search-api:
     image: gise/search-api:dev
+    build:
+      context: ..
+      dockerfile: src/Services/Search/Presentation/Gise.Search.Api/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Search: Host=postgres;Database=gise_search;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -360,8 +276,8 @@ services:
       retries: 5
       start_period: 15s
     depends_on:
-      search-migrate:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
 
   # Kalıcı verisi yok (yalnızca Redis); migration adımı da yok.
   seatmap-api:

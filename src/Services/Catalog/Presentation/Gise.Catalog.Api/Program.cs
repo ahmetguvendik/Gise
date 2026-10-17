@@ -36,13 +36,11 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-// Migration'lar servis açılırken değil, dağıtımda ayrı bir adımda uygulanır:
-//   dotnet Gise.Catalog.Api.dll migrate
-if (args.Contains("migrate"))
+// Şema açılışta migration'larla güncellenir. Aynı anda açılan kopyalar için EF Core
+// veritabanında kilit alır; migration'lar sırayla ve bir kez uygulanır.
+await using (var scope = app.Services.CreateAsyncScope())
 {
-    await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
-    return;
 }
 
 app.UseExceptionHandler();
