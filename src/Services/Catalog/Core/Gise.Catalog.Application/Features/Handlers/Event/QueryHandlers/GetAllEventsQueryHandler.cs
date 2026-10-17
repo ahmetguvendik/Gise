@@ -17,14 +17,14 @@ public sealed class GetAllEventsQueryHandler
 
     public async Task<IReadOnlyList<GetAllEventsResponse>> Handle(GetAllEventsQuery request, CancellationToken cancellationToken)
     {
-        var events = await _eventRepository.GetUpcomingAsync(_timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
+        var events = await _eventRepository.GetUpcomingPublishedAsync(_timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
 
         return events
             .Select(e => new GetAllEventsResponse
             {
                 Id = e.Id,
                 Title = e.Title,
-                Venue = e.Venue,
+                VenueId = e.VenueId,
                 StartsAt = e.StartsAt
             })
             .ToList();

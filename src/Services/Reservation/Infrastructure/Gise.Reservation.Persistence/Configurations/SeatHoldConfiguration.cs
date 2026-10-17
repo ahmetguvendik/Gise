@@ -1,0 +1,22 @@
+using Gise.Reservation.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Gise.Reservation.Persistence.Configurations;
+
+public sealed class SeatHoldConfiguration : IEntityTypeConfiguration<SeatHold>
+{
+    public void Configure(EntityTypeBuilder<SeatHold> builder)
+    {
+        builder.HasKey(h => h.Id);
+        builder.Property(h => h.Id).ValueGeneratedNever();
+
+        builder.Property(h => h.Status).HasConversion<string>().HasMaxLength(20);
+
+        // Aynı sipariş için ikinci bir tutma oluşmaz; tekrar gelen ReserveSeats komutu zararsız olur.
+        builder.HasIndex(h => h.OrderId).IsUnique();
+
+        // Süresi dolan aktif tutmaları bulan tarama için.
+        builder.HasIndex(h => h.ExpiresAt).HasFilter("status = 'Active'");
+    }
+}

@@ -12,10 +12,13 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.Property(e => e.Id).ValueGeneratedNever();
 
         builder.Property(e => e.Title).HasMaxLength(Event.TitleMaxLength).IsRequired();
-        builder.Property(e => e.Venue).HasMaxLength(Event.VenueMaxLength).IsRequired();
         builder.Property(e => e.OrganizerId).HasMaxLength(64).IsRequired();
+        builder.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
 
-        // Liste sorgusu "başlamamış etkinlikler, tarihe göre" — bu indeksle karşılanır.
-        builder.HasIndex(e => e.StartsAt);
+        // Etkinliği olan mekân silinemez.
+        builder.HasOne<Venue>().WithMany().HasForeignKey(e => e.VenueId).OnDelete(DeleteBehavior.Restrict);
+
+        // Liste sorgusu "yayındaki, başlamamış etkinlikler, tarihe göre" — bu indeksle karşılanır.
+        builder.HasIndex(e => new { e.Status, e.StartsAt });
     }
 }

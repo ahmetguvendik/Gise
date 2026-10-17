@@ -23,7 +23,8 @@ public sealed class GetEventByIdQueryHandler
         {
             Id = entity.Id,
             Title = entity.Title,
-            Venue = entity.Venue,
+            VenueId = entity.VenueId,
+            Status = entity.Status.ToString(),
             StartsAt = entity.StartsAt,
             OrganizerId = entity.OrganizerId,
             CreatedAt = entity.CreatedAt

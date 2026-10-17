@@ -4,4 +4,7 @@
     <ProjectReference Include="..\..\Infrastructure\Gise.Payment.Persistence\Gise.Payment.Persistence.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Gise.Payment.Infrastructure\Gise.Payment.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+  </ItemGroup>
 </Project>

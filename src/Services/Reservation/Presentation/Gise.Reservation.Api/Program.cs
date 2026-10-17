@@ -1,9 +1,27 @@
+using Gise.Reservation.Persistence;
+using Gise.Reservation.Persistence.Contexts;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHealthChecks();
+builder.Services.AddPersistenceServices(builder.Configuration);
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ReservationDbContext>("postgres", tags: ["ready"]);
 
 var app = builder.Build();
 
-app.MapHealthChecks("/health/live");
+// Migration'lar servis açılırken değil, dağıtımda ayrı bir adımda uygulanır:
+//   dotnet Gise.Reservation.Api.dll migrate
+if (args.Contains("migrate"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<ReservationDbContext>().Database.MigrateAsync();
+    return;
+}
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 
 app.Run();

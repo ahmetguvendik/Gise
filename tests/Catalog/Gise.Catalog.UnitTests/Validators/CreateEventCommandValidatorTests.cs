@@ -11,7 +11,7 @@ public sealed class CreateEventCommandValidatorTests
     private static CreateEventCommand ValidCommand() => new()
     {
         Title = "Duman Konseri",
-        Venue = "Harbiye Açıkhava",
+        VenueId = Guid.NewGuid(),
         StartsAt = Now.AddDays(30)
     };
 
@@ -26,12 +26,12 @@ public sealed class CreateEventCommandValidatorTests
     {
         var command = ValidCommand();
         command.Title = "";
-        command.Venue = "";
+        command.VenueId = Guid.Empty;
 
         var errors = _validator.Validate(command).Errors;
 
         Assert.Contains(errors, e => e.PropertyName == nameof(CreateEventCommand.Title) && e.ErrorMessage == "Etkinlik adı gereklidir.");
-        Assert.Contains(errors, e => e.PropertyName == nameof(CreateEventCommand.Venue) && e.ErrorMessage == "Mekân gereklidir.");
+        Assert.Contains(errors, e => e.PropertyName == nameof(CreateEventCommand.VenueId) && e.ErrorMessage == "Mekân seçilmelidir.");
     }
 
     [Fact]
