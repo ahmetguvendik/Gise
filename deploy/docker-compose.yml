@@ -31,6 +31,9 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?deploy/.env içinde KEYCLOAK_ADMIN_PASSWORD tanımlı olmalı}
       KC_HEALTH_ENABLED: "true"
+      # Realm JSON'undaki ${SMTP_...} yer tutucuları ilk kurulumda bunlarla dolar (Gmail SMTP).
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
     ports:
       - "8180:8080"
     volumes:
@@ -44,14 +47,6 @@ services:
       timeout: 5s
       retries: 30
       start_period: 30s
-
-  # Geliştirmede Keycloak'ın maillerini (e-posta doğrulama, şifre sıfırlama) yakalar; gerçek e-posta
-  # gönderilmez. SMTP (1025) yalnızca ağ içinde; gelen kutusu http://127.0.0.1:8025
-  mailpit:
-    image: axllent/mailpit:v1.31.3
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8025:8025"
 
   redis:
     image: redis:8.10.2-alpine

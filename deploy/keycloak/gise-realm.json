@@ -76,13 +76,15 @@
     }
   ],
   "smtpServer": {
-    "host": "mailpit",
-    "port": "1025",
-    "from": "noreply@gise.local",
+    "host": "smtp.gmail.com",
+    "port": "587",
+    "from": "${SMTP_USERNAME}",
     "fromDisplayName": "Gişe",
     "ssl": "false",
-    "starttls": "false",
-    "auth": "false"
+    "starttls": "true",
+    "auth": "true",
+    "user": "${SMTP_USERNAME}",
+    "password": "${SMTP_PASSWORD}"
   },
   "requiredActions": [
     { "alias": "TERMS_AND_CONDITIONS", "name": "Terms and Conditions", "providerId": "TERMS_AND_CONDITIONS", "enabled": false, "defaultAction": false, "priority": 20 },
