@@ -62,6 +62,7 @@ h2 { font-size: 18px; margin: 0 0 12px; }
 .event-card__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .event-card__head h1 { margin: 0; }
 .event-card__price { margin: 6px 0 0; font-weight: 600; }
+.event-card__action { margin-top: 12px; font-size: 14px; }
 
 .badge { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
 .badge--draft { background: var(--warning-bg); color: var(--warning-text); }

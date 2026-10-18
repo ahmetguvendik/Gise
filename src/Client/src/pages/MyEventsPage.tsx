@@ -41,6 +41,8 @@ export function MyEventsPage() {
     <>
       <h1>Etkinliklerim</h1>
 
+      <CreateEventForm token={token} venues={venues} onCreated={(id) => navigate(`/etkinlik/${id}`)} />
+
       {error && <ErrorAlert error={error} />}
       {events === null && !error ? (
         <p className="muted">Yükleniyor…</p>
@@ -63,13 +65,16 @@ export function MyEventsPage() {
                 <p className="event-card__price">
                   {event.minPrice !== null ? `${formatPrice(event.minPrice)}'den başlayan fiyatlarla` : 'Fiyat girilmedi'}
                 </p>
+                {/* Fiyat girme ve yayınlama detay sayfasında; nereden gidileceği açıkça görünsün. */}
+                <Link className="button button--ghost event-card__action" to={`/etkinlik/${event.id}`}>
+                  {event.status === 'Draft' ? 'Fiyat ve yayın →' : 'Yönet →'}
+                </Link>
               </li>
             ))}
           </ul>
         )
       )}
 
-      <CreateEventForm token={token} venues={venues} onCreated={(id) => navigate(`/etkinlik/${id}`)} />
     </>
   )
 }

@@ -13,6 +13,17 @@ interface Props {
   onSaved: () => void
 }
 
+// API alan hatalarını "prices[1].price" diye döner; kullanıcıya hangi bölüm olduğu söylenir.
+function withSectionNames(error: ApiError, submitted: VenueSection[]) {
+  const fieldErrors = Object.fromEntries(
+    Object.entries(error.fieldErrors).map(([key, messages]) => {
+      const section = submitted[Number(/^prices\[(\d+)\]/.exec(key)?.[1])]
+      return [key, section ? messages.map((message) => `${section.name}: ${message}`) : messages]
+    }),
+  )
+  return new ApiError(error.status, error.message, fieldErrors, error.detail)
+}
+
 // Her bölüm için bir fiyat. Boş bırakılan bölüm listeye girmez; kayıtlı fiyatı varsa kalkar.
 export function PriceForm({ eventId, token, sections, prices, onSaved }: Props) {
   const [values, setValues] = useState<Record<string, string>>(() =>
@@ -27,15 +38,14 @@ export function PriceForm({ eventId, token, sections, prices, onSaved }: Props) 
     setBusy(true)
     setError(null)
     setSaved(false)
+    const filled = sections.filter((s) => values[s.id].trim() !== '')
     try {
-      const items = sections
-        .filter((s) => values[s.id].trim() !== '')
-        .map((s) => ({ sectionId: s.id, price: Number(values[s.id].replace(',', '.')) }))
+      const items = filled.map((s) => ({ sectionId: s.id, price: Number(values[s.id].replace(',', '.')) }))
       await eventsApi.setPrices(eventId, items, token)
       setSaved(true)
       onSaved()
     } catch (err) {
-      setError(toApiError(err))
+      setError(withSectionNames(toApiError(err), filled))
     } finally {
       setBusy(false)
     }

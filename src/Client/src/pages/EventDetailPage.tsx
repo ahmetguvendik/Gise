@@ -66,6 +66,7 @@ export function EventDetailPage() {
       await eventsApi.publish(event.id, token!)
       setPublished(true)
       setVersion((v) => v + 1)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setActionError(toApiError(err))
     } finally {
@@ -113,7 +114,6 @@ export function EventDetailPage() {
 
       {canManage && event.status !== 'Cancelled' && (
         <PriceForm
-          key={event.prices.map((p) => `${p.sectionId}:${p.price}`).join()}
           eventId={event.id}
           token={token!}
           sections={venue.sections}
