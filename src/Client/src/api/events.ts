@@ -1,9 +1,20 @@
-import type { CreatedEvent, CreateEventInput, EventSummary } from '../types'
+import type { CreatedEvent, CreateEventInput, EventDetail, EventSummary, MyEvent, PriceInput } from '../types'
 import { request } from './http'
 
 export const eventsApi = {
   list: () => request<EventSummary[]>('/api/events'),
 
+  // Taslağı yalnızca sahibi ve admin görür; token yoksa taslak için 404 döner.
+  get: (id: string, token?: string) => request<EventDetail>(`/api/events/${id}`, { token }),
+
+  mine: (token: string) => request<MyEvent[]>('/api/events/mine', { token }),
+
   create: (input: CreateEventInput, token: string) =>
     request<CreatedEvent>('/api/events', { method: 'POST', body: input, token }),
+
+  // Liste bütün olarak gönderilir: listede olmayan bölümün fiyatı kalkar.
+  setPrices: (id: string, prices: PriceInput[], token: string) =>
+    request<unknown>(`/api/events/${id}/prices`, { method: 'PUT', body: { prices }, token }),
+
+  publish: (id: string, token: string) => request<unknown>(`/api/events/${id}/publish`, { method: 'POST', token }),
 }

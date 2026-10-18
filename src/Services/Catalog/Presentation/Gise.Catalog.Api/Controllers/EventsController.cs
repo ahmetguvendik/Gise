@@ -25,6 +25,14 @@ public sealed class EventsController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<GetAllEventsResponse>>> GetAll(CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetAllEventsQuery(), cancellationToken));
 
+    [Authorize(Policy = Policies.Organizer)]
+    [HttpGet("mine")]
+    public async Task<ActionResult<IReadOnlyList<GetMyEventsResponse>>> GetMine(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetMyEventsQuery
+        {
+            OrganizerId = User.FindFirst("sub")?.Value ?? throw UnauthorizedException.MissingClaim("sub")
+        }, cancellationToken));
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<GetEventByIdResponse>> GetById(Guid id, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetEventByIdQuery

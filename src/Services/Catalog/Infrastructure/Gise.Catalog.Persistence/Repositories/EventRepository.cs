@@ -29,6 +29,14 @@ public sealed class EventRepository : IEventRepository
             .Include(e => e.PriceCategories)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<Event>> GetByOrganizerAsync(string organizerId, CancellationToken cancellationToken)
+        => await _context.Events
+            .AsNoTracking()
+            .Include(e => e.PriceCategories)
+            .Where(e => e.OrganizerId == organizerId)
+            .OrderBy(e => e.StartsAt)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Event>> GetUpcomingPublishedAsync(DateTime from, CancellationToken cancellationToken)
         => await _context.Events
             .AsNoTracking()

@@ -3,14 +3,20 @@ import type { ProblemDetails } from '../types'
 export class ApiError extends Error {
   readonly status: number
   readonly fieldErrors: Record<string, string[]>
+  /** Ayrıntı, ör. "Fiyatı olmayan bölümler: Balkon." */
+  readonly detail?: string
 
-  constructor(status: number, message: string, fieldErrors: Record<string, string[]> = {}) {
+  constructor(status: number, message: string, fieldErrors: Record<string, string[]> = {}, detail?: string) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.fieldErrors = fieldErrors
+    this.detail = detail
   }
 }
+
+export const toApiError = (err: unknown) =>
+  err instanceof ApiError ? err : new ApiError(0, 'Beklenmeyen bir hata oluştu.')
 
 interface RequestOptions {
   method?: string
@@ -39,6 +45,7 @@ export async function request<T>(path: string, { method = 'GET', body, token }: 
       response.status,
       problem.title ?? `İstek başarısız oldu (HTTP ${response.status}).`,
       problem.errors,
+      problem.detail,
     )
   }
 

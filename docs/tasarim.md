@@ -141,6 +141,7 @@ Fiyat **bölüm başına** belirlenir: her bölümün bir etkinlikte tek fiyatı
 - Yayındaki etkinlikte fiyat değişebilir ama listeden bölüm çıkarılamaz; her bölüm yine fiyatlı kalmalıdır.
 - **Taslak görünürlüğü:** Taslak etkinliğin detayını (`GET /api/events/{id}`) yalnızca sahibi olan organizatör ve admin görür; diğer herkes 404 alır. 403 dönülmez, çünkü etkinliğin var olduğunu ele verirdi. Liste ve gRPC zaten yalnızca yayındaki etkinlikleri döndürür.
 - Etkinlik listesi her etkinliğin en düşük fiyatını döndürür (`minPrice`).
+- `GET /api/events/mine`: organizatörün kendi etkinlikleri, taslaklar dahil. Ön yüzde "Etkinliklerim" sayfası bunu kullanır; fiyat girme ve yayınlama etkinlik detay sayfasındadır.
 - Yayınlanınca `EventPublished` olayı aynı transaction'da outbox'a yazılır (bkz. 3.4).
 
 ### 3.4 Catalog: olaylar ve gRPC
@@ -299,7 +300,7 @@ Gişe/
 │   ├── Services/
 │   │   ├── Catalog/  Reservation/  Order/  Payment/
 │   │   ├── Ticket/   Notification/  Search/  SeatMap/
-│   └── Client/                    # React + Vite: api/, auth/, components/, pages/
+│   └── Client/                    # React + Vite + React Router (Telgraf gibi): api/, auth/, components/, lib/, pages/
 ├── tests/
 │   └── Catalog/                   # Gise.Catalog.UnitTests, Gise.Catalog.IntegrationTests
 └── Gise.slnx · global.json · Directory.Build.props · Directory.Packages.props

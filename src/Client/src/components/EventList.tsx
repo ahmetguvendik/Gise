@@ -1,7 +1,6 @@
+import { Link } from 'react-router-dom'
+import { formatDate, formatPrice } from '../lib/format'
 import type { EventSummary, VenueSummary } from '../types'
-
-const dateFormatter = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long', timeStyle: 'short' })
-const priceFormatter = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 2 })
 
 interface Props {
   events: EventSummary[]
@@ -21,11 +20,13 @@ export function EventList({ events, venues }: Props) {
         const venue = venueById.get(event.venueId)
         return (
           <li key={event.id} className="event-card">
-            <h3 className="event-card__title">{event.title}</h3>
+            <h3 className="event-card__title">
+              <Link to={`/etkinlik/${event.id}`}>{event.title}</Link>
+            </h3>
             <p className="muted">
-              {venue ? `${venue.name}, ${venue.city}` : 'Mekân bilgisi yok'} · {dateFormatter.format(new Date(event.startsAt))}
+              {venue ? `${venue.name}, ${venue.city}` : 'Mekân bilgisi yok'} · {formatDate(event.startsAt)}
             </p>
-            {event.minPrice !== null && <p>{priceFormatter.format(event.minPrice)}'den başlayan fiyatlarla</p>}
+            {event.minPrice !== null && <p className="event-card__price">{formatPrice(event.minPrice)}'den başlayan fiyatlarla</p>}
           </li>
         )
       })}

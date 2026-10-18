@@ -1,36 +1,34 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { ApiError } from '../api/http'
+import { ApiError, toApiError } from '../api/http'
 import { eventsApi } from '../api/events'
 import type { VenueSummary } from '../types'
+import { ErrorAlert } from './ErrorAlert'
 
 interface Props {
   token: string
   venues: VenueSummary[]
+  /** Etkinlik taslak olarak açılır; çağıran, fiyat ve yayınlama için detay sayfasına götürür. */
+  onCreated: (id: string) => void
 }
 
-export function CreateEventForm({ token, venues }: Props) {
+export function CreateEventForm({ token, venues, onCreated }: Props) {
   const [title, setTitle] = useState('')
   const [venueId, setVenueId] = useState('')
   const [startsAt, setStartsAt] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
-  const [created, setCreated] = useState<string | null>(null)
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setBusy(true)
     setError(null)
-    setCreated(null)
     try {
       // datetime-local saat dilimi taşımaz; tarayıcının yerel saati UTC'ye çevrilerek gönderilir.
       const result = await eventsApi.create({ title, venueId, startsAt: new Date(startsAt).toISOString() }, token)
-      setCreated(result.title)
-      setTitle('')
-      setVenueId('')
-      setStartsAt('')
+      onCreated(result.id)
     } catch (err) {
-      setError(err instanceof ApiError ? err : new ApiError(0, 'Beklenmeyen bir hata oluştu.'))
+      setError(toApiError(err))
     } finally {
       setBusy(false)
     }
@@ -40,20 +38,7 @@ export function CreateEventForm({ token, venues }: Props) {
     <form className="card form" onSubmit={submit}>
       <h2>Yeni etkinlik</h2>
 
-      {error && (
-        <div className="alert">
-          <strong>{error.message}</strong>
-          {Object.values(error.fieldErrors).flat().map((message) => (
-            <div key={message}>{message}</div>
-          ))}
-        </div>
-      )}
-
-      {created && (
-        <div className="notice">
-          “{created}” taslak olarak oluşturuldu. Fiyatlar girilip yayınlanınca listede görünür.
-        </div>
-      )}
+      {error && <ErrorAlert error={error} />}
 
       <label>
         Etkinlik adı
