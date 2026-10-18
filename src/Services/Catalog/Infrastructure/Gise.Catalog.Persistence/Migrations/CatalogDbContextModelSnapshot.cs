@@ -127,6 +127,12 @@ namespace Gise.Catalog.Persistence.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("trace_parent");
 
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("type");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -298,7 +304,7 @@ namespace Gise.Catalog.Persistence.Migrations
             modelBuilder.Entity("Gise.Catalog.Domain.Entities.PriceCategory", b =>
                 {
                     b.HasOne("Gise.Catalog.Domain.Entities.Event", null)
-                        .WithMany()
+                        .WithMany("PriceCategories")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
@@ -315,7 +321,7 @@ namespace Gise.Catalog.Persistence.Migrations
             modelBuilder.Entity("Gise.Catalog.Domain.Entities.Seat", b =>
                 {
                     b.HasOne("Gise.Catalog.Domain.Entities.Section", null)
-                        .WithMany()
+                        .WithMany("Seats")
                         .HasForeignKey("SectionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
@@ -325,11 +331,26 @@ namespace Gise.Catalog.Persistence.Migrations
             modelBuilder.Entity("Gise.Catalog.Domain.Entities.Section", b =>
                 {
                     b.HasOne("Gise.Catalog.Domain.Entities.Venue", null)
-                        .WithMany()
+                        .WithMany("Sections")
                         .HasForeignKey("VenueId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_sections_venues_venue_id");
+                });
+
+            modelBuilder.Entity("Gise.Catalog.Domain.Entities.Event", b =>
+                {
+                    b.Navigation("PriceCategories");
+                });
+
+            modelBuilder.Entity("Gise.Catalog.Domain.Entities.Section", b =>
+                {
+                    b.Navigation("Seats");
+                });
+
+            modelBuilder.Entity("Gise.Catalog.Domain.Entities.Venue", b =>
+                {
+                    b.Navigation("Sections");
                 });
 #pragma warning restore 612, 618
         }

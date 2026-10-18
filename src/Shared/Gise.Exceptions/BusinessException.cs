@@ -13,6 +13,11 @@ public class BusinessException : AppException
         "İptal edilmiş etkinlikte değişiklik yapılamaz.",
         $"'{eventId}' ID'li etkinlik iptal edilmiş.");
 
+    public static BusinessException EventNotPublished(Guid eventId) => new(
+        ErrorCodes.Event.NotPublished,
+        "Etkinlik yayında değil.",
+        $"'{eventId}' ID'li etkinlik satışa açık değil; koltukları yalnızca yayındaki etkinlik için verilir.");
+
     public static BusinessException EventAlreadyStarted(Guid eventId) => new(
         ErrorCodes.Event.AlreadyStarted,
         "Başlamış ya da geçmiş etkinlik yayınlanamaz.",

@@ -7,6 +7,9 @@ public class OutboxMessage : BaseEntity
 {
     public string Topic { get; set; } = string.Empty;
 
+    // Olayın tipi, ör. "EventPublished". Kafka'da başlık olarak gider; alan servis buna göre okur.
+    public string Type { get; set; } = string.Empty;
+
     // Kafka bölüm anahtarı: aynı anahtarlı olaylar aynı bölüme düşer ve sırası korunur.
     public string Key { get; set; } = string.Empty;
     public string Payload { get; set; } = string.Empty;

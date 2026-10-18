@@ -7,7 +7,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 USER $APP_UID
-EXPOSE 8080
+# 8080: REST (gateway), 8081: gRPC (yalnızca servisler arası).
+EXPOSE 8080 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src

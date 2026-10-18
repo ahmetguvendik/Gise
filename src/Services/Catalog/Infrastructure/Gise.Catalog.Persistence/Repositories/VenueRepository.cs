@@ -20,6 +20,9 @@ public sealed class VenueRepository : IVenueRepository
     public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
         => _context.Venues.AnyAsync(v => v.Id == id, cancellationToken);
 
+    public Task<Venue?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        => _context.Venues.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
+
     public async Task<IReadOnlyList<Venue>> GetAllAsync(CancellationToken cancellationToken)
         => await _context.Venues
             .AsNoTracking()

@@ -1,5 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Gise.Catalog.Application\Gise.Catalog.Application.csproj" />
+    <!-- OutboxProcessor outbox tablosunu doğrudan okur (FOR UPDATE SKIP LOCKED). -->
+    <ProjectReference Include="..\Gise.Catalog.Persistence\Gise.Catalog.Persistence.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
   </ItemGroup>
 </Project>

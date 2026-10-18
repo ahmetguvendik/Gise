@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+// Catalog'un diğer servislere açtığı senkron uç. Yalnızca Docker ağının içinden, 8081 portundan erişilir.
+package gise.catalog.v1;
+
+option csharp_namespace = "Gise.Contracts.Grpc.Catalog";
+
+service CatalogGrpc {
+  // Yayındaki etkinliğin koltukları ve fiyatları. Reservation, EventPublished gelince stoğu bununla kurar.
+  rpc GetEventSeats (GetEventSeatsRequest) returns (GetEventSeatsReply);
+}
+
+message GetEventSeatsRequest {
+  string event_id = 1;
+}
+
+message GetEventSeatsReply {
+  string event_id = 1;
+  repeated SeatItem seats = 2;
+}
+
+message SeatItem {
+  string seat_id = 1;
+  string section_id = 2;
+  string section_name = 3;
+  string row = 4;
+  int32 number = 5;
+  // Kuruş cinsinden; protobuf'ta decimal yok. 750,50 ₺ → 75050.
+  int64 price_kurus = 6;
+}

@@ -1,1 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk" />
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Core.Api" />
+    <PackageReference Include="Grpc.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Sunucu (Catalog) ve istemci (Reservation…) aynı üretilmiş koddan beslenir. -->
+    <Protobuf Include="Protos\catalog.proto" GrpcServices="Both" />
+  </ItemGroup>
+</Project>

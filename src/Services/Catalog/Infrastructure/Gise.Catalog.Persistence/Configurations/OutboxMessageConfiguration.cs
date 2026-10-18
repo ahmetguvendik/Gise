@@ -12,6 +12,7 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         builder.Property(m => m.Id).ValueGeneratedNever();
 
         builder.Property(m => m.Topic).HasMaxLength(200).IsRequired();
+        builder.Property(m => m.Type).HasMaxLength(100).IsRequired();
         builder.Property(m => m.Key).HasMaxLength(200).IsRequired();
         builder.Property(m => m.Payload).HasColumnType("jsonb").IsRequired();
         builder.Property(m => m.TraceParent).HasMaxLength(64);

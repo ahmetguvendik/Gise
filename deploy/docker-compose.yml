@@ -178,6 +178,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # Outbox olayları Kafka'ya gönderir; topic'i açılışta oluşturur.
+      kafka:
+        condition: service_healthy
 
   reservation-api:
     image: gise/reservation-api:dev

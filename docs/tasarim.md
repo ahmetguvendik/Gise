@@ -140,7 +140,16 @@ Fiyat **bölüm başına** belirlenir: her bölümün bir etkinlikte tek fiyatı
 - **Yayınlama** (`POST /api/events/{id}/publish`): yalnızca sahibi olan organizatör ya da admin; yalnızca taslak ve henüz başlamamış etkinlik. Mekânın **her bölümünün** fiyatı girilmiş olmalıdır, yoksa satılamayan koltuk kalır (422, eksik bölümler `detail`'de). Yayındaki etkinlik tekrar yayınlanamaz (409).
 - Yayındaki etkinlikte fiyat değişebilir ama listeden bölüm çıkarılamaz; her bölüm yine fiyatlı kalmalıdır.
 - Etkinlik listesi her etkinliğin en düşük fiyatını döndürür (`minPrice`).
-- Yayınlanınca Kafka'ya `EventPublished` gitmesi outbox adımında eklenecek.
+- Yayınlanınca `EventPublished` olayı aynı transaction'da outbox'a yazılır (bkz. 3.4).
+
+### 3.4 Catalog: olaylar ve gRPC
+
+- **`EventPublished`** (`Gise.Contracts/Events`) küçük bir olaydır: etkinlik, mekân, başlık, tarih, mekân adı, şehir ve en düşük fiyat. Koltuk listesi olayda **yoktur**; her servis kendi ihtiyacını Catalog'a sorar.
+- Olaylar `catalog.events` topic'ine gider. Anahtar etkinlik ID'sidir, böylece aynı etkinliğin olayları aynı bölüme düşer ve sırası korunur. Başlıklar: `type` (ör. `EventPublished`), `message-id` (alan tarafın inbox'ı tekrarı bununla yakalar), `traceparent`.
+- **`OutboxProcessor`** (Catalog.Infrastructure/Messaging) birkaç saniyede bir bekleyen satırları `FOR UPDATE SKIP LOCKED` ile alıp gönderir. Aynı anahtarın daha eski bir olayı beklerken yenisi onu geçmez. Gönderilemeyen satır artan aralıklarla (en fazla 5 dk) yeniden denenir; `MaxRetryCount` aşılınca dead-letter olur ve `/health/ready` "Degraded" döner. Gönderilmiş satırlar `RetentionDays` sonra silinir. Ayarlar appsettings'te: `Kafka` ve `Outbox` bölümleri.
+- Topic'i olayı yayan servis açılışta oluşturur; Kafka'da otomatik oluşturma kapalıdır.
+- **gRPC** (`Gise.Contracts/Protos/catalog.proto`): `GetEventSeats(event_id)` yayındaki etkinliğin koltuklarını bölüm, sıra, numara ve kuruş cinsinden fiyatla döndürür. Reservation, `EventPublished` gelince stoğu bununla kurar. Catalog bunu yalnızca **8081** portunda (HTTP/2) sunar; bu port Docker ağının dışına ve gateway'e açık değildir. Hatalar gRPC durum koduna çevrilir: 404 → `NotFound`, iş kuralı → `FailedPrecondition`; `error-code` başlığı merkezi hata kodunu taşır.
+- Servisler arası kimlik doğrulama (Keycloak servis token'ı) henüz yok.
 - Biçim kuralları (fiyat aralığı, ondalık, tekrar eden bölüm) validator'da; veritabanına bakan kurallar (sahiplik, iptal, bölümün mekâna ait olması) `SetEventPricesCommandHandler`'da.
 
 ---
