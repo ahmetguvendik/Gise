@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
 import { accountUrl } from '../auth/oidcConfig'
 import { useSessionReady } from '../auth/SilentSignin'
-import { canManageEvents } from '../auth/roles'
+import { canManageEvents, isAdmin } from '../auth/roles'
 import { Logo, TicketMark } from './Logo'
 
 // Giriş ve kayıttan sonra kullanıcı bulunduğu sayfaya döner.
@@ -36,6 +36,11 @@ export function Layout() {
             {canManageEvents(auth.user) && (
               <NavLink to="/etkinliklerim" className={navClass}>
                 Etkinliklerim
+              </NavLink>
+            )}
+            {isAdmin(auth.user) && (
+              <NavLink to="/mekanlar" className={navClass}>
+                Mekânlar
               </NavLink>
             )}
           </nav>

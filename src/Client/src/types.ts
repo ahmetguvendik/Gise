@@ -59,6 +59,10 @@ export interface VenueSummary {
   id: string
   name: string
   city: string
+  sectionCount: number
+  seatCount: number
+  /** Etkinliği olan mekânın bölüm düzeni değişmez, mekân silinemez. */
+  hasEvents: boolean
 }
 
 export interface VenueRow {
@@ -72,8 +76,18 @@ export interface VenueSection {
   rows: VenueRow[]
 }
 
-export interface VenueDetail extends VenueSummary {
+export interface VenueDetail {
+  id: string
+  name: string
+  city: string
+  hasEvents: boolean
   sections: VenueSection[]
+}
+
+/** Mekân oluşturma ve düzen güncellemede gönderilen bölüm; koltuklar sıradan üretilir. */
+export interface VenueSectionInput {
+  name: string
+  rows: VenueRow[]
 }
 
 /** API'nin hata gövdesi (RFC 7807 ProblemDetails). */

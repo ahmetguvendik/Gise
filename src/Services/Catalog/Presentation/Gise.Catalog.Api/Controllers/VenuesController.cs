@@ -35,4 +35,29 @@ public sealed class VenuesController : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
+
+    [Authorize(Policy = Policies.VenueManager)]
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<UpdateVenueResponse>> Update(Guid id, [FromBody] UpdateVenueCommand command, CancellationToken cancellationToken)
+    {
+        command.Id = id;
+        return Ok(await _mediator.Send(command, cancellationToken));
+    }
+
+    // Bölüm düzeni yalnızca mekânda etkinlik yokken değişir (aksi 422).
+    [Authorize(Policy = Policies.VenueManager)]
+    [HttpPut("{id:guid}/layout")]
+    public async Task<ActionResult<UpdateVenueLayoutResponse>> UpdateLayout(Guid id, [FromBody] UpdateVenueLayoutCommand command, CancellationToken cancellationToken)
+    {
+        command.Id = id;
+        return Ok(await _mediator.Send(command, cancellationToken));
+    }
+
+    [Authorize(Policy = Policies.VenueManager)]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteVenueCommand { Id = id }, cancellationToken);
+        return NoContent();
+    }
 }

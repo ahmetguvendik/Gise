@@ -10,6 +10,8 @@ import { EventDetailPage } from './pages/EventDetailPage'
 import { EventsPage } from './pages/EventsPage'
 import { MyEventsPage } from './pages/MyEventsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { VenueEditorPage } from './pages/VenueEditorPage'
+import { VenuesPage } from './pages/VenuesPage'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
@@ -29,6 +31,32 @@ createRoot(document.getElementById('root')!).render(
                 element={
                   <Guard roles={['organizer', 'admin']}>
                     <MyEventsPage />
+                  </Guard>
+                }
+              />
+
+              {/* yalnızca admin */}
+              <Route
+                path="mekanlar"
+                element={
+                  <Guard roles={['admin']}>
+                    <VenuesPage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="mekan/yeni"
+                element={
+                  <Guard roles={['admin']}>
+                    <VenueEditorPage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="mekan/:id/duzenle"
+                element={
+                  <Guard roles={['admin']}>
+                    <VenueEditorPage />
                   </Guard>
                 }
               />

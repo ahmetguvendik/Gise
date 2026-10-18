@@ -8,6 +8,11 @@ public class BusinessException : AppException
     {
     }
 
+    public static BusinessException VenueHasEvents(Guid venueId) => new(
+        ErrorCodes.Venue.HasEvents,
+        "Bu mekânda etkinlik olduğu için bölüm düzeni değiştirilemez ve mekân silinemez.",
+        $"'{venueId}' ID'li mekânda en az bir etkinlik (taslak dahil) var.");
+
     public static BusinessException EventCancelled(Guid eventId) => new(
         ErrorCodes.Event.Cancelled,
         "İptal edilmiş etkinlikte değişiklik yapılamaz.",

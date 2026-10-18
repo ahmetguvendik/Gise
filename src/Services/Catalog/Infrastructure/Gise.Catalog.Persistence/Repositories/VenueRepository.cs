@@ -29,6 +29,33 @@ public sealed class VenueRepository : IVenueRepository
             .OrderBy(v => v.City).ThenBy(v => v.Name)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, (int SectionCount, int SeatCount)>> GetLayoutStatsAsync(CancellationToken cancellationToken)
+    {
+        var sections = await _context.Sections
+            .GroupBy(s => s.VenueId)
+            .Select(g => new { VenueId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.VenueId, x => x.Count, cancellationToken);
+
+        var seats = await _context.Seats
+            .Join(_context.Sections, seat => seat.SectionId, section => section.Id, (_, section) => section.VenueId)
+            .GroupBy(venueId => venueId)
+            .Select(g => new { VenueId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.VenueId, x => x.Count, cancellationToken);
+
+        return sections.ToDictionary(s => s.Key, s => (s.Value, seats.GetValueOrDefault(s.Key)));
+    }
+
+    public Task<Venue?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
+        => _context.Venues.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
+
+    public Task<Venue?> GetWithLayoutForUpdateAsync(Guid id, CancellationToken cancellationToken)
+        => _context.Venues
+            .Include(v => v.Sections).ThenInclude(s => s.Seats)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
+
+    public void Remove(Venue venue) => _context.Venues.Remove(venue);
+
     public async Task<IReadOnlyList<Section>> GetSectionsAsync(Guid venueId, CancellationToken cancellationToken)
         => await _context.Sections
             .AsNoTracking()

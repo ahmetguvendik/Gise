@@ -16,6 +16,7 @@ public static class ErrorCodes
     public static class Venue
     {
         public const string NotFound = "VENUE_NOT_FOUND";
+        public const string HasEvents = "VENUE_HAS_EVENTS";
     }
 
     public static class Event

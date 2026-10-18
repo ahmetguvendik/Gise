@@ -9,10 +9,12 @@ namespace Gise.Catalog.Application.Features.Handlers.Venue.QueryHandlers;
 public sealed class GetVenueByIdQueryHandler : IRequestHandler<GetVenueByIdQuery, GetVenueByIdResponse>
 {
     private readonly IVenueRepository _venueRepository;
+    private readonly IEventRepository _eventRepository;
 
-    public GetVenueByIdQueryHandler(IVenueRepository venueRepository)
+    public GetVenueByIdQueryHandler(IVenueRepository venueRepository, IEventRepository eventRepository)
     {
         _venueRepository = venueRepository;
+        _eventRepository = eventRepository;
     }
 
     public async Task<GetVenueByIdResponse> Handle(GetVenueByIdQuery request, CancellationToken cancellationToken)
@@ -25,6 +27,7 @@ public sealed class GetVenueByIdQueryHandler : IRequestHandler<GetVenueByIdQuery
             Id = venue.Id,
             Name = venue.Name,
             City = venue.City,
+            HasEvents = await _eventRepository.AnyForVenueAsync(venue.Id, cancellationToken),
             Sections = venue.Sections
                 .OrderBy(s => s.Name)
                 .Select(s => new VenueSectionResponse

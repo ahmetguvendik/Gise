@@ -29,6 +29,12 @@ public sealed class EventRepository : IEventRepository
             .Include(e => e.PriceCategories)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
+    public Task<bool> AnyForVenueAsync(Guid venueId, CancellationToken cancellationToken)
+        => _context.Events.AnyAsync(e => e.VenueId == venueId, cancellationToken);
+
+    public async Task<IReadOnlySet<Guid>> GetVenueIdsWithEventsAsync(CancellationToken cancellationToken)
+        => (await _context.Events.Select(e => e.VenueId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
+
     public async Task<IReadOnlyList<Event>> GetByOrganizerAsync(string organizerId, CancellationToken cancellationToken)
         => await _context.Events
             .AsNoTracking()

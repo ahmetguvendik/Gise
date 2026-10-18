@@ -9,6 +9,10 @@ public interface IEventRepository
     // Fiyatlarıyla birlikte, değişiklikler izlenir.
     Task<Domain.Entities.Event?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken);
 
+    // Mekânda (taslak dahil) etkinlik var mı: varsa düzeni değişmez, mekân silinemez.
+    Task<bool> AnyForVenueAsync(Guid venueId, CancellationToken cancellationToken);
+    Task<IReadOnlySet<Guid>> GetVenueIdsWithEventsAsync(CancellationToken cancellationToken);
+
     // Organizatörün tüm etkinlikleri (taslaklar dahil), fiyatlarıyla, tarihe göre sıralı.
     Task<IReadOnlyList<Domain.Entities.Event>> GetByOrganizerAsync(string organizerId, CancellationToken cancellationToken);
 

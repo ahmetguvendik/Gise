@@ -6,6 +6,9 @@ public sealed class GetVenueByIdResponse
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
+
+    // Etkinliği olan mekânın düzeni değişmez, mekân silinemez.
+    public bool HasEvents { get; set; }
     public List<VenueSectionResponse> Sections { get; set; } = [];
 }
 
