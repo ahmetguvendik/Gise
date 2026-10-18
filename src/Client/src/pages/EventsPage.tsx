@@ -2,24 +2,27 @@ import { useEffect, useState } from 'react'
 import { useAuth } from 'react-oidc-context'
 import { ApiError } from '../api/http'
 import { eventsApi } from '../api/events'
+import { venuesApi } from '../api/venues'
 import { canManageEvents } from '../auth/roles'
 import { CreateEventForm } from '../components/CreateEventForm'
 import { EventList } from '../components/EventList'
-import type { EventSummary } from '../types'
+import type { EventSummary, VenueSummary } from '../types'
 
 export function EventsPage() {
   const auth = useAuth()
   const [events, setEvents] = useState<EventSummary[] | null>(null)
+  const [venues, setVenues] = useState<VenueSummary[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [version, setVersion] = useState(0)
 
   useEffect(() => {
     // Geç gelen eski bir yanıt, yenisinin üzerine yazmasın.
     let ignore = false
-    eventsApi.list().then(
-      (data) => {
+    // Liste yalnızca mekân ID'si döndürüyor; ad ve şehir mekân listesinden eşleştirilir.
+    Promise.all([eventsApi.list(), venuesApi.list()]).then(
+      ([eventData, venueData]) => {
         if (ignore) return
-        setEvents(data)
+        setEvents(eventData)
+        setVenues(venueData)
         setError(null)
       },
       (err) => {
@@ -29,7 +32,7 @@ export function EventsPage() {
     return () => {
       ignore = true
     }
-  }, [version])
+  }, [])
 
   const token = auth.user?.access_token
 
@@ -38,10 +41,10 @@ export function EventsPage() {
       <h1>Yaklaşan etkinlikler</h1>
 
       {error && <div className="alert">{error}</div>}
-      {events === null && !error ? <p className="muted">Yükleniyor…</p> : events && <EventList events={events} />}
+      {events === null && !error ? <p className="muted">Yükleniyor…</p> : events && <EventList events={events} venues={venues} />}
 
       {token && canManageEvents(auth.user) && (
-        <CreateEventForm token={token} onCreated={() => setVersion((v) => v + 1)} />
+        <CreateEventForm token={token} venues={venues} />
       )}
     </main>
   )
