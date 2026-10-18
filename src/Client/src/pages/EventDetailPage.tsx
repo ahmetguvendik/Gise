@@ -5,6 +5,7 @@ import { ApiError, toApiError } from '../api/http'
 import { eventsApi } from '../api/events'
 import { venuesApi } from '../api/venues'
 import { isAdmin } from '../auth/roles'
+import { useSessionReady } from '../auth/SilentSignin'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { Poster } from '../components/Poster'
 import { PriceForm } from '../components/PriceForm'
@@ -15,6 +16,7 @@ import type { EventDetail, VenueDetail } from '../types'
 export function EventDetailPage() {
   const { id = '' } = useParams()
   const auth = useAuth()
+  const sessionReady = useSessionReady()
   const token = auth.user?.access_token
   const [event, setEvent] = useState<EventDetail | null>(null)
   const [venue, setVenue] = useState<VenueDetail | null>(null)
@@ -25,8 +27,8 @@ export function EventDetailPage() {
   const [published, setPublished] = useState(false)
 
   useEffect(() => {
-    // Taslağı yalnızca sahibi görür: oturum yüklenmeden istenirse token gitmez ve 404 döner.
-    if (auth.isLoading) return
+    // Taslağı yalnızca sahibi görür: sessiz giriş bitmeden istenirse token gitmez ve 404 döner.
+    if (!sessionReady) return
     let ignore = false
     eventsApi
       .get(id, token)
@@ -43,7 +45,7 @@ export function EventDetailPage() {
     return () => {
       ignore = true
     }
-  }, [id, token, auth.isLoading, version])
+  }, [id, token, sessionReady, version])
 
   if (loadError?.status === 404) {
     return (

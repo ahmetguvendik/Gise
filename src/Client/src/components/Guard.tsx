@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useAuth } from 'react-oidc-context'
 import { ROLE_LABELS, hasAnyRole, rolesOf } from '../auth/roles'
+import { useSessionReady } from '../auth/SilentSignin'
 
 /**
  * Route seviyesinde erişim kontrolü. Bu yalnızca arayüzü gizler —
@@ -10,8 +11,9 @@ import { ROLE_LABELS, hasAnyRole, rolesOf } from '../auth/roles'
  */
 export function Guard({ roles, children }: { roles?: string[]; children: ReactNode }) {
   const auth = useAuth()
+  const sessionReady = useSessionReady()
 
-  if (auth.isLoading) {
+  if (!sessionReady) {
     return (
       <div className="container page">
         <p className="muted">Yükleniyor…</p>

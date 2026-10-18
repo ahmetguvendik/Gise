@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
 import { accountUrl } from '../auth/oidcConfig'
+import { useSessionReady } from '../auth/SilentSignin'
 import { canManageEvents } from '../auth/roles'
 import { Logo, TicketMark } from './Logo'
 
@@ -10,6 +11,7 @@ const here = () => window.location.origin + window.location.pathname
 
 export function Layout() {
   const auth = useAuth()
+  const sessionReady = useSessionReady()
   const { pathname } = useLocation()
 
   // Sayfa değişince en üstten başla; BrowserRouter kaydırma konumunu kendisi sıfırlamıyor.
@@ -38,7 +40,7 @@ export function Layout() {
             )}
           </nav>
 
-          {auth.isLoading ? null : auth.isAuthenticated ? (
+          {!sessionReady ? null : auth.isAuthenticated ? (
             <div className="header__user">
               <span className="header__name">{auth.user?.profile.name ?? auth.user?.profile.preferred_username}</span>
               <a className="button button--outline" href={accountUrl}>
