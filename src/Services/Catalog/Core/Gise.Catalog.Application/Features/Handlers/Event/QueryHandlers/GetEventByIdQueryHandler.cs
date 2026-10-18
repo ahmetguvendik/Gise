@@ -1,6 +1,7 @@
 using Gise.Catalog.Application.Features.Queries.Event.Request;
 using Gise.Catalog.Application.Features.Queries.Event.Response;
 using Gise.Catalog.Application.Interfaces;
+using Gise.Catalog.Domain.Enums;
 using Gise.Exceptions;
 using MediatR;
 
@@ -21,6 +22,10 @@ public sealed class GetEventByIdQueryHandler : IRequestHandler<GetEventByIdQuery
     {
         var entity = await _eventRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw NotFoundException.Event(request.Id);
+
+        // Taslak, sahibi ve admin dışındakiler için yokmuş gibi davranır: 403 etkinliğin var olduğunu ele verirdi.
+        if (entity.Status == EventStatus.Draft && !request.IsAdmin && entity.OrganizerId != request.UserId)
+            throw NotFoundException.Event(request.Id);
 
         var sectionNames = (await _venueRepository.GetSectionsAsync(entity.VenueId, cancellationToken))
             .ToDictionary(s => s.Id, s => s.Name);

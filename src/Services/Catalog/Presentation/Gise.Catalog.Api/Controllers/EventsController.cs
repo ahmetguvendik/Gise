@@ -27,7 +27,12 @@ public sealed class EventsController : ControllerBase
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<GetEventByIdResponse>> GetById(Guid id, CancellationToken cancellationToken)
-        => Ok(await _mediator.Send(new GetEventByIdQuery { Id = id }, cancellationToken));
+        => Ok(await _mediator.Send(new GetEventByIdQuery
+        {
+            Id = id,
+            UserId = User.FindFirst("sub")?.Value,
+            IsAdmin = User.IsInRole(Roles.Admin)
+        }, cancellationToken));
 
     [Authorize(Policy = Policies.Organizer)]
     [HttpPost]
