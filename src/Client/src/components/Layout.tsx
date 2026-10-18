@@ -1,24 +1,33 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
 import { accountUrl } from '../auth/oidcConfig'
 import { canManageEvents } from '../auth/roles'
+import { Logo, TicketMark } from './Logo'
 
 // Giriş ve kayıttan sonra kullanıcı bulunduğu sayfaya döner.
 const here = () => window.location.origin + window.location.pathname
 
 export function Layout() {
   const auth = useAuth()
+  const { pathname } = useLocation()
+
+  // Sayfa değişince en üstten başla; BrowserRouter kaydırma konumunu kendisi sıfırlamıyor.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
   const navClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'nav__link is-active' : 'nav__link')
 
   return (
     <>
       <header className="header">
         <div className="container header__inner">
-          <NavLink to="/" className="brand">
-            Gişe
-          </NavLink>
+          <Link to="/" className="brand" aria-label="Gişe ana sayfa">
+            <TicketMark />
+            <span className="brand__name">Gişe</span>
+          </Link>
 
-          <nav className="nav">
+          <nav className="nav" aria-label="Ana menü">
             <NavLink to="/" end className={navClass}>
               Etkinlikler
             </NavLink>
@@ -31,8 +40,8 @@ export function Layout() {
 
           {auth.isLoading ? null : auth.isAuthenticated ? (
             <div className="header__user">
-              <span>{auth.user?.profile.name ?? auth.user?.profile.preferred_username}</span>
-              <a className="button button--ghost" href={accountUrl}>
+              <span className="header__name">{auth.user?.profile.name ?? auth.user?.profile.preferred_username}</span>
+              <a className="button button--outline" href={accountUrl}>
                 Hesabım
               </a>
               <button className="button button--ghost" onClick={() => void auth.signoutRedirect()}>
@@ -43,7 +52,7 @@ export function Layout() {
             <div className="header__user">
               {/* prompt=create: Keycloak giriş yerine doğrudan kayıt formunu açar. */}
               <button
-                className="button button--ghost"
+                className="button button--outline"
                 onClick={() => void auth.signinRedirect({ prompt: 'create', redirect_uri: here() })}
               >
                 Kayıt ol
@@ -56,9 +65,16 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="container page">
+      <main>
         <Outlet />
       </main>
+
+      <footer className="footer">
+        <div className="container footer__inner">
+          <Logo small />
+          <p className="muted">Konser, tiyatro ve gösteri biletleri</p>
+        </div>
+      </footer>
     </>
   )
 }

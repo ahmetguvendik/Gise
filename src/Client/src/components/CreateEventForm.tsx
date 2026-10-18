@@ -35,36 +35,38 @@ export function CreateEventForm({ token, venues, onCreated }: Props) {
   }
 
   return (
-    <form className="card form" onSubmit={submit}>
-      <h2>Yeni etkinlik</h2>
+    <form className="card card--quiet form" onSubmit={submit}>
+      <h2 className="form__title">Yeni etkinlik</h2>
 
       {error && <ErrorAlert error={error} />}
 
-      <label>
-        Etkinlik adı
-        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
-      </label>
-      <label>
-        Mekân
-        <select value={venueId} onChange={(e) => setVenueId(e.target.value)} required disabled={venues.length === 0}>
-          <option value="" disabled>
-            {venues.length === 0 ? 'Henüz mekân yok; mekânları admin ekler' : 'Mekân seçin'}
-          </option>
-          {venues.map((venue) => (
-            <option key={venue.id} value={venue.id}>
-              {venue.name} — {venue.city}
+      <div className="form__row">
+        <label>
+          Etkinlik adı
+          <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
+        </label>
+        <label>
+          Mekân
+          <select value={venueId} onChange={(e) => setVenueId(e.target.value)} required disabled={venues.length === 0}>
+            <option value="" disabled>
+              {venues.length === 0 ? 'Henüz mekân yok; mekânları admin ekler' : 'Mekân seçin'}
             </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Tarih ve saat
-        <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
-      </label>
+            {venues.map((venue) => (
+              <option key={venue.id} value={venue.id}>
+                {venue.name} — {venue.city}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Tarih ve saat
+          <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
+        </label>
 
-      <button className="button" disabled={busy || venues.length === 0}>
-        {busy ? 'Kaydediliyor…' : 'Oluştur'}
-      </button>
+        <button className="button" disabled={busy || venues.length === 0}>
+          {busy ? 'Kaydediliyor…' : 'Oluştur'}
+        </button>
+      </div>
     </form>
   )
 }

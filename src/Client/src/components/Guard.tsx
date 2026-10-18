@@ -11,30 +11,40 @@ import { ROLE_LABELS, hasAnyRole, rolesOf } from '../auth/roles'
 export function Guard({ roles, children }: { roles?: string[]; children: ReactNode }) {
   const auth = useAuth()
 
-  if (auth.isLoading) return <p className="muted">Yükleniyor…</p>
+  if (auth.isLoading) {
+    return (
+      <div className="container page">
+        <p className="muted">Yükleniyor…</p>
+      </div>
+    )
+  }
 
   if (!auth.isAuthenticated) {
     return (
-      <div className="card empty">
-        <h1>Bu sayfa için giriş yapmalısınız</h1>
-        <button
-          className="button"
-          onClick={() => void auth.signinRedirect({ redirect_uri: window.location.origin + window.location.pathname })}
-        >
-          Giriş yap
-        </button>
+      <div className="container page">
+        <div className="card empty">
+          <h1>Bu sayfa için giriş yapmalısınız</h1>
+          <button
+            className="button button--lg"
+            onClick={() => void auth.signinRedirect({ redirect_uri: window.location.origin + window.location.pathname })}
+          >
+            Giriş yap
+          </button>
+        </div>
       </div>
     )
   }
 
   if (roles && !hasAnyRole(auth.user, roles)) {
     return (
-      <div className="card empty">
-        <h1>Bu sayfa için yetkiniz yok</h1>
-        <p className="muted">
-          Gerekli rol: <strong>{roles.map((role) => ROLE_LABELS[role] ?? role).join(' veya ')}</strong>. Mevcut
-          rolleriniz: <strong>{rolesOf(auth.user).map((role) => ROLE_LABELS[role]).filter(Boolean).join(', ') || 'yok'}</strong>.
-        </p>
+      <div className="container page">
+        <div className="card empty">
+          <h1>Bu sayfa için yetkiniz yok</h1>
+          <p className="muted">
+            Gerekli rol: <strong>{roles.map((role) => ROLE_LABELS[role] ?? role).join(' veya ')}</strong>. Mevcut
+            rolleriniz: <strong>{rolesOf(auth.user).map((role) => ROLE_LABELS[role]).filter(Boolean).join(', ') || 'yok'}</strong>.
+          </p>
+        </div>
       </div>
     )
   }

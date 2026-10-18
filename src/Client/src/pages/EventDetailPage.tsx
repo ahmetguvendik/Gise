@@ -6,9 +6,10 @@ import { eventsApi } from '../api/events'
 import { venuesApi } from '../api/venues'
 import { isAdmin } from '../auth/roles'
 import { ErrorAlert } from '../components/ErrorAlert'
+import { Poster } from '../components/Poster'
 import { PriceForm } from '../components/PriceForm'
 import { StatusBadge } from '../components/StatusBadge'
-import { formatDate, formatPrice } from '../lib/format'
+import { formatLongDate, formatPrice, formatTime } from '../lib/format'
 import type { EventDetail, VenueDetail } from '../types'
 
 export function EventDetailPage() {
@@ -46,17 +47,35 @@ export function EventDetailPage() {
 
   if (loadError?.status === 404) {
     return (
-      <div className="card empty">
-        <h1>Etkinlik bulunamadı</h1>
-        <Link to="/">Etkinliklere dön</Link>
+      <div className="container page">
+        <div className="card empty">
+          <h1>Etkinlik bulunamadı</h1>
+          <p className="muted">Etkinlik kaldırılmış ya da henüz yayınlanmamış olabilir.</p>
+          <Link className="button" to="/">
+            Etkinliklere dön
+          </Link>
+        </div>
       </div>
     )
   }
-  if (loadError) return <ErrorAlert error={loadError} />
-  if (!event || !venue) return <p className="muted">Yükleniyor…</p>
+  if (loadError) {
+    return (
+      <div className="container page">
+        <ErrorAlert error={loadError} />
+      </div>
+    )
+  }
+  if (!event || !venue) {
+    return (
+      <div className="container page">
+        <div className="skeleton" />
+      </div>
+    )
+  }
 
   const priceBySection = new Map(event.prices.map((p) => [p.sectionId, p.price]))
   const unpriced = venue.sections.filter((s) => !priceBySection.has(s.id))
+  const minPrice = event.prices.length > 0 ? Math.min(...event.prices.map((p) => p.price)) : null
   const canManage = !!token && (isAdmin(auth.user) || auth.user?.profile.sub === event.organizerId)
 
   const publish = async () => {
@@ -75,66 +94,107 @@ export function EventDetailPage() {
   }
 
   return (
-    <>
-      <div className="event-card__head">
-        <h1>{event.title}</h1>
-        <StatusBadge status={event.status} />
-      </div>
-      <p className="muted">
-        {venue.name}, {venue.city} · {formatDate(event.startsAt)}
-      </p>
+    <div className="container page">
+      <Link className="back-link" to={canManage ? '/etkinliklerim' : '/'}>
+        ← {canManage ? 'Etkinliklerim' : 'Etkinlikler'}
+      </Link>
 
       {published && <div className="notice">Etkinlik yayınlandı; artık herkese açık listede görünüyor.</div>}
       {actionError && <ErrorAlert error={actionError} />}
 
-      <section className="card">
-        <h2>Bölümler</h2>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Bölüm</th>
-              <th>Koltuk</th>
-              <th>Fiyat</th>
-            </tr>
-          </thead>
-          <tbody>
-            {venue.sections.map((section) => {
-              const price = priceBySection.get(section.id)
-              return (
-                <tr key={section.id}>
-                  <td>{section.name}</td>
-                  <td>{section.rows.reduce((sum, row) => sum + row.seatCount, 0)}</td>
-                  <td>{price !== undefined ? formatPrice(price) : <span className="muted">Girilmedi</span>}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      <section className="detail-hero">
+        <Poster id={event.id} title={event.title} startsAt={event.startsAt} size="lg" />
+        <div className="detail-hero__info">
+          {(canManage || event.status !== 'Published') && <StatusBadge status={event.status} />}
+          <h1 className="detail-hero__title">{event.title}</h1>
+          <ul className="meta-list">
+            <li>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="16" rx="3" />
+                <path d="M16 3v4M8 3v4M3 10h18" />
+              </svg>
+              {formatLongDate(event.startsAt)}
+            </li>
+            <li>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+              {formatTime(event.startsAt)}
+            </li>
+            <li>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" />
+                <circle cx="12" cy="9.5" r="2.5" />
+              </svg>
+              {venue.name}, {venue.city}
+            </li>
+          </ul>
+          {minPrice !== null && (
+            <p className="price-lead">
+              <strong>{formatPrice(minPrice)}</strong>'den başlayan fiyatlarla
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section className="stack" aria-labelledby="bolumler">
+        <h2 id="bolumler" className="section-title">
+          Bölümler ve fiyatlar
+        </h2>
+        <ul className="section-grid">
+          {venue.sections.map((section) => {
+            const price = priceBySection.get(section.id)
+            return (
+              <li key={section.id} className="section-card">
+                <div className="section-card__head">
+                  <h3 className="section-card__name">{section.name}</h3>
+                  <span className="muted">{section.rows.reduce((sum, row) => sum + row.seatCount, 0)} koltuk</span>
+                </div>
+                <div className="perforation" />
+                {price !== undefined ? (
+                  <span className="section-card__price">{formatPrice(price)}</span>
+                ) : (
+                  <span className="section-card__price section-card__price--empty">Fiyat girilmedi</span>
+                )}
+              </li>
+            )
+          })}
+        </ul>
       </section>
 
       {canManage && event.status !== 'Cancelled' && (
-        <PriceForm
-          eventId={event.id}
-          token={token!}
-          sections={venue.sections}
-          prices={event.prices}
-          onSaved={() => setVersion((v) => v + 1)}
-        />
-      )}
+        <section className="card card--dashed manage" aria-labelledby="yonetim">
+          <div className="manage__head">
+            <h2 id="yonetim" className="manage__title">
+              Yönetim
+            </h2>
+            <span className="muted">Yalnızca etkinliğin sahibi ve yönetici görür</span>
+          </div>
 
-      {canManage && event.status === 'Draft' && (
-        <section className="card form">
-          <h2>Yayınla</h2>
-          <p className="muted">
-            {unpriced.length > 0
-              ? `Yayınlamak için her bölümün fiyatı girilmeli. Eksik: ${unpriced.map((s) => s.name).join(', ')}.`
-              : 'Etkinlik herkese açık listeye düşer ve satışa açılır.'}
-          </p>
-          <button className="button" onClick={() => void publish()} disabled={publishing || unpriced.length > 0}>
-            {publishing ? 'Yayınlanıyor…' : 'Yayınla'}
-          </button>
+          <PriceForm
+            eventId={event.id}
+            token={token!}
+            sections={venue.sections}
+            prices={event.prices}
+            onSaved={() => setVersion((v) => v + 1)}
+          />
+
+          {event.status === 'Draft' && (
+            <div className="manage__block">
+              <h3>Yayınla</h3>
+              <p className="muted">
+                {unpriced.length > 0
+                  ? `Yayınlamak için her bölümün fiyatı girilmeli. Eksik: ${unpriced.map((s) => s.name).join(', ')}.`
+                  : 'Etkinlik herkese açık listeye düşer ve satışa açılır.'}
+              </p>
+              <button className="button button--lg" onClick={() => void publish()} disabled={publishing || unpriced.length > 0}>
+                {publishing ? 'Yayınlanıyor…' : 'Yayınla'}
+              </button>
+            </div>
+          )}
         </section>
       )}
-    </>
+    </div>
   )
 }

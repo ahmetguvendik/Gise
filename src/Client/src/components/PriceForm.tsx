@@ -52,29 +52,31 @@ export function PriceForm({ eventId, token, sections, prices, onSaved }: Props) 
   }
 
   return (
-    <form className="card form" onSubmit={submit}>
-      <h2>Fiyatlar</h2>
+    <form className="form" onSubmit={submit}>
+      <h3>Fiyatlar</h3>
 
       {error && <ErrorAlert error={error} />}
       {saved && <div className="notice">Fiyatlar kaydedildi.</div>}
 
-      {sections.map((section) => (
-        <label key={section.id}>
-          {section.name} (₺)
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            inputMode="decimal"
-            value={values[section.id]}
-            onChange={(e) => setValues((current) => ({ ...current, [section.id]: e.target.value }))}
-          />
-        </label>
-      ))}
+      <div className="form__row">
+        {sections.map((section) => (
+          <label key={section.id}>
+            {section.name} (₺)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={values[section.id]}
+              onChange={(e) => setValues((current) => ({ ...current, [section.id]: e.target.value }))}
+            />
+          </label>
+        ))}
 
-      <button className="button" disabled={busy}>
-        {busy ? 'Kaydediliyor…' : 'Fiyatları kaydet'}
-      </button>
+        <button className="button button--contrast" disabled={busy}>
+          {busy ? 'Kaydediliyor…' : 'Fiyatları kaydet'}
+        </button>
+      </div>
     </form>
   )
 }

@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
 import { ApiError, toApiError } from '../api/http'
 import { eventsApi } from '../api/events'
 import { venuesApi } from '../api/venues'
 import { CreateEventForm } from '../components/CreateEventForm'
 import { ErrorAlert } from '../components/ErrorAlert'
-import { StatusBadge } from '../components/StatusBadge'
-import { formatDate, formatPrice } from '../lib/format'
+import { EventCard } from '../components/EventCard'
 import type { MyEvent, VenueSummary } from '../types'
 
 // Guard'ın arkasında: kullanıcı giriş yapmış ve organizatör ya da admin.
@@ -38,43 +37,47 @@ export function MyEventsPage() {
   }, [token])
 
   return (
-    <>
-      <h1>Etkinliklerim</h1>
+    <div className="container page">
+      <div className="stack">
+        <p className="eyebrow">Organizatör</p>
+        <h1 className="page-title">Etkinliklerim</h1>
+      </div>
+
+      {error && <ErrorAlert error={error} />}
 
       <CreateEventForm token={token} venues={venues} onCreated={(id) => navigate(`/etkinlik/${id}`)} />
 
-      {error && <ErrorAlert error={error} />}
-      {events === null && !error ? (
-        <p className="muted">Yükleniyor…</p>
-      ) : events && events.length === 0 ? (
-        <p className="muted">Henüz etkinliğiniz yok.</p>
-      ) : (
-        events && (
-          <ul className="event-list">
-            {events.map((event) => (
-              <li key={event.id} className="event-card">
-                <div className="event-card__head">
-                  <h3 className="event-card__title">
-                    <Link to={`/etkinlik/${event.id}`}>{event.title}</Link>
-                  </h3>
-                  <StatusBadge status={event.status} />
-                </div>
-                <p className="muted">
-                  {event.venueName}, {event.city} · {formatDate(event.startsAt)}
-                </p>
-                <p className="event-card__price">
-                  {event.minPrice !== null ? `${formatPrice(event.minPrice)}'den başlayan fiyatlarla` : 'Fiyat girilmedi'}
-                </p>
-                {/* Fiyat girme ve yayınlama detay sayfasında; nereden gidileceği açıkça görünsün. */}
-                <Link className="button button--ghost event-card__action" to={`/etkinlik/${event.id}`}>
-                  {event.status === 'Draft' ? 'Fiyat ve yayın →' : 'Yönet →'}
-                </Link>
-              </li>
-            ))}
+      <section className="stack" aria-labelledby="tum-etkinlikler">
+        <h2 id="tum-etkinlikler" className="section-title">
+          Tüm etkinlikler
+        </h2>
+        {events === null && !error ? (
+          <ul className="event-grid" aria-label="Yükleniyor">
+            <li className="skeleton" />
+            <li className="skeleton" />
+            <li className="skeleton" />
           </ul>
-        )
-      )}
-
-    </>
+        ) : events && events.length === 0 ? (
+          <p className="muted">Henüz etkinliğiniz yok. Yukarıdaki formla ilkini oluşturun.</p>
+        ) : (
+          events && (
+            <ul className="event-grid">
+              {events.map((event) => (
+                <EventCard
+                  key={event.id}
+                  id={event.id}
+                  title={event.title}
+                  startsAt={event.startsAt}
+                  venue={`${event.venueName}, ${event.city}`}
+                  minPrice={event.minPrice}
+                  status={event.status}
+                  actionLabel={event.status === 'Draft' ? 'Fiyat ve yayın →' : 'Yönet →'}
+                />
+              ))}
+            </ul>
+          )
+        )}
+      </section>
+    </div>
   )
 }
