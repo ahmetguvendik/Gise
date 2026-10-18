@@ -2,22 +2,19 @@ using System.Text;
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using Gise.Catalog.Domain.Entities;
-using Gise.Catalog.Persistence.Contexts;
 using Gise.Contracts.Events;
+using Gise.HealthChecks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
-namespace Gise.Catalog.Infrastructure.Messaging;
+namespace Gise.Catalog.OutboxWorker;
 
-// Outbox'ta bekleyen olayları Kafka'ya gönderir (bkz. tasarım 2.2). Ayarlar appsettings'teki
+// Catalog'un outbox'ında bekleyen olayları Kafka'ya gönderir (bkz. tasarım 2.2). Ayarlar appsettings'teki
 // Kafka ve Outbox bölümlerinden okunur.
-public sealed class OutboxProcessor : BackgroundService
+public sealed class Worker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<OutboxProcessor> _logger;
+    private readonly ILogger<Worker> _logger;
+    private readonly WorkerHeartbeat _heartbeat;
     private readonly string _bootstrapServers;
     private readonly int _topicPartitions;
     private readonly short _topicReplicationFactor;
@@ -30,10 +27,11 @@ public sealed class OutboxProcessor : BackgroundService
 
     private DateTime _lastCleanupAt = DateTime.MinValue;
 
-    public OutboxProcessor(IServiceScopeFactory scopeFactory, ILogger<OutboxProcessor> logger, IConfiguration configuration)
+    public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger, IConfiguration configuration, WorkerHeartbeat heartbeat)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _heartbeat = heartbeat;
 
         var kafka = configuration.GetRequiredSection("Kafka");
         _bootstrapServers = kafka["BootstrapServers"] ?? throw new InvalidOperationException("Kafka:BootstrapServers ayarı eksik.");
@@ -81,6 +79,10 @@ public sealed class OutboxProcessor : BackgroundService
                 _logger.LogError(ex, "Outbox turu tamamlanamadı.");
             }
 
+            // try/catch'in dışında: hata alıp dönmeye devam eden döngü canlıdır; asılı kalan döngü
+            // bu satıra hiç ulaşamaz ve sağlık kontrolü bunu yakalar.
+            _heartbeat.Beat();
+
             await Task.Delay(_pollInterval, stoppingToken);
         }
     }
@@ -113,7 +115,7 @@ public sealed class OutboxProcessor : BackgroundService
     private async Task PublishPendingAsync(IProducer<string, string> producer, CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<OutboxWorkerDbContext>();
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
@@ -177,7 +179,9 @@ public sealed class OutboxProcessor : BackgroundService
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        _logger.LogInformation("Outbox: {Count} olay Kafka'ya gönderildi.", messages.Count(m => m.ProcessedAt is not null));
+        var sent = messages.Count(m => m.ProcessedAt is not null);
+        if (sent > 0)
+            _logger.LogInformation("Outbox: {Count} olay Kafka'ya gönderildi.", sent);
     }
 
     private static Message<string, string> ToKafkaMessage(OutboxMessage message)
@@ -206,7 +210,7 @@ public sealed class OutboxProcessor : BackgroundService
             return;
 
         using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<OutboxWorkerDbContext>();
 
         var threshold = DateTime.UtcNow - _retention;
         var deleted = await db.OutboxMessages

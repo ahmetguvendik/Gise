@@ -3,12 +3,10 @@ using Gise.Catalog.Api.Authentication;
 using Gise.Catalog.Api.ErrorHandling;
 using Gise.Catalog.Api.GrpcServices;
 using Gise.Catalog.Application;
-using Gise.Catalog.Infrastructure;
 using Gise.Catalog.Persistence;
 using Gise.Catalog.Persistence.Contexts;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,13 +31,9 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 builder.Services.AddKeycloakAuthentication(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddPersistenceServices(builder.Configuration);
-builder.Services.AddInfrastructureServices();
 
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<CatalogDbContext>("postgres", tags: ["ready"])
-    // Dead-letter'a düşmüş olay varsa servis "Degraded" görünür; trafik kesilmez ama sorun fark edilir.
-    .AddDbContextCheck<CatalogDbContext>("outbox", HealthStatus.Degraded, ["ready"],
-        async (db, cancellationToken) => !await db.OutboxMessages.AnyAsync(m => m.IsDeadLettered, cancellationToken));
+    .AddDbContextCheck<CatalogDbContext>("postgres", tags: ["ready"]);
 
 var app = builder.Build();
 

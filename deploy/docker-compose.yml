@@ -178,8 +178,30 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # Outbox olayları Kafka'ya gönderir; topic'i açılışta oluşturur.
+
+  # Catalog'un outbox'ındaki olayları Kafka'ya gönderir; catalog-api'den ayrı process.
+  catalog-outbox-worker:
+    image: gise/catalog-outbox-worker:dev
+    build:
+      context: ..
+      dockerfile: src/Workers/Gise.Catalog.OutboxWorker/Dockerfile
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Catalog: Host=postgres;Database=gise_catalog;Username=gise;Password=${POSTGRES_PASSWORD}
+    healthcheck:
+      # Döngü asılı kalırsa (heartbeat eskirse) ready kontrolü düşer.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
+        condition: service_healthy
+      # Outbox tablosunu catalog-api'nin migration'ları kurar.
+      catalog-api:
         condition: service_healthy
 
   reservation-api:
