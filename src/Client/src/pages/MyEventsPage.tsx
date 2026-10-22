@@ -4,10 +4,11 @@ import { useAuth } from 'react-oidc-context'
 import { ApiError, toApiError } from '../api/http'
 import { eventsApi } from '../api/events'
 import { venuesApi } from '../api/venues'
+import { isAdmin } from '../auth/roles'
 import { CreateEventForm } from '../components/CreateEventForm'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { EventCard } from '../components/EventCard'
-import type { MyEvent, VenueSummary } from '../types'
+import type { EventStatus, MyEvent, VenueSummary } from '../types'
 
 // Guard'ın arkasında: kullanıcı giriş yapmış ve organizatör ya da admin.
 export function MyEventsPage() {
@@ -17,6 +18,9 @@ export function MyEventsPage() {
   const [events, setEvents] = useState<MyEvent[] | null>(null)
   const [venues, setVenues] = useState<VenueSummary[]>([])
   const [error, setError] = useState<ApiError | null>(null)
+  // Organizatör yalnızca taslağı değiştirir; yayındakini admin yönetir.
+  const actionLabel = (status: EventStatus) =>
+    status === 'Draft' ? 'Düzenle →' : status === 'Published' && isAdmin(auth.user) ? 'Yönet →' : 'Görüntüle →'
 
   useEffect(() => {
     let ignore = false
@@ -71,7 +75,7 @@ export function MyEventsPage() {
                   venue={`${event.venueName}, ${event.city}`}
                   minPrice={event.minPrice}
                   status={event.status}
-                  actionLabel={event.status === 'Draft' ? 'Fiyat ve yayın →' : event.status === 'Cancelled' ? 'Görüntüle →' : 'Yönet →'}
+                  actionLabel={actionLabel(event.status)}
                 />
               ))}
             </ul>

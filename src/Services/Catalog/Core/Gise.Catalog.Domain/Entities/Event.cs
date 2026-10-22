@@ -10,6 +10,8 @@ public class Event : BaseEntity
     public DateTime StartsAt { get; set; }
     public string OrganizerId { get; set; } = string.Empty;
     public EventStatus Status { get; set; } = EventStatus.Draft;
+    // Admin taslağa geri gönderirken yazar; organizatör yeniden gönderince silinir.
+    public string? ReturnReason { get; set; }
 
     // İptal edilince dolar; sebep etkinlik sayfasında gösterilir, bilet sahiplerine iletilir.
     public DateTime? CancelledAt { get; set; }

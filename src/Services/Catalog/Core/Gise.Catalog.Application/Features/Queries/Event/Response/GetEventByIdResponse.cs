@@ -10,6 +10,9 @@ public sealed class GetEventByIdResponse
     public string OrganizerId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 
+    // Admin taslağa geri gönderdiyse sebebi; yalnızca sahibi ve admin görür (taslak başkasına 404).
+    public string? ReturnReason { get; set; }
+
     // İptal edildiyse dolu; sayfada "iptal edildi" uyarısı bununla gösterilir.
     public DateTime? CancelledAt { get; set; }
     public string? CancellationReason { get; set; }

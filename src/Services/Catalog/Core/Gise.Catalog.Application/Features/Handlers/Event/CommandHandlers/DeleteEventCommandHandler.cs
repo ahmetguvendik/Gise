@@ -26,6 +26,9 @@ public sealed class DeleteEventCommandHandler : IRequestHandler<DeleteEventComma
         if (!request.IsAdmin && entity.OrganizerId != request.UserId)
             throw ForbiddenException.NotEventOwner(entity.Id);
 
+        if (entity.Status == EventStatus.PendingReview)
+            throw BusinessException.EventInReview(entity.Id);
+
         // Yayındaki etkinliğin satış ve bilet geçmişi kaybolmamalı; o iptal edilir.
         if (entity.Status != EventStatus.Draft)
             throw BusinessException.OnlyDraftCanBeDeleted(entity.Id);

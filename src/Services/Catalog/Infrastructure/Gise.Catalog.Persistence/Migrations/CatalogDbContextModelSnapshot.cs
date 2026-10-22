@@ -47,6 +47,11 @@ namespace Gise.Catalog.Persistence.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("organizer_id");
 
+                    b.Property<string>("ReturnReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("return_reason");
+
                     b.Property<DateTime>("StartsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("starts_at");

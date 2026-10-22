@@ -16,17 +16,20 @@ public sealed class SetEventPricesCommandHandler : IRequestHandler<SetEventPrice
     private readonly IVenueRepository _venueRepository;
     private readonly IOutboxMessageRepository _outboxMessageRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly TimeProvider _timeProvider;
 
     public SetEventPricesCommandHandler(
         IEventRepository eventRepository,
         IVenueRepository venueRepository,
         IOutboxMessageRepository outboxMessageRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        TimeProvider timeProvider)
     {
         _eventRepository = eventRepository;
         _venueRepository = venueRepository;
         _outboxMessageRepository = outboxMessageRepository;
         _unitOfWork = unitOfWork;
+        _timeProvider = timeProvider;
     }
 
     public async Task<SetEventPricesResponse> Handle(SetEventPricesCommand request, CancellationToken cancellationToken)
@@ -34,13 +37,22 @@ public sealed class SetEventPricesCommandHandler : IRequestHandler<SetEventPrice
         var entity = await _eventRepository.GetForUpdateAsync(request.EventId, cancellationToken)
             ?? throw NotFoundException.Event(request.EventId);
 
-        // Organizatör yalnızca kendi etkinliğinin fiyatlarını belirler; admin hepsini.
+        // Taslağı sahibi ve admin, yayındakini yalnızca admin değiştirir; onay bekleyen değişmez.
         if (!request.IsAdmin && entity.OrganizerId != request.UserId)
             throw ForbiddenException.NotEventOwner(entity.Id);
 
-        // Yayındaki etkinliğin fiyatı da değişebilir; satılmış biletler sipariş anındaki fiyatı korur.
         if (entity.Status == EventStatus.Cancelled)
             throw BusinessException.EventCancelled(entity.Id);
+
+        if (entity.Status == EventStatus.PendingReview)
+            throw BusinessException.EventInReview(entity.Id);
+
+        if (entity.Status == EventStatus.Published && !request.IsAdmin)
+            throw ForbiddenException.PublishedEventAdminOnly(entity.Id);
+
+        // Yayındaki etkinliğin fiyatı admin tarafından değişebilir; satılmış biletler sipariş anındaki fiyatı korur.
+        if (entity.StartsAt <= _timeProvider.GetUtcNow().UtcDateTime)
+            throw BusinessException.EventStarted(entity.Id);
 
         var sections = await _venueRepository.GetSectionsAsync(entity.VenueId, cancellationToken);
         var sectionNames = sections.ToDictionary(s => s.Id, s => s.Name);

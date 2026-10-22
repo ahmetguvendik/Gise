@@ -23,8 +23,8 @@ public sealed class GetEventByIdQueryHandler : IRequestHandler<GetEventByIdQuery
         var entity = await _eventRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw NotFoundException.Event(request.Id);
 
-        // Taslak, sahibi ve admin dışındakiler için yokmuş gibi davranır: 403 etkinliğin var olduğunu ele verirdi.
-        if (entity.Status == EventStatus.Draft && !request.IsAdmin && entity.OrganizerId != request.UserId)
+        // Taslak ve onay bekleyen, sahibi ve admin dışındakiler için yokmuş gibi davranır: 403 etkinliğin var olduğunu ele verirdi.
+        if ((entity.Status is EventStatus.Draft or EventStatus.PendingReview) && !request.IsAdmin && entity.OrganizerId != request.UserId)
             throw NotFoundException.Event(request.Id);
 
         var sectionNames = (await _venueRepository.GetSectionsAsync(entity.VenueId, cancellationToken))
@@ -39,6 +39,7 @@ public sealed class GetEventByIdQueryHandler : IRequestHandler<GetEventByIdQuery
             StartsAt = entity.StartsAt,
             OrganizerId = entity.OrganizerId,
             CreatedAt = entity.CreatedAt,
+            ReturnReason = entity.ReturnReason,
             CancelledAt = entity.CancelledAt,
             CancellationReason = entity.CancellationReason,
             Prices = entity.PriceCategories

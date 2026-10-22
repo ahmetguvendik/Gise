@@ -4,18 +4,12 @@ using System.Text.Json.Serialization;
 
 namespace Gise.Catalog.Application.Features.Commands.Event.Request;
 
-// Geri alınamaz. Sebep etkinlik sayfasında gösterilir, bilet sahiplerine iletilir.
+// Yalnızca admin. Geri alınamaz. Sebep etkinlik sayfasında gösterilir, bilet sahiplerine iletilir.
 public sealed class CancelEventCommand : IRequest<CancelEventResponse>
 {
     public string Reason { get; set; } = string.Empty;
 
-    // Body'den gelmez — controller route'tan ve JWT'den set eder.
+    // Body'den gelmez — controller route'tan set eder.
     [JsonIgnore]
     public Guid EventId { get; set; }
-
-    [JsonIgnore]
-    public string UserId { get; set; } = string.Empty;
-
-    [JsonIgnore]
-    public bool IsAdmin { get; set; }
 }

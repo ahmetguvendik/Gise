@@ -33,10 +33,7 @@ public sealed class CancelEventCommandHandler : IRequestHandler<CancelEventComma
         var entity = await _eventRepository.GetForUpdateAsync(request.EventId, cancellationToken)
             ?? throw NotFoundException.Event(request.EventId);
 
-        if (!request.IsAdmin && entity.OrganizerId != request.UserId)
-            throw ForbiddenException.NotEventOwner(entity.Id);
-
-        if (entity.Status == EventStatus.Draft)
+        if (entity.Status is EventStatus.Draft or EventStatus.PendingReview)
             throw BusinessException.DraftCannotBeCancelled(entity.Id);
 
         if (entity.Status == EventStatus.Cancelled)

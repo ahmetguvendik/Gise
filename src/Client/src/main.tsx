@@ -10,6 +10,7 @@ import { EventDetailPage } from './pages/EventDetailPage'
 import { EventsPage } from './pages/EventsPage'
 import { MyEventsPage } from './pages/MyEventsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { PendingEventsPage } from './pages/PendingEventsPage'
 import { VenueEditorPage } from './pages/VenueEditorPage'
 import { VenuesPage } from './pages/VenuesPage'
 import './index.css'
@@ -36,6 +37,14 @@ createRoot(document.getElementById('root')!).render(
               />
 
               {/* yalnızca admin */}
+              <Route
+                path="onay-bekleyenler"
+                element={
+                  <Guard roles={['admin']}>
+                    <PendingEventsPage />
+                  </Guard>
+                }
+              />
               <Route
                 path="mekanlar"
                 element={

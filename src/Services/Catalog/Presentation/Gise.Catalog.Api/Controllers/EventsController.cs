@@ -33,6 +33,11 @@ public sealed class EventsController : ControllerBase
             OrganizerId = User.FindFirst("sub")?.Value ?? throw UnauthorizedException.MissingClaim("sub")
         }, cancellationToken));
 
+    [Authorize(Policy = Policies.EventModerator)]
+    [HttpGet("pending")]
+    public async Task<ActionResult<IReadOnlyList<GetPendingEventsResponse>>> GetPending(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetPendingEventsQuery(), cancellationToken));
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<GetEventByIdResponse>> GetById(Guid id, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetEventByIdQuery
@@ -53,7 +58,7 @@ public sealed class EventsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    // Ad ve tarih her zaman (başlamadan önce), mekân yalnızca taslakta değişir.
+    // Taslağı sahibi ve admin, yayındakini yalnızca admin değiştirir; mekân yalnızca taslakta değişir.
     [Authorize(Policy = Policies.Organizer)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<UpdateEventResponse>> Update(Guid id, [FromBody] UpdateEventCommand command, CancellationToken cancellationToken)
@@ -82,16 +87,52 @@ public sealed class EventsController : ControllerBase
     }
 
     // Geri alınamaz; sebep zorunlu.
-    [Authorize(Policy = Policies.Organizer)]
+    [Authorize(Policy = Policies.EventModerator)]
     [HttpPost("{id:guid}/cancel")]
     public async Task<ActionResult<CancelEventResponse>> Cancel(Guid id, [FromBody] CancelEventCommand command, CancellationToken cancellationToken)
     {
         command.EventId = id;
-        command.UserId = User.FindFirst("sub")?.Value
-            ?? throw UnauthorizedException.MissingClaim("sub");
-        command.IsAdmin = User.IsInRole(Roles.Admin);
-
         return Ok(await _mediator.Send(command, cancellationToken));
+    }
+
+    // Organizatör taslağı admin onayına gönderir.
+    [Authorize(Policy = Policies.Organizer)]
+    [HttpPost("{id:guid}/submit")]
+    public async Task<IActionResult> Submit(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new SubmitEventCommand
+        {
+            EventId = id,
+            UserId = User.FindFirst("sub")?.Value ?? throw UnauthorizedException.MissingClaim("sub"),
+            IsAdmin = User.IsInRole(Roles.Admin)
+        }, cancellationToken);
+
+        return NoContent();
+    }
+
+    // Onay bekleyen etkinlik değiştirilebilmesi için taslağa döner.
+    [Authorize(Policy = Policies.Organizer)]
+    [HttpPost("{id:guid}/withdraw")]
+    public async Task<IActionResult> Withdraw(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new WithdrawEventCommand
+        {
+            EventId = id,
+            UserId = User.FindFirst("sub")?.Value ?? throw UnauthorizedException.MissingClaim("sub"),
+            IsAdmin = User.IsInRole(Roles.Admin)
+        }, cancellationToken);
+
+        return NoContent();
+    }
+
+    // Admin onay bekleyeni sebebiyle taslağa geri gönderir.
+    [Authorize(Policy = Policies.EventModerator)]
+    [HttpPost("{id:guid}/return")]
+    public async Task<IActionResult> Return(Guid id, [FromBody] ReturnEventCommand command, CancellationToken cancellationToken)
+    {
+        command.EventId = id;
+        await _mediator.Send(command, cancellationToken);
+        return NoContent();
     }
 
     [Authorize(Policy = Policies.Organizer)]
@@ -106,17 +147,8 @@ public sealed class EventsController : ControllerBase
         return Ok(await _mediator.Send(command, cancellationToken));
     }
 
-    [Authorize(Policy = Policies.Organizer)]
+    [Authorize(Policy = Policies.EventModerator)]
     [HttpPost("{id:guid}/publish")]
     public async Task<ActionResult<PublishEventResponse>> Publish(Guid id, CancellationToken cancellationToken)
-    {
-        var command = new PublishEventCommand
-        {
-            EventId = id,
-            UserId = User.FindFirst("sub")?.Value ?? throw UnauthorizedException.MissingClaim("sub"),
-            IsAdmin = User.IsInRole(Roles.Admin)
-        };
-
-        return Ok(await _mediator.Send(command, cancellationToken));
-    }
+        => Ok(await _mediator.Send(new PublishEventCommand { EventId = id }, cancellationToken));
 }

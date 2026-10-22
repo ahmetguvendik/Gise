@@ -4,4 +4,5 @@ public static class Policies
 {
     public const string Organizer = nameof(Organizer);
     public const string VenueManager = nameof(VenueManager);
+    public const string EventModerator = nameof(EventModerator);
 }

@@ -17,6 +17,9 @@ public interface IEventRepository
     // Organizatörün tüm etkinlikleri (taslaklar dahil), fiyatlarıyla, tarihe göre sıralı.
     Task<IReadOnlyList<Domain.Entities.Event>> GetByOrganizerAsync(string organizerId, CancellationToken cancellationToken);
 
+    // Onay bekleyenler (tüm organizatörler), fiyatlarıyla, tarihe göre sıralı.
+    Task<IReadOnlyList<Domain.Entities.Event>> GetPendingReviewAsync(CancellationToken cancellationToken);
+
     // Fiyatlarıyla birlikte, tarihe göre sıralı.
     Task<IReadOnlyList<Domain.Entities.Event>> GetUpcomingPublishedAsync(DateTime from, CancellationToken cancellationToken);
 }

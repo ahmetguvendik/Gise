@@ -29,6 +29,9 @@ public static class ErrorCodes
         public const string AlreadyStarted = "EVENT_ALREADY_STARTED";
         public const string NotDraft = "EVENT_NOT_DRAFT";
         public const string VenueLocked = "EVENT_VENUE_LOCKED";
+        public const string InReview = "EVENT_IN_REVIEW";
+        public const string NotInReview = "EVENT_NOT_IN_REVIEW";
+        public const string AdminOnly = "EVENT_ADMIN_ONLY";
     }
 
     public static class Price

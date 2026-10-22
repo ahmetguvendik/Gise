@@ -39,9 +39,14 @@ export function Layout() {
               </NavLink>
             )}
             {isAdmin(auth.user) && (
-              <NavLink to="/mekanlar" className={navClass}>
-                Mekânlar
-              </NavLink>
+              <>
+                <NavLink to="/onay-bekleyenler" className={navClass}>
+                  Onay bekleyenler
+                </NavLink>
+                <NavLink to="/mekanlar" className={navClass}>
+                  Mekânlar
+                </NavLink>
+              </>
             )}
           </nav>
 

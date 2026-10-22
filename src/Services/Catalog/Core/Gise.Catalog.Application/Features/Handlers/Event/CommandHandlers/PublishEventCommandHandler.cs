@@ -36,10 +36,6 @@ public sealed class PublishEventCommandHandler : IRequestHandler<PublishEventCom
         var entity = await _eventRepository.GetForUpdateAsync(request.EventId, cancellationToken)
             ?? throw NotFoundException.Event(request.EventId);
 
-        // Organizatör yalnızca kendi etkinliğini yayınlar; admin hepsini.
-        if (!request.IsAdmin && entity.OrganizerId != request.UserId)
-            throw ForbiddenException.NotEventOwner(entity.Id);
-
         if (entity.Status == EventStatus.Cancelled)
             throw BusinessException.EventCancelled(entity.Id);
 
@@ -62,6 +58,7 @@ public sealed class PublishEventCommandHandler : IRequestHandler<PublishEventCom
             ?? throw NotFoundException.Venue(entity.VenueId);
 
         entity.Status = EventStatus.Published;
+        entity.ReturnReason = null;
 
         // Olay durum değişikliğiyle aynı SaveChanges'te yazılır: ya ikisi birden kaydedilir ya hiçbiri.
         await _outboxMessageRepository.AddCatalogEventAsync(entity.Id, new EventPublished

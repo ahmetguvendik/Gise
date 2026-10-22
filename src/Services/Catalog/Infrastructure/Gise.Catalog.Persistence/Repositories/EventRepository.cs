@@ -45,6 +45,14 @@ public sealed class EventRepository : IEventRepository
             .OrderBy(e => e.StartsAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Event>> GetPendingReviewAsync(CancellationToken cancellationToken)
+        => await _context.Events
+            .AsNoTracking()
+            .Include(e => e.PriceCategories)
+            .Where(e => e.Status == EventStatus.PendingReview)
+            .OrderBy(e => e.StartsAt)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Event>> GetUpcomingPublishedAsync(DateTime from, CancellationToken cancellationToken)
         => await _context.Events
             .AsNoTracking()

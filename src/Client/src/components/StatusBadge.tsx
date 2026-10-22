@@ -2,6 +2,7 @@ import type { EventStatus } from '../types'
 
 const LABELS: Record<EventStatus, string> = {
   Draft: 'Taslak',
+  PendingReview: 'Onay bekliyor',
   Published: 'Yayında',
   Cancelled: 'İptal',
 }

@@ -28,6 +28,21 @@ public class BusinessException : AppException
         "Yalnızca taslak etkinlik silinebilir; yayındaki etkinlik iptal edilir.",
         $"'{eventId}' ID'li etkinlik taslak değil.");
 
+    public static BusinessException EventNotDraft(Guid eventId) => new(
+        ErrorCodes.Event.NotDraft,
+        "Bu işlem yalnızca taslak etkinlikte yapılabilir.",
+        $"'{eventId}' ID'li etkinlik taslak değil.");
+
+    public static BusinessException EventInReview(Guid eventId) => new(
+        ErrorCodes.Event.InReview,
+        "Onay bekleyen etkinlik değiştirilemez; önce onaydan geri çekin.",
+        $"'{eventId}' ID'li etkinlik admin onayı bekliyor.");
+
+    public static BusinessException EventNotInReview(Guid eventId) => new(
+        ErrorCodes.Event.NotInReview,
+        "Etkinlik onay beklemiyor.",
+        $"'{eventId}' ID'li etkinlik onaya gönderilmemiş.");
+
     public static BusinessException DraftCannotBeCancelled(Guid eventId) => new(
         ErrorCodes.Event.NotPublished,
         "Taslak etkinlik iptal edilmez, silinir.",

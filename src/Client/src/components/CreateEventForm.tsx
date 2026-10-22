@@ -8,7 +8,7 @@ import { ErrorAlert } from './ErrorAlert'
 interface Props {
   token: string
   venues: VenueSummary[]
-  /** Etkinlik taslak olarak açılır; çağıran, fiyat ve yayınlama için detay sayfasına götürür. */
+  /** Etkinlik taslak olarak açılır; çağıran, fiyat ve onaya gönderme için detay sayfasına götürür. */
   onCreated: (id: string) => void
 }
 

@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
 import { ApiError, toApiError } from '../api/http'
 import { eventsApi } from '../api/events'
 import { venuesApi } from '../api/venues'
 import { isAdmin } from '../auth/roles'
 import { useSessionReady } from '../auth/SilentSignin'
-import { CancelEventForm } from '../components/CancelEventForm'
 import { ErrorAlert } from '../components/ErrorAlert'
-import { EventInfoForm } from '../components/EventInfoForm'
+import { EventManage } from '../components/EventManage'
 import { Poster } from '../components/Poster'
-import { PriceForm } from '../components/PriceForm'
 import { StatusBadge } from '../components/StatusBadge'
 import { formatDate, formatLongDate, formatPrice, formatTime } from '../lib/format'
 import type { EventDetail, VenueDetail } from '../types'
@@ -18,15 +16,12 @@ import type { EventDetail, VenueDetail } from '../types'
 export function EventDetailPage() {
   const { id = '' } = useParams()
   const auth = useAuth()
-  const navigate = useNavigate()
   const sessionReady = useSessionReady()
   const token = auth.user?.access_token
   const [event, setEvent] = useState<EventDetail | null>(null)
   const [venue, setVenue] = useState<VenueDetail | null>(null)
   const [loadError, setLoadError] = useState<ApiError | null>(null)
   const [version, setVersion] = useState(0)
-  const [busy, setBusy] = useState(false)
-  const [actionError, setActionError] = useState<ApiError | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
@@ -79,12 +74,18 @@ export function EventDetailPage() {
   }
 
   const priceBySection = new Map(event.prices.map((p) => [p.sectionId, p.price]))
-  const unpriced = venue.sections.filter((s) => !priceBySection.has(s.id))
   const minPrice = event.prices.length > 0 ? Math.min(...event.prices.map((p) => p.price)) : null
-  const canManage = !!token && (isAdmin(auth.user) || auth.user?.profile.sub === event.organizerId)
+  const admin = isAdmin(auth.user)
+  const owner = !!token && auth.user?.profile.sub === event.organizerId
+  const canManage = !!token && (admin || owner)
   const cancelled = event.status === 'Cancelled'
-  // Başlamış etkinlikte API değişikliği reddeder; formlar hiç gösterilmez.
-  const started = new Date(event.startsAt) <= new Date()
+  // Geri bağlantısı, kullanıcının buraya büyük olasılıkla geldiği listeye döner.
+  const back =
+    event.status === 'PendingReview' && admin && !owner
+      ? { to: '/onay-bekleyenler', label: 'Onay bekleyenler' }
+      : owner
+        ? { to: '/etkinliklerim', label: 'Etkinliklerim' }
+        : { to: '/', label: 'Etkinlikler' }
 
   const announce = (message: string) => {
     setNotice(message)
@@ -92,40 +93,13 @@ export function EventDetailPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const publish = async () => {
-    setBusy(true)
-    setActionError(null)
-    try {
-      await eventsApi.publish(event.id, token!)
-      announce('Etkinlik yayınlandı; artık herkese açık listede görünüyor.')
-    } catch (err) {
-      setActionError(toApiError(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const remove = async () => {
-    if (!window.confirm(`"${event.title}" taslağı fiyatlarıyla birlikte silinsin mi? Bu geri alınamaz.`)) return
-    setBusy(true)
-    setActionError(null)
-    try {
-      await eventsApi.remove(event.id, token!)
-      navigate('/etkinliklerim')
-    } catch (err) {
-      setActionError(toApiError(err))
-      setBusy(false)
-    }
-  }
-
   return (
     <div className="container page">
-      <Link className="back-link" to={canManage ? '/etkinliklerim' : '/'}>
-        ← {canManage ? 'Etkinliklerim' : 'Etkinlikler'}
+      <Link className="back-link" to={back.to}>
+        ← {back.label}
       </Link>
 
       {notice && <div className="notice">{notice}</div>}
-      {actionError && <ErrorAlert error={actionError} />}
 
       {cancelled && (
         <div className="cancel-banner" role="status">
@@ -199,58 +173,14 @@ export function EventDetailPage() {
       )}
 
       {canManage && !cancelled && (
-        <section className="card card--dashed manage" aria-labelledby="yonetim">
-          <div className="manage__head">
-            <h2 id="yonetim" className="manage__title">
-              Yönetim
-            </h2>
-            <span className="muted">Yalnızca etkinliğin sahibi ve yönetici görür</span>
-          </div>
-
-          {started ? (
-            <p className="muted">Etkinlik başladı; artık değişiklik yapılamaz.</p>
-          ) : (
-            <>
-              <EventInfoForm event={event} venueName={`${venue.name}, ${venue.city}`} token={token!} onSaved={() => setVersion((v) => v + 1)} />
-
-              {/* Mekân değişince bölümler değişir: form yeni bölümlerle baştan kurulur. */}
-              <PriceForm
-                key={venue.id}
-                eventId={event.id}
-                token={token!}
-                sections={venue.sections}
-                prices={event.prices}
-                onSaved={() => setVersion((v) => v + 1)}
-              />
-
-              {event.status === 'Draft' && (
-                <div className="manage__block">
-                  <h3>Yayınla</h3>
-                  <p className="muted">
-                    {unpriced.length > 0
-                      ? `Yayınlamak için her bölümün fiyatı girilmeli. Eksik: ${unpriced.map((s) => s.name).join(', ')}.`
-                      : 'Etkinlik herkese açık listeye düşer ve satışa açılır.'}
-                  </p>
-                  <button className="button button--lg" onClick={() => void publish()} disabled={busy || unpriced.length > 0}>
-                    {busy ? 'Yayınlanıyor…' : 'Yayınla'}
-                  </button>
-                </div>
-              )}
-
-              {event.status === 'Draft' ? (
-                <div className="manage__danger">
-                  <h3>Taslağı sil</h3>
-                  <p className="muted">Taslak henüz kimseye görünmüyor; silinince fiyatlarıyla birlikte kalkar.</p>
-                  <button className="button button--danger-outline" onClick={() => void remove()} disabled={busy}>
-                    Taslağı sil
-                  </button>
-                </div>
-              ) : (
-                <CancelEventForm eventId={event.id} title={event.title} token={token!} onCancelled={() => announce('Etkinlik iptal edildi.')} />
-              )}
-            </>
-          )}
-        </section>
+        <EventManage
+          event={event}
+          venue={venue}
+          token={token!}
+          admin={admin}
+          onChanged={announce}
+          onSaved={() => setVersion((v) => v + 1)}
+        />
       )}
     </div>
   )

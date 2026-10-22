@@ -80,13 +80,13 @@ Desen bu projede **bilerek iki farklı şekilde** kullanılır:
 
 | Servis | Sorumluluk | Veri | Dışarıya açtığı | Gönderdiği | Dinlediği |
 |---|---|---|---|---|---|
-| **Catalog** | Etkinlik, mekân, salon/koltuk planı, fiyat kategorisi | PostgreSQL | REST (okuma herkese, yazma organizatöre), gRPC (fiyat) | Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` | — |
-| **Reservation** | Koltuk tutma (10 dk), kesinleştirme, bırakma; çift satışı önleme | PostgreSQL + Redis | REST (koltuk durumu) | RabbitMQ: `SeatsReserved`, `SeatReservationFailed`; Kafka: `SeatStatusChanged` | RabbitMQ: `ReserveSeats`, `ConfirmSeats`, `ReleaseSeats` |
-| **Order** | Satın alma saga'sı (orkestratör) | PostgreSQL (saga durumu) | REST (sipariş oluştur/sorgula) | RabbitMQ: komutlar; Kafka: `OrderCompleted`, `OrderCancelled` | RabbitMQ: komut cevapları |
+| **Catalog** | Etkinlik, mekân, salon/koltuk planı, fiyat kategorisi | PostgreSQL | REST (okuma herkese; taslak organizatöre, yayın ve iptal admin'e), gRPC (koltuk ve fiyat) | Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` | — |
+| **Reservation** | Koltuk tutma (10 dk), kesinleştirme, bırakma; çift satışı önleme | PostgreSQL + Redis | REST (koltuk durumu) | RabbitMQ: `SeatsReserved`, `SeatReservationFailed`; Kafka: `SeatStatusChanged` | RabbitMQ: `ReserveSeats`, `ConfirmSeats`, `ReleaseSeats`; Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` |
+| **Order** | Satın alma saga'sı (orkestratör) | PostgreSQL (saga durumu) | REST (sipariş oluştur/sorgula) | RabbitMQ: komutlar; Kafka: `OrderCompleted`, `OrderCancelled` | RabbitMQ: komut cevapları; Kafka: `EventCancelled`, `EventUpdated` |
 | **Payment** | Sahte ödeme sağlayıcısı; iade | PostgreSQL | — | RabbitMQ: `PaymentSucceeded`, `PaymentFailed`, `PaymentRefunded` | RabbitMQ: `ProcessPayment`, `RefundPayment` |
-| **Ticket** | QR'lı PDF bilet üretimi; kapıda okutma | PostgreSQL + MinIO | REST (biletlerim, kapı okutma) | RabbitMQ: `TicketsIssued`, `TicketIssueFailed`; Kafka: `TicketsIssued`, `TicketCheckedIn` | RabbitMQ: `IssueTickets` |
-| **Notification** | E-posta / SMS | PostgreSQL (inbox) | — | — | Kafka: `TicketsIssued`, `OrderCancelled` |
-| **Search** | Türkçe tam metin arama, otomatik tamamlama | Elasticsearch | REST | — | Kafka: `EventPublished`, `EventUpdated` |
+| **Ticket** | QR'lı PDF bilet üretimi; kapıda okutma | PostgreSQL + MinIO | REST (biletlerim, kapı okutma) | RabbitMQ: `TicketsIssued`, `TicketIssueFailed`; Kafka: `TicketsIssued`, `TicketCheckedIn` | RabbitMQ: `IssueTickets`; Kafka: `EventCancelled` |
+| **Notification** | E-posta / SMS | PostgreSQL (inbox) | — | — | Kafka: `TicketsIssued`, `OrderCancelled`, `EventCancelled`, `EventUpdated` |
+| **Search** | Türkçe tam metin arama, otomatik tamamlama | Elasticsearch | REST | — | Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` |
 | **SeatMap** | Koltuk haritasında anlık güncelleme | Redis (backplane) | SignalR | — | Kafka: `SeatStatusChanged` |
 
 ### 3.1 Mimari
@@ -134,14 +134,14 @@ Payment servisi gerçek bir sağlayıcıya bağlanmaz. Sonuç, kart numarasını
 Fiyat **bölüm başına** belirlenir: her bölümün bir etkinlikte tek fiyatı olur (A Blok 750 ₺, Balkon 400 ₺). Para birimi şimdilik TRY.
 
 - `PUT /api/events/{id}/prices` listeyi bütün olarak ayarlar; listede olmayan bölümün fiyatı kalkar.
-- Fiyatı yalnızca etkinliğin sahibi olan organizatör ya da admin belirler. Başka organizatörün etkinliği 403 döner.
+- Taslağın fiyatını sahibi olan organizatör ya da admin, yayındakinin fiyatını yalnızca admin belirler (bkz. 3.4).
 - Bölüm, etkinliğin mekânına ait olmalıdır. Fiyat 0'dan büyük, en fazla 1.000.000 ₺ ve en fazla 2 ondalık basamaklı olur.
-- Yayındaki etkinliğin fiyatı da değişebilir; satılmış biletler etkilenmez, çünkü Order fiyatı sipariş anında kendine kaydeder. İptal edilmiş etkinliğin fiyatı değişmez.
-- **Yayınlama** (`POST /api/events/{id}/publish`): yalnızca sahibi olan organizatör ya da admin; yalnızca taslak ve henüz başlamamış etkinlik. Mekânın **her bölümünün** fiyatı girilmiş olmalıdır, yoksa satılamayan koltuk kalır (422, eksik bölümler `detail`'de). Yayındaki etkinlik tekrar yayınlanamaz (409).
+- Yayındaki etkinliğin fiyatı da değişebilir; yalnızca bundan sonraki satışları etkiler. Satılmış biletler için fark iadesi ya da ek ücret olmaz, çünkü Order fiyatı sipariş anında kendine kaydeder. Reservation fiyatları yayın anında gRPC ile alır; `EventUpdated` gelince yeniden okumalıdır.
+- **Yayınlama** (`POST /api/events/{id}/publish`): yalnızca admin; taslak ya da onay bekleyen, henüz başlamamış etkinlik. Mekânın **her bölümünün** fiyatı girilmiş olmalıdır, yoksa satılamayan koltuk kalır (422, eksik bölümler `detail`'de). Yayındaki etkinlik tekrar yayınlanamaz (409).
 - Yayındaki etkinlikte fiyat değişebilir ama listeden bölüm çıkarılamaz; her bölüm yine fiyatlı kalmalıdır.
-- **Taslak görünürlüğü:** Taslak etkinliğin detayını (`GET /api/events/{id}`) yalnızca sahibi olan organizatör ve admin görür; diğer herkes 404 alır. 403 dönülmez, çünkü etkinliğin var olduğunu ele verirdi. Liste ve gRPC zaten yalnızca yayındaki etkinlikleri döndürür.
+- **Taslak görünürlüğü:** Taslak ve onay bekleyen etkinliğin detayını (`GET /api/events/{id}`) yalnızca sahibi olan organizatör ve admin görür; diğer herkes 404 alır. 403 dönülmez, çünkü etkinliğin var olduğunu ele verirdi. Liste ve gRPC zaten yalnızca yayındaki etkinlikleri döndürür.
 - Etkinlik listesi her etkinliğin en düşük fiyatını döndürür (`minPrice`).
-- `GET /api/events/mine`: organizatörün kendi etkinlikleri, taslaklar dahil. Ön yüzde "Etkinliklerim" sayfası bunu kullanır; fiyat girme ve yayınlama etkinlik detay sayfasındadır.
+- `GET /api/events/mine`: organizatörün kendi etkinlikleri, taslaklar dahil. Ön yüzde "Etkinliklerim" sayfası bunu kullanır; fiyat girme, onaya gönderme ve yayınlama etkinlik detay sayfasındadır.
 - Yayınlanınca `EventPublished` olayı aynı transaction'da outbox'a yazılır (bkz. 3.5).
 
 ### 3.4 Catalog: mekân ve etkinlik yönetimi
@@ -152,21 +152,40 @@ Fiyat **bölüm başına** belirlenir: her bölümün bir etkinlikte tek fiyatı
 - `PUT /api/venues/{id}/layout`: bölüm düzeni yalnızca mekânda **hiç etkinlik yokken** (taslak dahil) değişir; varsa 422 `VENUE_HAS_EVENTS`. Fiyatlar ve Reservation'ın koltuk stoğu bölümlere bağlıdır.
 - `DELETE /api/venues/{id}`: yalnızca etkinliği olmayan mekân silinir (aynı kural).
 
-**Etkinlik** (sahibi olan organizatör ya da admin; başkasınınki 403 `EVENT_NOT_OWNER`):
+**Etkinlik:** organizatör taslak hazırlar ve onaya gönderir; yayınlama, yayındaki etkinliği değiştirme ve iptal admin'in işidir. Durumlar: **Taslak → Onay bekliyor → Yayında → İptal**.
 
-| | Taslak | Yayında | İptal |
-|---|---|---|---|
-| Ad ve tarih (`PUT /api/events/{id}`) | Değişir | Değişir, `EventUpdated` gider | Değişmez |
-| Mekân | Değişir; girilen fiyatlar silinir | Değişmez (422 `EVENT_VENUE_LOCKED`): koltuk stoğu mekâna bağlı | Değişmez |
-| Fiyat | Değişir | Değişir, `EventUpdated` gider | Değişmez |
-| Silme (`DELETE /api/events/{id}`) | Silinir, fiyatlarıyla | Silinmez (422 `EVENT_NOT_DRAFT`); iptal edilir | Silinmez |
-| İptal (`POST /api/events/{id}/cancel`) | Edilmez, silinir (422) | Edilir, `EventCancelled` gider | Tekrar edilmez |
+```mermaid
+stateDiagram-v2
+    [*] --> Taslak: Organizatör ya da admin oluşturur
+    Taslak --> OnayBekliyor: Organizatör onaya gönderir (submit)
+    OnayBekliyor --> Taslak: Organizatör geri çeker (withdraw) / admin sebeple geri gönderir (return)
+    OnayBekliyor --> Yayinda: Admin yayınlar
+    Taslak --> Yayinda: Admin doğrudan yayınlar
+    Taslak --> [*]: Silinir
+    Yayinda --> Iptal: Admin iptal eder (sebep zorunlu)
+```
 
+| | Taslak | Onay bekliyor | Yayında | İptal |
+|---|---|---|---|---|
+| Ad, tarih (`PUT /api/events/{id}`) | Sahibi, admin | Kimse (422 `EVENT_IN_REVIEW`) | Yalnızca admin (organizatöre 403 `EVENT_ADMIN_ONLY`); `EventUpdated` gider | Kimse |
+| Mekân | Sahibi, admin; fiyatlar silinir | Kimse | Kimse (422 `EVENT_VENUE_LOCKED`): koltuk stoğu mekâna bağlı | Kimse |
+| Fiyat (`PUT .../prices`) | Sahibi, admin | Kimse | Yalnızca admin; `EventUpdated` gider | Kimse |
+| Onaya gönder (`POST .../submit`) | Sahibi, admin; her bölüm fiyatlı olmalı | — | — | — |
+| Geri çek (`POST .../withdraw`) | — | Sahibi, admin | — | — |
+| Geri gönder (`POST .../return`, sebep zorunlu) | — | Yalnızca admin | — | — |
+| Yayınla (`POST .../publish`) | Yalnızca admin | Yalnızca admin | 409 | — |
+| Sil (`DELETE /api/events/{id}`) | Sahibi, admin | Önce geri çekilir | Silinmez; iptal edilir | Silinmez |
+| İptal (`POST .../cancel`) | Edilmez, silinir | Edilmez | Yalnızca admin; `EventCancelled` gider | Tekrar edilmez |
+
+- Başka organizatörün etkinliği 403 `EVENT_NOT_OWNER`.
+- Admin'in geri gönderme sebebi taslakta organizatöre gösterilir; yeniden gönderince ya da yayınlanınca silinir.
+- `GET /api/events/pending` (yalnızca admin): tüm organizatörlerin onay bekleyen etkinlikleri. Ön yüzde "Onay bekleyenler" sayfası.
+- Onaya gönderme ve geri çekme olay üretmez; onay bekleyen etkinliği başka servis bilmez.
 - Başlamış ya da geçmiş etkinlikte hiçbir değişiklik yapılmaz (422 `EVENT_ALREADY_STARTED`).
 - İptal **geri alınamaz** ve sebep zorunludur (en fazla 500 karakter). İptal edilen etkinlik genel listeden kalkar; detay sayfası herkese açık kalır ve "iptal edildi" uyarısını tarih ve sebeple gösterir. Organizatörün "Etkinliklerim" sayfasında "İptal" rozetiyle görünür.
 - Taslağı başka servis bilmediği için taslaktaki değişiklik ve silme olay üretmez.
 - Ad ya da tarih aynı kalırsa (yalnızca kaydet'e basıldıysa) `EventUpdated` gönderilmez.
-- Ön yüzde hepsi etkinlik detay sayfasının "Yönetim" bölümündedir; silme ve iptal tarayıcı onayı ister.
+- Ön yüzde hepsi etkinlik detay sayfasının "Yönetim" bölümündedir; kullanıcı yalnızca rolüne ve duruma göre yapabildiklerini görür. Silme ve iptal tarayıcı onayı ister.
 
 ### 3.5 Catalog: olaylar ve gRPC
 
@@ -242,6 +261,29 @@ stateDiagram-v2
 - Zaman aşımı saga'nın kendi zamanlayıcısıyla yönetilir (RabbitMQ gecikmeli mesaj).
 - Bir telafi adımı da başarısız olabilir. Bu durumda yeniden denenir, sınır aşılınca saga **"elle müdahale gerekli"** olarak işaretlenir ve uyarı üretilir. Sessizce yutulmaz.
 
+### 4.3 Etkinlik iptal edilince ve tarihi değişince
+
+Catalog `EventCancelled` ve `EventUpdated` olaylarını Kafka'ya gönderir (bkz. 3.5). Bilet sahiplerini ilgilendiren işler bu olayları dinleyen servislerde yapılır; bu servisler yazılırken uygulanacak.
+
+**İptal (`EventCancelled`): tam iade, otomatik.** Kullanıcının bir şey yapması gerekmez.
+
+1. **Reservation** satışı hemen durdurur: yeni `ReserveSeats` reddedilir, tutulan koltuklar bırakılır.
+2. **Order** iptal edilen etkinlikleri kendi tarafında tutar ve:
+   - tamamlanmış her sipariş için iade başlatır (`RefundPayment` → `PaymentRefunded`); sipariş "İade edildi" olur;
+   - ödemesi süren siparişi iptal eder; ödeme iptalden sonra gelirse onu da hemen iade eder;
+   - bu etkinlik için yeni sipariş açmaz.
+3. **Payment** kesintisiz tam iade yapar.
+4. **Ticket** biletleri geçersiz yapar; kapıda okutulunca reddedilir.
+5. **Notification** her bilet sahibine iptal sebebi ve iade bilgisiyle e-posta gönderir.
+
+**Tarih değişikliği (`EventUpdated`, `PreviousStartsAt` farklıysa):**
+
+- Biletler yeni tarih için geçerli kalır.
+- Notification bilet sahiplerine eski ve yeni tarihi bildirir.
+- Yeni tarihe gelemeyecek bilet sahibi, **yeni tarihten önce iade talep edebilir**; iade tam yapılır. Talep Order üzerinden açılır, aynı iade akışı (`RefundPayment`) çalışır.
+
+**Fiyat değişikliği:** yalnızca bundan sonraki satışları etkiler; satılmış biletlere fark iadesi ya da ek ücret yoktur.
+
 ---
 
 ## 5. Koltuk tutma ve çift satışı önleme
@@ -260,9 +302,9 @@ stateDiagram-v2
 | Rol | Yetki |
 |---|---|
 | `customer` | Etkinlik görme, satın alma, kendi biletleri |
-| `organizer` | Kendi etkinliklerini oluşturma ve düzenleme |
+| `organizer` | Kendi etkinliğini taslak olarak hazırlama, fiyatlandırma ve onaya gönderme; yayındakini değiştiremez |
 | `gate-staff` | Kapıda bilet okutma |
-| `admin` | Her şey |
+| `admin` | Her şey; etkinliği yayınlama, yayındaki etkinliği değiştirme ve iptal yalnızca admin'in |
 
 - SPA, Keycloak'a **PKCE'li authorization code** ile bağlanır; parola uygulamadan geçmez.
 - Token bellekte tutulur, `localStorage`'a yazılmaz.

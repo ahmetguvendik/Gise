@@ -12,4 +12,9 @@ public class ForbiddenException : AppException
         ErrorCodes.Event.NotOwner,
         "Yalnızca kendi etkinliğinizde değişiklik yapabilirsiniz.",
         $"'{eventId}' ID'li etkinlik başka bir organizatöre ait.");
+
+    public static ForbiddenException PublishedEventAdminOnly(Guid eventId) => new(
+        ErrorCodes.Event.AdminOnly,
+        "Yayındaki etkinlikte değişikliği yalnızca admin yapabilir.",
+        $"'{eventId}' ID'li etkinlik yayında.");
 }

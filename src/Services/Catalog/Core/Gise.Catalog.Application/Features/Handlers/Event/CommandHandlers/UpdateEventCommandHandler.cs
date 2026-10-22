@@ -36,12 +36,18 @@ public sealed class UpdateEventCommandHandler : IRequestHandler<UpdateEventComma
         var entity = await _eventRepository.GetForUpdateAsync(request.EventId, cancellationToken)
             ?? throw NotFoundException.Event(request.EventId);
 
-        // Organizatör yalnızca kendi etkinliğini değiştirir; admin hepsini.
+        // Taslağı sahibi ve admin, yayındakini yalnızca admin değiştirir; onay bekleyen değişmez.
         if (!request.IsAdmin && entity.OrganizerId != request.UserId)
             throw ForbiddenException.NotEventOwner(entity.Id);
 
         if (entity.Status == EventStatus.Cancelled)
             throw BusinessException.EventCancelled(entity.Id);
+
+        if (entity.Status == EventStatus.PendingReview)
+            throw BusinessException.EventInReview(entity.Id);
+
+        if (entity.Status == EventStatus.Published && !request.IsAdmin)
+            throw ForbiddenException.PublishedEventAdminOnly(entity.Id);
 
         if (entity.StartsAt <= _timeProvider.GetUtcNow().UtcDateTime)
             throw BusinessException.EventStarted(entity.Id);

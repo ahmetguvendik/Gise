@@ -1,4 +1,5 @@
-export type EventStatus = 'Draft' | 'Published' | 'Cancelled'
+/** PendingReview: organizatör onaya gönderdi, admin yayınlar ya da geri gönderir. */
+export type EventStatus = 'Draft' | 'PendingReview' | 'Published' | 'Cancelled'
 
 export interface EventSummary {
   id: string
@@ -23,6 +24,8 @@ export interface EventDetail {
   startsAt: string
   organizerId: string
   createdAt: string
+  /** Admin taslağa geri gönderdiyse sebebi; yalnızca sahibi ve admin görür. */
+  returnReason: string | null
   /** İptal edildiyse dolu; sayfada sebebiyle gösterilir. */
   cancelledAt: string | null
   cancellationReason: string | null
@@ -40,6 +43,9 @@ export interface MyEvent {
   city: string
   minPrice: number | null
 }
+
+/** Admin'in onay bekleyenler listesi; alanlar Etkinliklerim'dekiyle aynı. */
+export type PendingEvent = MyEvent
 
 export interface CreateEventInput {
   title: string

@@ -202,6 +202,7 @@ a:hover { color: var(--link-hover); }
 
 .badge { display: inline-flex; align-items: center; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
 .badge--draft { background: var(--warning-bg); color: var(--warning-text); }
+.badge--pendingreview { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--link); }
 .badge--published { background: var(--success-bg); color: var(--success-text); }
 .badge--cancelled { background: var(--surface-2); color: var(--muted); }
 
@@ -302,6 +303,9 @@ a:hover { color: var(--link-hover); }
 .manage__danger { display: grid; gap: 14px; padding-top: 28px; border-top: 2px dashed var(--border-strong); }
 .manage__danger h3 { color: var(--danger-text); }
 .manage__danger .button { justify-self: start; }
+
+.review-note { background: var(--warning-bg); color: var(--warning-text); border-radius: var(--radius-sm); padding: 16px 18px; display: grid; gap: 4px; }
+.review-note p { margin: 0; color: var(--text); }
 
 .cancel-banner { background: var(--danger-bg); color: var(--danger-text); border-radius: var(--radius); padding: 22px 26px; display: grid; gap: 6px; }
 .cancel-banner__title { font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
