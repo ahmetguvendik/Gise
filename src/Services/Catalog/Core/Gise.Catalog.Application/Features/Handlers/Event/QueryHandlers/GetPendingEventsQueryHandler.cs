@@ -9,11 +9,13 @@ public sealed class GetPendingEventsQueryHandler : IRequestHandler<GetPendingEve
 {
     private readonly IEventRepository _eventRepository;
     private readonly IVenueRepository _venueRepository;
+    private readonly IStorageService _storageService;
 
-    public GetPendingEventsQueryHandler(IEventRepository eventRepository, IVenueRepository venueRepository)
+    public GetPendingEventsQueryHandler(IEventRepository eventRepository, IVenueRepository venueRepository, IStorageService storageService)
     {
         _eventRepository = eventRepository;
         _venueRepository = venueRepository;
+        _storageService = storageService;
     }
 
     public async Task<IReadOnlyList<GetPendingEventsResponse>> Handle(GetPendingEventsQuery request, CancellationToken cancellationToken)
@@ -28,6 +30,8 @@ public sealed class GetPendingEventsQueryHandler : IRequestHandler<GetPendingEve
                 Title = e.Title,
                 Status = e.Status.ToString(),
                 StartsAt = e.StartsAt,
+                PosterUrl = _storageService.ResolvePublicUrl(e.PosterKey),
+                PosterSrcset = _storageService.ResolveSrcset(e.PosterKey),
                 VenueId = e.VenueId,
                 VenueName = venues[e.VenueId].Name,
                 City = venues[e.VenueId].City,

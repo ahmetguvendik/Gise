@@ -8,11 +8,13 @@ namespace Gise.Catalog.Application.Features.Handlers.Event.QueryHandlers;
 public sealed class GetAllEventsQueryHandler : IRequestHandler<GetAllEventsQuery, IReadOnlyList<GetAllEventsResponse>>
 {
     private readonly IEventRepository _eventRepository;
+    private readonly IStorageService _storageService;
     private readonly TimeProvider _timeProvider;
 
-    public GetAllEventsQueryHandler(IEventRepository eventRepository, TimeProvider timeProvider)
+    public GetAllEventsQueryHandler(IEventRepository eventRepository, IStorageService storageService, TimeProvider timeProvider)
     {
         _eventRepository = eventRepository;
+        _storageService = storageService;
         _timeProvider = timeProvider;
     }
 
@@ -27,6 +29,8 @@ public sealed class GetAllEventsQueryHandler : IRequestHandler<GetAllEventsQuery
                 Title = e.Title,
                 VenueId = e.VenueId,
                 StartsAt = e.StartsAt,
+                PosterUrl = _storageService.ResolvePublicUrl(e.PosterKey),
+                PosterSrcset = _storageService.ResolveSrcset(e.PosterKey),
                 MinPrice = e.PriceCategories.Count > 0 ? e.PriceCategories.Min(p => p.Price) : null
             })
             .ToList();

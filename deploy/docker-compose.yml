@@ -124,15 +124,39 @@ services:
     environment:
       MINIO_ROOT_USER: gise
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?deploy/.env içinde MINIO_ROOT_PASSWORD tanımlı olmalı}
+      # Tarayıcı imzalı adrese PUT atarken çapraz origin istek ve preflight gerekir. MinIO'nun varsayılanı
+      # her origin'e izin vermek; yalnızca uygulamanın sunulduğu adrese izin verilir.
+      # Görsellerin <img> ile okunmasını etkilemez, o istekler CORS'a tabi değil.
+      MINIO_API_CORS_ALLOW_ORIGIN: http://localhost:8000
     volumes:
       - minio_data:/data
     ports:
+      # 9000 API: tarayıcı afişi imzalı adresle doğrudan buraya yükler ve buradan okur. 9001 web konsolu.
+      - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 10s
       timeout: 5s
       retries: 15
+
+  # Bucket'ı kurar, posters/'u herkese açık okunur yapar, staging/'e 1 günlük ömür koyar. Tekrar çalıştırılabilir.
+  # Ayarlar minio_data volume'unda kalıcı; yalnızca ilk kurulumda ya da betik değişince:
+  #   docker compose -f deploy/docker-compose.yml --profile setup up minio-init
+  minio-init:
+    profiles: ["setup"]
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: gise
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: gise-media
+    entrypoint: ["/bin/sh", "/setup.sh"]
+    volumes:
+      - ./minio/setup.sh:/setup.sh:ro
+    restart: "no"
 
   elasticsearch:
     image: elasticsearch:9.5.5
@@ -164,6 +188,9 @@ services:
       Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
       Keycloak__PublicAuthority: http://localhost:8180/realms/gise
       Keycloak__RequireHttpsMetadata: "false"
+      # Afişler: Endpoint konteyner ağı içindir; imzalı adresler tarayıcının eriştiği appsettings'teki PublicEndpoint ile üretilir.
+      Storage__AccessKey: gise
+      Storage__SecretKey: ${MINIO_ROOT_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
       interval: 10s

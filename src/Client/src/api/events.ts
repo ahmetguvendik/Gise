@@ -26,6 +26,10 @@ export const eventsApi = {
   cancel: (id: string, reason: string, token: string) =>
     request<unknown>(`/api/events/${id}/cancel`, { method: 'POST', body: { reason }, token }),
 
+  // Anahtar mediaApi.upload'dan gelir; null afişi kaldırır. Bilgi ve fiyatla aynı yetki kuralları.
+  setPoster: (id: string, posterKey: string | null, token: string) =>
+    request<unknown>(`/api/events/${id}/poster`, { method: 'PUT', body: { posterKey }, token }),
+
   // Liste bütün olarak gönderilir: listede olmayan bölümün fiyatı kalkar.
   setPrices: (id: string, prices: PriceInput[], token: string) =>
     request<unknown>(`/api/events/${id}/prices`, { method: 'PUT', body: { prices }, token }),

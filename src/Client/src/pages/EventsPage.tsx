@@ -56,7 +56,13 @@ export function EventsPage() {
 
           {featured && (
             <article className="featured">
-              <Poster id={featured.id} title={featured.title} startsAt={featured.startsAt} />
+              <Poster
+                id={featured.id}
+                title={featured.title}
+                startsAt={featured.startsAt}
+                imageUrl={featured.posterUrl}
+                imageSrcset={featured.posterSrcset}
+              />
               <div className="perforation" />
               <div className="featured__body">
                 <h2 className="featured__title">
@@ -106,6 +112,8 @@ export function EventsPage() {
                   startsAt={event.startsAt}
                   venue={venueLine(event)}
                   minPrice={event.minPrice}
+                  posterUrl={event.posterUrl}
+                  posterSrcset={event.posterSrcset}
                 />
               ))}
             </ul>

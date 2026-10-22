@@ -72,4 +72,34 @@ public class BusinessException : AppException
         ErrorCodes.Price.SectionNotInVenue,
         "Fiyat girilen bölümlerden biri bu etkinliğin mekânına ait değil.",
         $"'{sectionId}' ID'li bölüm etkinliğin mekânında yok.");
+
+    public static BusinessException MediaTypeNotAllowed(IEnumerable<string> allowedContentTypes) => new(
+        ErrorCodes.Media.TypeNotAllowed,
+        "Bu dosya türü yüklenemez.",
+        $"İzin verilen türler: {string.Join(", ", allowedContentTypes)}.");
+
+    public static BusinessException MediaTooLarge(long maxSizeBytes) => new(
+        ErrorCodes.Media.TooLarge,
+        "Dosya boyutu sınırı aşıyor.",
+        $"En fazla {maxSizeBytes / (1024 * 1024)} MB yükleyebilirsiniz.");
+
+    public static BusinessException MediaTooManyPixels(int maxMegapixels) => new(
+        ErrorCodes.Media.TooLarge,
+        "Görselin çözünürlüğü çok yüksek.",
+        $"En fazla {maxMegapixels} megapiksel olabilir.");
+
+    public static BusinessException MediaInvalidKey() => new(
+        ErrorCodes.Media.InvalidKey,
+        "Geçersiz yükleme anahtarı.",
+        "Anahtar, yükleme adresiyle birlikte verilen geçici anahtar olmalı.");
+
+    public static BusinessException MediaNotFound() => new(
+        ErrorCodes.Media.NotFound,
+        "Yüklenen dosya bulunamadı.",
+        "Yükleme tamamlanmamış ya da geçici dosyanın süresi dolmuş olabilir.");
+
+    public static BusinessException MediaCorruptContent() => new(
+        ErrorCodes.Media.CorruptContent,
+        "Dosya içeriği türüyle uyuşmuyor.",
+        "Dosya bozuk olabilir ya da uzantısı gerçek içeriğini yansıtmıyor.");
 }

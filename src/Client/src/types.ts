@@ -6,6 +6,9 @@ export interface EventSummary {
   title: string
   venueId: string
   startsAt: string
+  /** Afiş yoksa boş; o zaman renkli yer tutucu çizilir. */
+  posterUrl: string | null
+  posterSrcset: string | null
   /** Yayındaki etkinlikte her bölüm fiyatlıdır; yine de API boş dönebilir. */
   minPrice: number | null
 }
@@ -22,6 +25,9 @@ export interface EventDetail {
   venueId: string
   status: EventStatus
   startsAt: string
+  /** Afiş yoksa boş; o zaman renkli yer tutucu çizilir. */
+  posterUrl: string | null
+  posterSrcset: string | null
   organizerId: string
   createdAt: string
   /** Admin taslağa geri gönderdiyse sebebi; yalnızca sahibi ve admin görür. */
@@ -38,6 +44,9 @@ export interface MyEvent {
   title: string
   status: EventStatus
   startsAt: string
+  /** Afiş yoksa boş; o zaman renkli yer tutucu çizilir. */
+  posterUrl: string | null
+  posterSrcset: string | null
   venueId: string
   venueName: string
   city: string
@@ -97,6 +106,25 @@ export interface VenueDetail {
 export interface VenueSectionInput {
   name: string
   rows: VenueRow[]
+}
+
+/** Yükleme izni: dosya bu adrese doğrudan PUT edilir. */
+export interface PresignedUpload {
+  uploadUrl: string
+  key: string
+  contentType: string
+  expiresInSeconds: number
+}
+
+/** Doğrulanmış yükleme: `key` etkinliğin afiş alanına yazılır, `url` önizleme içindir. */
+export interface CommitUpload {
+  key: string
+  url: string | null
+}
+
+export interface MediaPolicy {
+  maxSizeBytes: number
+  allowedContentTypes: string[]
 }
 
 /** API'nin hata gövdesi (RFC 7807 ProblemDetails). */

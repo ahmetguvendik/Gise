@@ -110,7 +110,14 @@ export function EventDetailPage() {
       )}
 
       <section className="detail-hero">
-        <Poster id={event.id} title={event.title} startsAt={event.startsAt} size="lg" />
+        <Poster
+          id={event.id}
+          title={event.title}
+          startsAt={event.startsAt}
+          size="lg"
+          imageUrl={event.posterUrl}
+          imageSrcset={event.posterSrcset}
+        />
         <div className="detail-hero__info">
           {(canManage || event.status !== 'Published') && <StatusBadge status={event.status} />}
           <h1 className="detail-hero__title">{event.title}</h1>

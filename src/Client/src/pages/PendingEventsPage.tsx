@@ -59,6 +59,8 @@ export function PendingEventsPage() {
                 startsAt={event.startsAt}
                 venue={`${event.venueName}, ${event.city}`}
                 minPrice={event.minPrice}
+                posterUrl={event.posterUrl}
+                posterSrcset={event.posterSrcset}
                 status={event.status}
                 actionLabel="İncele →"
               />

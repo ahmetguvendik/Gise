@@ -11,11 +11,13 @@ public sealed class GetEventByIdQueryHandler : IRequestHandler<GetEventByIdQuery
 {
     private readonly IEventRepository _eventRepository;
     private readonly IVenueRepository _venueRepository;
+    private readonly IStorageService _storageService;
 
-    public GetEventByIdQueryHandler(IEventRepository eventRepository, IVenueRepository venueRepository)
+    public GetEventByIdQueryHandler(IEventRepository eventRepository, IVenueRepository venueRepository, IStorageService storageService)
     {
         _eventRepository = eventRepository;
         _venueRepository = venueRepository;
+        _storageService = storageService;
     }
 
     public async Task<GetEventByIdResponse> Handle(GetEventByIdQuery request, CancellationToken cancellationToken)
@@ -37,6 +39,8 @@ public sealed class GetEventByIdQueryHandler : IRequestHandler<GetEventByIdQuery
             VenueId = entity.VenueId,
             Status = entity.Status.ToString(),
             StartsAt = entity.StartsAt,
+            PosterUrl = _storageService.ResolvePublicUrl(entity.PosterKey),
+            PosterSrcset = _storageService.ResolveSrcset(entity.PosterKey),
             OrganizerId = entity.OrganizerId,
             CreatedAt = entity.CreatedAt,
             ReturnReason = entity.ReturnReason,

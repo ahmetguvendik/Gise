@@ -7,6 +7,10 @@ public sealed class GetEventByIdResponse
     public Guid VenueId { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTime StartsAt { get; set; }
+
+    // Afiş yoksa boş; ön yüz o zaman renkli yer tutucuyu çizer.
+    public string? PosterUrl { get; set; }
+    public string? PosterSrcset { get; set; }
     public string OrganizerId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 

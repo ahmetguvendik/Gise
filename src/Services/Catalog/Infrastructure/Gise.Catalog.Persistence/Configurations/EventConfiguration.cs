@@ -12,6 +12,7 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.Property(e => e.Id).ValueGeneratedNever();
 
         builder.Property(e => e.Title).HasMaxLength(200).IsRequired();
+        builder.Property(e => e.PosterKey).HasMaxLength(100);
         builder.Property(e => e.OrganizerId).HasMaxLength(64).IsRequired();
         builder.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.CancellationReason).HasMaxLength(500);

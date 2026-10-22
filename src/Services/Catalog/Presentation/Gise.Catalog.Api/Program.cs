@@ -3,6 +3,7 @@ using Gise.Catalog.Api.Authentication;
 using Gise.Catalog.Api.ErrorHandling;
 using Gise.Catalog.Api.GrpcServices;
 using Gise.Catalog.Application;
+using Gise.Catalog.Infrastructure;
 using Gise.Catalog.Persistence;
 using Gise.Catalog.Persistence.Contexts;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -31,6 +32,7 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 builder.Services.AddKeycloakAuthentication(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddPersistenceServices(builder.Configuration);
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<CatalogDbContext>("postgres", tags: ["ready"]);

@@ -2,4 +2,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Gise.Catalog.Application\Gise.Catalog.Application.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="SkiaSharp" />
+    <!-- Docker (Linux) için Skia'nın yerel kütüphanesi; sistem paketlerine ihtiyaç duymaz. -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
+  </ItemGroup>
 </Project>

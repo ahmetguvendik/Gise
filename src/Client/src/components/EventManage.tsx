@@ -5,6 +5,7 @@ import { eventsApi } from '../api/events'
 import type { EventDetail, VenueDetail } from '../types'
 import { ErrorAlert } from './ErrorAlert'
 import { EventInfoForm } from './EventInfoForm'
+import { PosterForm } from './PosterForm'
 import { PriceForm } from './PriceForm'
 import { ReasonForm } from './ReasonForm'
 
@@ -89,6 +90,8 @@ export function EventManage({ event, venue, token, admin, onChanged, onSaved }: 
           {editable && (
             <>
               <EventInfoForm event={event} venueName={`${venue.name}, ${venue.city}`} token={token} onSaved={onSaved} />
+
+              <PosterForm event={event} token={token} onSaved={onSaved} />
 
               {/* Mekân değişince bölümler değişir: form yeni bölümlerle baştan kurulur. */}
               <PriceForm

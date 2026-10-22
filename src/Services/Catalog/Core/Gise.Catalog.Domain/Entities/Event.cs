@@ -6,6 +6,8 @@ namespace Gise.Catalog.Domain.Entities;
 public class Event : BaseEntity
 {
     public string Title { get; set; } = string.Empty;
+    // MinIO'daki afişin temel anahtarı (ör. "posters/2026/10/<id>"); boyları "-800.webp" gibi eklerle durur.
+    public string? PosterKey { get; set; }
     public Guid VenueId { get; set; }
     public DateTime StartsAt { get; set; }
     public string OrganizerId { get; set; } = string.Empty;

@@ -47,6 +47,11 @@ namespace Gise.Catalog.Persistence.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("organizer_id");
 
+                    b.Property<string>("PosterKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("poster_key");
+
                     b.Property<string>("ReturnReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")

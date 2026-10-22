@@ -10,17 +10,19 @@ interface Props {
   startsAt: string
   venue: string
   minPrice: number | null
+  posterUrl: string | null
+  posterSrcset: string | null
   /** Etkinliklerim'de: durum rozeti ve yönetim düğmesi. */
   status?: EventStatus
   actionLabel?: string
 }
 
-export function EventCard({ id, title, startsAt, venue, minPrice, status, actionLabel }: Props) {
+export function EventCard({ id, title, startsAt, venue, minPrice, posterUrl, posterSrcset, status, actionLabel }: Props) {
   const to = `/etkinlik/${id}`
 
   return (
     <li className="event-card">
-      <Poster id={id} title={title} startsAt={startsAt} />
+      <Poster id={id} title={title} startsAt={startsAt} imageUrl={posterUrl} imageSrcset={posterSrcset} />
       <div className="event-card__body">
         {status && (
           <div>

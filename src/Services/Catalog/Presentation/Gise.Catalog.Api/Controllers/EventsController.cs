@@ -135,6 +135,19 @@ public sealed class EventsController : ControllerBase
         return NoContent();
     }
 
+    // Önce /api/media ile yüklenir; bilgi ve fiyatla aynı yetki kuralları.
+    [Authorize(Policy = Policies.Organizer)]
+    [HttpPut("{id:guid}/poster")]
+    public async Task<ActionResult<SetEventPosterResponse>> SetPoster(Guid id, [FromBody] SetEventPosterCommand command, CancellationToken cancellationToken)
+    {
+        command.EventId = id;
+        command.UserId = User.FindFirst("sub")?.Value
+            ?? throw UnauthorizedException.MissingClaim("sub");
+        command.IsAdmin = User.IsInRole(Roles.Admin);
+
+        return Ok(await _mediator.Send(command, cancellationToken));
+    }
+
     [Authorize(Policy = Policies.Organizer)]
     [HttpPut("{id:guid}/prices")]
     public async Task<ActionResult<SetEventPricesResponse>> SetPrices(Guid id, [FromBody] SetEventPricesCommand command, CancellationToken cancellationToken)

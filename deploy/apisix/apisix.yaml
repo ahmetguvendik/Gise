@@ -10,7 +10,7 @@ upstreams:
 
 routes:
   - id: catalog
-    uris: ["/api/events", "/api/events/*", "/api/venues", "/api/venues/*"]
+    uris: ["/api/events", "/api/events/*", "/api/venues", "/api/venues/*", "/api/media/*"]
     upstream_id: catalog
     # "/*" istemci route'undan önce eşleşsin.
     priority: 10
