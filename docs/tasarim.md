@@ -233,6 +233,26 @@ sequenceDiagram
   - Olaylar (`EventPublished`, `EventUpdated`) afiş taşımıyor; Search yazılırken eklenecek.
   - Uygulama MinIO'ya kök kullanıcıyla bağlanıyor (Telgraf'taki gibi); canlıda yalnızca bu bucket'a yetkili ayrı bir kullanıcı olmalı.
 
+
+### 3.7 Reservation: koltuk stoğu
+
+Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik için kendi koltuk stoğunu tutar. Koltuk haritası ve satış Catalog'a sormadan çalışır. Inbox, Telgraf'taki gibi iki parçalıdır:
+
+- **Tüketici** (`Gise.Reservation.Infrastructure/Consumers/CatalogEventsConsumer`): reservation-api içinde çalışan bir `BackgroundService`. `catalog.events`'ten okur, mesajı `message-id` başlığıyla `inbox_messages`'a yazar (aynı mesaj ikinci kez yazılmaz), sonra offset'i onaylar. Yazamazsa okuma konumunu geri sarar; mesaj atlanmaz.
+- **Worker** (`src/Workers/Gise.Reservation.InboxWorker`, compose'da `reservation-inbox-worker`): ayrı process. Inbox'ı işler:
+  - Aynı etkinliğin olayları geldiği sırayla işlenir; birden çok kopya `FOR UPDATE SKIP LOCKED` ile çakışmaz.
+  - Her mesaj kendi transaction'ında işlenir; hata olursa yarım değişiklik geri alınır, artan aralıklarla yeniden denenir, `MaxRetryCount` aşılınca dead-letter olur.
+  - Sağlık: heartbeat, Postgres, dead-letter (`/health/ready`).
+
+| Olay | Reservation'da |
+|---|---|
+| `EventPublished` | Koltuklar Catalog'dan gRPC ile alınır (`GetEventSeats`); stok kurulur: bölüm, sıra, numara ve fiyatın kopyası. Olay ikinci kez gelirse stok zaten vardır. Etkinlik bu arada iptal edildiyse stok iptal olarak açılır. |
+| `EventUpdated` | Tarih güncellenir; olay yalnızca en düşük fiyatı taşıdığı için bölüm fiyatları Catalog'dan yeniden okunur. |
+| `EventCancelled` | Satış kapanır (`CancelledAt`); tutulan koltuklar bırakılır. Satılmış koltukların iadesi Order'ın işi (bkz. 4.3). |
+
+- `GET /api/reservation/events/{id}/seats` (herkese açık): bölümler, bölüm fiyatı, boş koltuk sayısı ve her koltuğun boş olup olmadığı. Tutulmuş ya da satılmış ayrımı dışarı verilmez. Stok yoksa 404 `STOCK_NOT_FOUND` (etkinlik yayında değil ya da worker henüz kurmadı). `/api/events` Catalog'un olduğu için Reservation'ın uçları gateway'de `/api/reservation` altında.
+- **Henüz yok:** koltuk tutma ve satış (Redis + RabbitMQ `ReserveSeats`/`ConfirmSeats`/`ReleaseSeats`) Order ile gelecek. gRPC çağrısında servisler arası kimlik doğrulama yok.
+
 ---
 
 ## 4. Satın alma saga'sı

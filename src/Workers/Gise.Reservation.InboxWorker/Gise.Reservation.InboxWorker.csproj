@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- Ayrı process: reservation-api çökse de inbox'taki olaylar işlenmeye devam eder. Web host yalnızca sağlık ucu için. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\Services\Reservation\Core\Gise.Reservation.Domain\Gise.Reservation.Domain.csproj" />
+    <ProjectReference Include="..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
+    <ProjectReference Include="..\..\Shared\Gise.Exceptions\Gise.Exceptions.csproj" />
+    <ProjectReference Include="..\..\Shared\Gise.HealthChecks\Gise.HealthChecks.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+</Project>

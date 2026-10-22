@@ -7,12 +7,29 @@ upstreams:
     type: roundrobin
     nodes:
       "client:80": 1
+  - id: reservation
+    type: roundrobin
+    nodes:
+      "reservation-api:8080": 1
 
 routes:
   - id: catalog
     uris: ["/api/events", "/api/events/*", "/api/venues", "/api/venues/*", "/api/media/*"]
     upstream_id: catalog
     # "/*" istemci route'undan önce eşleşsin.
+    priority: 10
+    plugins:
+      limit-count:
+        count: 300
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        policy: local
+        rejected_code: 429
+
+  - id: reservation
+    uris: ["/api/reservation/*"]
+    upstream_id: reservation
     priority: 10
     plugins:
       limit-count:

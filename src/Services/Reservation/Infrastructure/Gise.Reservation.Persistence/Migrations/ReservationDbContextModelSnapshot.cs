@@ -40,9 +40,34 @@ namespace Gise.Reservation.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("hold_id");
 
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("price");
+
+                    b.Property<string>("Row")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("row");
+
                     b.Property<Guid>("SeatId")
                         .HasColumnType("uuid")
                         .HasColumnName("seat_id");
+
+                    b.Property<Guid>("SectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("section_id");
+
+                    b.Property<string>("SectionName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("section_name");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -76,6 +101,34 @@ namespace Gise.Reservation.Persistence.Migrations
                     b.ToTable("event_seats", (string)null);
                 });
 
+            modelBuilder.Entity("Gise.Reservation.Domain.Entities.EventStock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_event_stocks");
+
+                    b.ToTable("event_stocks", (string)null);
+                });
+
             modelBuilder.Entity("Gise.Reservation.Domain.Entities.InboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -94,6 +147,12 @@ namespace Gise.Reservation.Persistence.Migrations
                     b.Property<bool>("IsDeadLettered")
                         .HasColumnType("boolean")
                         .HasColumnName("is_dead_lettered");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("key");
 
                     b.Property<string>("MessageId")
                         .IsRequired()
@@ -128,6 +187,12 @@ namespace Gise.Reservation.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("trace_parent");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("type");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -262,11 +327,23 @@ namespace Gise.Reservation.Persistence.Migrations
 
             modelBuilder.Entity("Gise.Reservation.Domain.Entities.EventSeat", b =>
                 {
+                    b.HasOne("Gise.Reservation.Domain.Entities.EventStock", null)
+                        .WithMany("Seats")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_event_seats_event_stocks_event_id");
+
                     b.HasOne("Gise.Reservation.Domain.Entities.SeatHold", null)
                         .WithMany()
                         .HasForeignKey("HoldId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_event_seats_seat_holds_hold_id");
+                });
+
+            modelBuilder.Entity("Gise.Reservation.Domain.Entities.EventStock", b =>
+                {
+                    b.Navigation("Seats");
                 });
 #pragma warning restore 612, 618
         }

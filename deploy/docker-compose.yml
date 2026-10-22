@@ -243,6 +243,32 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # Catalog'un olaylarını Kafka'dan okuyup inbox'a yazar.
+      kafka:
+        condition: service_healthy
+
+  # Reservation'ın inbox'ındaki Catalog olaylarını işler (koltuk stoğu); reservation-api'den ayrı process.
+  reservation-inbox-worker:
+    image: gise/reservation-inbox-worker:dev
+    build:
+      context: ..
+      dockerfile: src/Workers/Gise.Reservation.InboxWorker/Dockerfile
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
+    healthcheck:
+      # Döngü asılı kalırsa (heartbeat eskirse) ready kontrolü düşer.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # Inbox ve stok tablolarını reservation-api'nin migration'ları kurar.
+      reservation-api:
+        condition: service_healthy
 
   order-api:
     image: gise/order-api:dev

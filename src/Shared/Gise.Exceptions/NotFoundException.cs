@@ -17,4 +17,9 @@ public class NotFoundException : AppException
         ErrorCodes.Event.NotFound,
         "Etkinlik bulunamadı.",
         $"'{id}' ID'li etkinlik sistemde yok.");
+
+    public static NotFoundException EventStock(Guid eventId) => new(
+        ErrorCodes.Stock.NotFound,
+        "Etkinliğin koltuk bilgisi bulunamadı.",
+        $"'{eventId}' ID'li etkinlik satışa açılmamış ya da koltukları henüz hazırlanıyor.");
 }

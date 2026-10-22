@@ -6,6 +6,7 @@ namespace Gise.Reservation.Persistence.Contexts;
 
 public sealed class ReservationDbContext(DbContextOptions<ReservationDbContext> options) : DbContext(options)
 {
+    public DbSet<EventStock> EventStocks => Set<EventStock>();
     public DbSet<EventSeat> EventSeats => Set<EventSeat>();
     public DbSet<SeatHold> SeatHolds => Set<SeatHold>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();

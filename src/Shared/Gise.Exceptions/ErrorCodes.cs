@@ -43,6 +43,11 @@ public static class ErrorCodes
         public const string CorruptContent = "MEDIA_CORRUPT_CONTENT";
     }
 
+    public static class Stock
+    {
+        public const string NotFound = "STOCK_NOT_FOUND";
+    }
+
     public static class Price
     {
         public const string SectionNotInVenue = "PRICE_SECTION_NOT_IN_VENUE";

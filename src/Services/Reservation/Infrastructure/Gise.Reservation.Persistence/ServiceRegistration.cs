@@ -1,4 +1,8 @@
+using Gise.Reservation.Application.Interfaces;
+using Gise.Reservation.Application.UnitOfWorks;
 using Gise.Reservation.Persistence.Contexts;
+using Gise.Reservation.Persistence.Repositories;
+using Gise.Reservation.Persistence.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +16,10 @@ public static class ServiceRegistration
         services.AddDbContext<ReservationDbContext>(options => options
             .UseNpgsql(configuration.GetConnectionString("Reservation"))
             .UseSnakeCaseNamingConvention());
+
+        services.AddScoped<IEventStockRepository, EventStockRepository>();
+        services.AddScoped<IInboxMessageRepository, InboxMessageRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
     }

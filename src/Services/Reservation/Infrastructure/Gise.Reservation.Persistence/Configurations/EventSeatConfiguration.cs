@@ -11,6 +11,9 @@ public sealed class EventSeatConfiguration : IEntityTypeConfiguration<EventSeat>
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id).ValueGeneratedNever();
 
+        builder.Property(s => s.SectionName).HasMaxLength(100).IsRequired();
+        builder.Property(s => s.Row).HasMaxLength(10).IsRequired();
+        builder.Property(s => s.Price).HasPrecision(10, 2);
         builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(s => s.Version).IsRowVersion();
 

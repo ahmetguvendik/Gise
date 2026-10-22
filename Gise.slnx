@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/src/Workers/">
     <Project Path="src/Workers/Gise.Catalog.OutboxWorker/Gise.Catalog.OutboxWorker.csproj" />
+    <Project Path="src/Workers/Gise.Reservation.InboxWorker/Gise.Reservation.InboxWorker.csproj" />
   </Folder>
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/Catalog/" />

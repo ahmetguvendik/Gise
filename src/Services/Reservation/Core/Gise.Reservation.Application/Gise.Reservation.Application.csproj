@@ -3,4 +3,9 @@
     <ProjectReference Include="..\..\..\..\Shared\Gise.Exceptions\Gise.Exceptions.csproj" />
     <ProjectReference Include="..\Gise.Reservation.Domain\Gise.Reservation.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="MediatR" />
+  </ItemGroup>
 </Project>
