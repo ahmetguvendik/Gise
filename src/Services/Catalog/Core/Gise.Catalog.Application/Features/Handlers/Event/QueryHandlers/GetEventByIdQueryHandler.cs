@@ -39,6 +39,8 @@ public sealed class GetEventByIdQueryHandler : IRequestHandler<GetEventByIdQuery
             StartsAt = entity.StartsAt,
             OrganizerId = entity.OrganizerId,
             CreatedAt = entity.CreatedAt,
+            CancelledAt = entity.CancelledAt,
+            CancellationReason = entity.CancellationReason,
             Prices = entity.PriceCategories
                 .Select(p => new EventPriceResponse
                 {

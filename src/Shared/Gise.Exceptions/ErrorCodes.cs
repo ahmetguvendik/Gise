@@ -27,6 +27,8 @@ public static class ErrorCodes
         public const string AlreadyPublished = "EVENT_ALREADY_PUBLISHED";
         public const string NotPublished = "EVENT_NOT_PUBLISHED";
         public const string AlreadyStarted = "EVENT_ALREADY_STARTED";
+        public const string NotDraft = "EVENT_NOT_DRAFT";
+        public const string VenueLocked = "EVENT_VENUE_LOCKED";
     }
 
     public static class Price

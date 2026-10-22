@@ -14,6 +14,7 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.Property(e => e.Title).HasMaxLength(200).IsRequired();
         builder.Property(e => e.OrganizerId).HasMaxLength(64).IsRequired();
         builder.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.CancellationReason).HasMaxLength(500);
 
         // Etkinliği olan mekân silinemez.
         builder.HasOne<Venue>().WithMany().HasForeignKey(e => e.VenueId).OnDelete(DeleteBehavior.Restrict);

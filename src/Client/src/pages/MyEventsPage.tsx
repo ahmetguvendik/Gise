@@ -71,7 +71,7 @@ export function MyEventsPage() {
                   venue={`${event.venueName}, ${event.city}`}
                   minPrice={event.minPrice}
                   status={event.status}
-                  actionLabel={event.status === 'Draft' ? 'Fiyat ve yayın →' : 'Yönet →'}
+                  actionLabel={event.status === 'Draft' ? 'Fiyat ve yayın →' : event.status === 'Cancelled' ? 'Görüntüle →' : 'Yönet →'}
                 />
               ))}
             </ul>

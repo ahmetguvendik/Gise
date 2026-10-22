@@ -3,6 +3,7 @@ namespace Gise.Catalog.Application.Interfaces;
 public interface IEventRepository
 {
     Task AddAsync(Domain.Entities.Event entity, CancellationToken cancellationToken);
+    void Remove(Domain.Entities.Event entity);
     // Fiyatlarıyla birlikte, salt okunur.
     Task<Domain.Entities.Event?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 

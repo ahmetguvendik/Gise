@@ -12,6 +12,17 @@ export const eventsApi = {
   create: (input: CreateEventInput, token: string) =>
     request<CreatedEvent>('/api/events', { method: 'POST', body: input, token }),
 
+  // Ad ve tarih başlamadan önce her zaman, mekân yalnızca taslakta değişir; mekân değişirse fiyatlar silinir.
+  update: (id: string, input: CreateEventInput, token: string) =>
+    request<unknown>(`/api/events/${id}`, { method: 'PUT', body: input, token }),
+
+  // Yalnızca taslak silinir; yayındaki etkinlik iptal edilir.
+  remove: (id: string, token: string) => request<unknown>(`/api/events/${id}`, { method: 'DELETE', token }),
+
+  // Geri alınamaz.
+  cancel: (id: string, reason: string, token: string) =>
+    request<unknown>(`/api/events/${id}/cancel`, { method: 'POST', body: { reason }, token }),
+
   // Liste bütün olarak gönderilir: listede olmayan bölümün fiyatı kalkar.
   setPrices: (id: string, prices: PriceInput[], token: string) =>
     request<unknown>(`/api/events/${id}/prices`, { method: 'PUT', body: { prices }, token }),

@@ -18,6 +18,26 @@ public class BusinessException : AppException
         "İptal edilmiş etkinlikte değişiklik yapılamaz.",
         $"'{eventId}' ID'li etkinlik iptal edilmiş.");
 
+    public static BusinessException EventStarted(Guid eventId) => new(
+        ErrorCodes.Event.AlreadyStarted,
+        "Başlamış ya da geçmiş etkinlikte değişiklik yapılamaz.",
+        $"'{eventId}' ID'li etkinliğin başlangıç zamanı geçmiş.");
+
+    public static BusinessException OnlyDraftCanBeDeleted(Guid eventId) => new(
+        ErrorCodes.Event.NotDraft,
+        "Yalnızca taslak etkinlik silinebilir; yayındaki etkinlik iptal edilir.",
+        $"'{eventId}' ID'li etkinlik taslak değil.");
+
+    public static BusinessException DraftCannotBeCancelled(Guid eventId) => new(
+        ErrorCodes.Event.NotPublished,
+        "Taslak etkinlik iptal edilmez, silinir.",
+        $"'{eventId}' ID'li etkinlik henüz yayınlanmamış.");
+
+    public static BusinessException VenueLocked(Guid eventId) => new(
+        ErrorCodes.Event.VenueLocked,
+        "Yayındaki etkinliğin mekânı değiştirilemez.",
+        $"'{eventId}' ID'li etkinliğin koltuk stoğu mekânın koltuklarıyla kuruldu.");
+
     public static BusinessException EventNotPublished(Guid eventId) => new(
         ErrorCodes.Event.NotPublished,
         "Etkinlik yayında değil.",

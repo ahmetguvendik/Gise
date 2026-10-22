@@ -23,6 +23,9 @@ export interface EventDetail {
   startsAt: string
   organizerId: string
   createdAt: string
+  /** İptal edildiyse dolu; sayfada sebebiyle gösterilir. */
+  cancelledAt: string | null
+  cancellationReason: string | null
   prices: EventPrice[]
 }
 

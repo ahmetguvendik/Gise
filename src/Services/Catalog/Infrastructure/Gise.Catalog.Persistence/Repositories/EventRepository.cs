@@ -18,6 +18,8 @@ public sealed class EventRepository : IEventRepository
     public async Task AddAsync(Event entity, CancellationToken cancellationToken)
         => await _context.Events.AddAsync(entity, cancellationToken);
 
+    public void Remove(Event entity) => _context.Events.Remove(entity);
+
     public Task<Event?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         => _context.Events
             .AsNoTracking()

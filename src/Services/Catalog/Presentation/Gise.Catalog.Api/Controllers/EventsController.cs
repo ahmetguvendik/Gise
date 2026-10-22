@@ -53,6 +53,47 @@ public sealed class EventsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
+    // Ad ve tarih her zaman (başlamadan önce), mekân yalnızca taslakta değişir.
+    [Authorize(Policy = Policies.Organizer)]
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<UpdateEventResponse>> Update(Guid id, [FromBody] UpdateEventCommand command, CancellationToken cancellationToken)
+    {
+        command.EventId = id;
+        command.UserId = User.FindFirst("sub")?.Value
+            ?? throw UnauthorizedException.MissingClaim("sub");
+        command.IsAdmin = User.IsInRole(Roles.Admin);
+
+        return Ok(await _mediator.Send(command, cancellationToken));
+    }
+
+    // Yalnızca taslak; yayındaki etkinlik iptal edilir.
+    [Authorize(Policy = Policies.Organizer)]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteEventCommand
+        {
+            EventId = id,
+            UserId = User.FindFirst("sub")?.Value ?? throw UnauthorizedException.MissingClaim("sub"),
+            IsAdmin = User.IsInRole(Roles.Admin)
+        }, cancellationToken);
+
+        return NoContent();
+    }
+
+    // Geri alınamaz; sebep zorunlu.
+    [Authorize(Policy = Policies.Organizer)]
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<ActionResult<CancelEventResponse>> Cancel(Guid id, [FromBody] CancelEventCommand command, CancellationToken cancellationToken)
+    {
+        command.EventId = id;
+        command.UserId = User.FindFirst("sub")?.Value
+            ?? throw UnauthorizedException.MissingClaim("sub");
+        command.IsAdmin = User.IsInRole(Roles.Admin);
+
+        return Ok(await _mediator.Send(command, cancellationToken));
+    }
+
     [Authorize(Policy = Policies.Organizer)]
     [HttpPut("{id:guid}/prices")]
     public async Task<ActionResult<SetEventPricesResponse>> SetPrices(Guid id, [FromBody] SetEventPricesCommand command, CancellationToken cancellationToken)

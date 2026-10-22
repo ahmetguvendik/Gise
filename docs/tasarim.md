@@ -80,7 +80,7 @@ Desen bu projede **bilerek iki farklı şekilde** kullanılır:
 
 | Servis | Sorumluluk | Veri | Dışarıya açtığı | Gönderdiği | Dinlediği |
 |---|---|---|---|---|---|
-| **Catalog** | Etkinlik, mekân, salon/koltuk planı, fiyat kategorisi | PostgreSQL | REST (okuma herkese, yazma organizatöre), gRPC (fiyat) | Kafka: `EventPublished`, `EventUpdated` | — |
+| **Catalog** | Etkinlik, mekân, salon/koltuk planı, fiyat kategorisi | PostgreSQL | REST (okuma herkese, yazma organizatöre), gRPC (fiyat) | Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` | — |
 | **Reservation** | Koltuk tutma (10 dk), kesinleştirme, bırakma; çift satışı önleme | PostgreSQL + Redis | REST (koltuk durumu) | RabbitMQ: `SeatsReserved`, `SeatReservationFailed`; Kafka: `SeatStatusChanged` | RabbitMQ: `ReserveSeats`, `ConfirmSeats`, `ReleaseSeats` |
 | **Order** | Satın alma saga'sı (orkestratör) | PostgreSQL (saga durumu) | REST (sipariş oluştur/sorgula) | RabbitMQ: komutlar; Kafka: `OrderCompleted`, `OrderCancelled` | RabbitMQ: komut cevapları |
 | **Payment** | Sahte ödeme sağlayıcısı; iade | PostgreSQL | — | RabbitMQ: `PaymentSucceeded`, `PaymentFailed`, `PaymentRefunded` | RabbitMQ: `ProcessPayment`, `RefundPayment` |
@@ -142,11 +142,38 @@ Fiyat **bölüm başına** belirlenir: her bölümün bir etkinlikte tek fiyatı
 - **Taslak görünürlüğü:** Taslak etkinliğin detayını (`GET /api/events/{id}`) yalnızca sahibi olan organizatör ve admin görür; diğer herkes 404 alır. 403 dönülmez, çünkü etkinliğin var olduğunu ele verirdi. Liste ve gRPC zaten yalnızca yayındaki etkinlikleri döndürür.
 - Etkinlik listesi her etkinliğin en düşük fiyatını döndürür (`minPrice`).
 - `GET /api/events/mine`: organizatörün kendi etkinlikleri, taslaklar dahil. Ön yüzde "Etkinliklerim" sayfası bunu kullanır; fiyat girme ve yayınlama etkinlik detay sayfasındadır.
-- Yayınlanınca `EventPublished` olayı aynı transaction'da outbox'a yazılır (bkz. 3.4).
+- Yayınlanınca `EventPublished` olayı aynı transaction'da outbox'a yazılır (bkz. 3.5).
 
-### 3.4 Catalog: olaylar ve gRPC
+### 3.4 Catalog: mekân ve etkinlik yönetimi
+
+**Mekân** (yalnızca admin; ön yüzde "Mekânlar" sayfası):
+
+- `PUT /api/venues/{id}`: ad ve şehir her zaman değişir.
+- `PUT /api/venues/{id}/layout`: bölüm düzeni yalnızca mekânda **hiç etkinlik yokken** (taslak dahil) değişir; varsa 422 `VENUE_HAS_EVENTS`. Fiyatlar ve Reservation'ın koltuk stoğu bölümlere bağlıdır.
+- `DELETE /api/venues/{id}`: yalnızca etkinliği olmayan mekân silinir (aynı kural).
+
+**Etkinlik** (sahibi olan organizatör ya da admin; başkasınınki 403 `EVENT_NOT_OWNER`):
+
+| | Taslak | Yayında | İptal |
+|---|---|---|---|
+| Ad ve tarih (`PUT /api/events/{id}`) | Değişir | Değişir, `EventUpdated` gider | Değişmez |
+| Mekân | Değişir; girilen fiyatlar silinir | Değişmez (422 `EVENT_VENUE_LOCKED`): koltuk stoğu mekâna bağlı | Değişmez |
+| Fiyat | Değişir | Değişir, `EventUpdated` gider | Değişmez |
+| Silme (`DELETE /api/events/{id}`) | Silinir, fiyatlarıyla | Silinmez (422 `EVENT_NOT_DRAFT`); iptal edilir | Silinmez |
+| İptal (`POST /api/events/{id}/cancel`) | Edilmez, silinir (422) | Edilir, `EventCancelled` gider | Tekrar edilmez |
+
+- Başlamış ya da geçmiş etkinlikte hiçbir değişiklik yapılmaz (422 `EVENT_ALREADY_STARTED`).
+- İptal **geri alınamaz** ve sebep zorunludur (en fazla 500 karakter). İptal edilen etkinlik genel listeden kalkar; detay sayfası herkese açık kalır ve "iptal edildi" uyarısını tarih ve sebeple gösterir. Organizatörün "Etkinliklerim" sayfasında "İptal" rozetiyle görünür.
+- Taslağı başka servis bilmediği için taslaktaki değişiklik ve silme olay üretmez.
+- Ad ya da tarih aynı kalırsa (yalnızca kaydet'e basıldıysa) `EventUpdated` gönderilmez.
+- Ön yüzde hepsi etkinlik detay sayfasının "Yönetim" bölümündedir; silme ve iptal tarayıcı onayı ister.
+
+### 3.5 Catalog: olaylar ve gRPC
 
 - **`EventPublished`** (`Gise.Contracts/Events`) küçük bir olaydır: etkinlik, mekân, başlık, tarih, mekân adı, şehir ve en düşük fiyat. Koltuk listesi olayda **yoktur**; her servis kendi ihtiyacını Catalog'a sorar.
+- **`EventUpdated`** aynı alanları ve `PreviousStartsAt`'i taşır: Search kaydını günceller, tarih değiştiyse bilet sahiplerine bildirim bununla gidebilir.
+- **`EventCancelled`**: etkinlik, sebep ve iptal zamanı. Reservation satışı durduracak, Order ve Payment iade başlatacak.
+- Olayları `IOutboxMessageRepository.AddCatalogEventAsync` yazar: `Type` olayın sınıf adı, anahtar etkinlik ID'si.
 - Olaylar `catalog.events` topic'ine gider. Anahtar etkinlik ID'sidir, böylece aynı etkinliğin olayları aynı bölüme düşer ve sırası korunur. Başlıklar: `type` (ör. `EventPublished`), `message-id` (alan tarafın inbox'ı tekrarı bununla yakalar), `traceparent`.
 - **`catalog-outbox-worker`** (`src/Workers/Gise.Catalog.OutboxWorker`), Telgraf'taki outbox worker'lar gibi catalog-api'den **ayrı bir process**: API çökse de bekleyen olaylar gönderilmeye devam eder. Kendi `OutboxWorkerDbContext`'i yalnızca outbox tablosunu görür; tabloyu catalog-api'nin migration'ları kurar. Birkaç saniyede bir bekleyen satırları `FOR UPDATE SKIP LOCKED` ile alıp gönderir; aynı anahtarın daha eski bir olayı beklerken yenisi onu geçmez. Gönderilemeyen satır artan aralıklarla (en fazla 5 dk) yeniden denenir; `MaxRetryCount` aşılınca dead-letter olur. Gönderilmiş satırlar `RetentionDays` sonra silinir. Ayarlar worker'ın appsettings'inde: `Kafka` ve `Outbox` bölümleri.
 - Worker'ın `/health/ready` ucu: döngü dönüyor mu (heartbeat, `src/Shared/Gise.HealthChecks`), Postgres erişilebilir mi, dead-letter var mı (varsa "Degraded").

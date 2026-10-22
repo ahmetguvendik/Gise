@@ -4,6 +4,7 @@ using Gise.Catalog.Application.Interfaces;
 using Gise.Catalog.Application.UnitOfWorks;
 using Gise.Catalog.Domain.Entities;
 using Gise.Catalog.Domain.Enums;
+using Gise.Contracts.Events;
 using Gise.Exceptions;
 using MediatR;
 
@@ -13,15 +14,18 @@ public sealed class SetEventPricesCommandHandler : IRequestHandler<SetEventPrice
 {
     private readonly IEventRepository _eventRepository;
     private readonly IVenueRepository _venueRepository;
+    private readonly IOutboxMessageRepository _outboxMessageRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public SetEventPricesCommandHandler(
         IEventRepository eventRepository,
         IVenueRepository venueRepository,
+        IOutboxMessageRepository outboxMessageRepository,
         IUnitOfWork unitOfWork)
     {
         _eventRepository = eventRepository;
         _venueRepository = venueRepository;
+        _outboxMessageRepository = outboxMessageRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -67,6 +71,25 @@ public sealed class SetEventPricesCommandHandler : IRequestHandler<SetEventPrice
                 entity.PriceCategories.Add(new PriceCategory { EventId = entity.Id, SectionId = sectionId, Price = price });
             else
                 existing.Price = price;
+        }
+
+        // Yayındaki etkinlikte en düşük fiyat değişebilir; Search gibi dinleyenler güncel hâli alır.
+        if (entity.Status == EventStatus.Published)
+        {
+            var venue = await _venueRepository.GetByIdAsync(entity.VenueId, cancellationToken)
+                ?? throw NotFoundException.Venue(entity.VenueId);
+
+            await _outboxMessageRepository.AddCatalogEventAsync(entity.Id, new EventUpdated
+            {
+                EventId = entity.Id,
+                VenueId = entity.VenueId,
+                Title = entity.Title,
+                StartsAt = entity.StartsAt,
+                VenueName = venue.Name,
+                City = venue.City,
+                MinPrice = entity.PriceCategories.Min(p => p.Price),
+                PreviousStartsAt = entity.StartsAt
+            }, cancellationToken);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);

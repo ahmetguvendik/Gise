@@ -9,6 +9,10 @@ public sealed class GetEventByIdResponse
     public DateTime StartsAt { get; set; }
     public string OrganizerId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+
+    // İptal edildiyse dolu; sayfada "iptal edildi" uyarısı bununla gösterilir.
+    public DateTime? CancelledAt { get; set; }
+    public string? CancellationReason { get; set; }
     public List<EventPriceResponse> Prices { get; set; } = [];
 }
 

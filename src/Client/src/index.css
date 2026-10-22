@@ -157,6 +157,10 @@ a:hover { color: var(--link-hover); }
 .button--outline:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
 .button--ghost { background: transparent; color: var(--muted); }
 .button--ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+.button--danger { background: var(--danger-text); color: var(--surface); }
+.button--danger:hover:not(:disabled) { background: var(--danger-text); color: var(--surface); opacity: 0.86; }
+.button--danger-outline { background: transparent; color: var(--danger-text); border-color: currentColor; }
+.button--danger-outline:hover:not(:disabled) { background: var(--danger-bg); color: var(--danger-text); }
 .button--lg { min-height: 54px; padding: 15px 30px; font-size: 17px; }
 
 /* ---- Kart, form, uyarı ---- */
@@ -169,7 +173,8 @@ a:hover { color: var(--link-hover); }
 .form__row { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; align-items: end; }
 .form label { display: grid; gap: 8px; min-width: 0; font-size: 15px; font-weight: 600; color: var(--text); }
 .form input,
-.form select {
+.form select,
+.form textarea {
   width: 100%;
   min-width: 0;
   font: inherit;
@@ -182,10 +187,15 @@ a:hover { color: var(--link-hover); }
   background: var(--surface);
   color: var(--text);
 }
+.form textarea { resize: vertical; min-height: 96px; line-height: 1.5; }
+.form input:disabled { background: var(--surface-2); color: var(--muted); }
 .form input:focus,
-.form select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+.form select:focus,
+.form textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
 .form .button { justify-self: start; }
 .form__row .button { min-height: 50px; }
+.form__hint { margin: 0; font-size: 15px; color: var(--muted); }
+.form__hint--warning { color: var(--warning-text); font-weight: 600; }
 
 .alert { background: var(--danger-bg); color: var(--danger-text); border-radius: var(--radius-sm); padding: 14px 16px; display: grid; gap: 4px; }
 .notice { background: var(--success-bg); color: var(--success-text); border-radius: var(--radius-sm); padding: 14px 16px; font-weight: 600; }
@@ -287,6 +297,15 @@ a:hover { color: var(--link-hover); }
 .manage__title { font-size: 30px; letter-spacing: -0.02em; }
 .manage__block { display: grid; gap: 14px; justify-items: start; }
 .manage__block h3 { font-size: 22px; letter-spacing: -0.02em; }
+.manage h3 { font-size: 22px; letter-spacing: -0.02em; }
+/* Geri alınamaz işlemler ayrı durur. */
+.manage__danger { display: grid; gap: 14px; padding-top: 28px; border-top: 2px dashed var(--border-strong); }
+.manage__danger h3 { color: var(--danger-text); }
+.manage__danger .button { justify-self: start; }
+
+.cancel-banner { background: var(--danger-bg); color: var(--danger-text); border-radius: var(--radius); padding: 22px 26px; display: grid; gap: 6px; }
+.cancel-banner__title { font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.cancel-banner__reason { margin: 6px 0 0; color: var(--text); font-size: 17px; }
 
 /* ---- Mekânlar ---- */
 .venue-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }

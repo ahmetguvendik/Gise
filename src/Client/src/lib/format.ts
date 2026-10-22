@@ -17,6 +17,13 @@ export const formatWeekdayTime = (iso: string) => weekdayTimeFormatter.format(ne
 export const formatDay = (iso: string) => dayFormatter.format(new Date(iso))
 export const formatMonthShort = (iso: string) => monthFormatter.format(new Date(iso)).replace('.', '').toLocaleUpperCase('tr-TR')
 
+/** datetime-local alanı için yerel saatle: "2026-10-20T19:30". */
+export const toDateTimeLocal = (iso: string) => {
+  const date = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 /** Tam sayıysa kuruşsuz: "₺500", değilse "₺750,50". */
 export const formatPrice = (price: number) =>
   new Intl.NumberFormat('tr-TR', {

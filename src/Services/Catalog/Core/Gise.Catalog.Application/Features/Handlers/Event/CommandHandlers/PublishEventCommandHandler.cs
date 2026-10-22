@@ -1,10 +1,7 @@
-using System.Diagnostics;
-using System.Text.Json;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Features.Commands.Event.Response;
 using Gise.Catalog.Application.Interfaces;
 using Gise.Catalog.Application.UnitOfWorks;
-using Gise.Catalog.Domain.Entities;
 using Gise.Catalog.Domain.Enums;
 using Gise.Contracts.Events;
 using Gise.Exceptions;
@@ -67,23 +64,15 @@ public sealed class PublishEventCommandHandler : IRequestHandler<PublishEventCom
         entity.Status = EventStatus.Published;
 
         // Olay durum değişikliğiyle aynı SaveChanges'te yazılır: ya ikisi birden kaydedilir ya hiçbiri.
-        // Anahtar etkinlik ID'si: aynı etkinliğin olayları Kafka'da aynı bölüme düşer, sırası korunur.
-        await _outboxMessageRepository.AddAsync(new OutboxMessage
+        await _outboxMessageRepository.AddCatalogEventAsync(entity.Id, new EventPublished
         {
-            Topic = Kafka.CatalogEventsTopic,
-            Type = nameof(EventPublished),
-            Key = entity.Id.ToString(),
-            Payload = JsonSerializer.Serialize(new EventPublished
-            {
-                EventId = entity.Id,
-                VenueId = entity.VenueId,
-                Title = entity.Title,
-                StartsAt = entity.StartsAt,
-                VenueName = venue.Name,
-                City = venue.City,
-                MinPrice = entity.PriceCategories.Min(p => p.Price)
-            }, JsonSerializerOptions.Web),
-            TraceParent = Activity.Current?.Id
+            EventId = entity.Id,
+            VenueId = entity.VenueId,
+            Title = entity.Title,
+            StartsAt = entity.StartsAt,
+            VenueName = venue.Name,
+            City = venue.City,
+            MinPrice = entity.PriceCategories.Min(p => p.Price)
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
