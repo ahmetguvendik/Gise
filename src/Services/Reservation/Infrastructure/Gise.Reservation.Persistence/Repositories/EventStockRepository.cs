@@ -14,6 +14,15 @@ public sealed class EventStockRepository : IEventStockRepository
         _context = context;
     }
 
+    public Task<EventStock?> GetByIdAsync(Guid eventId, CancellationToken cancellationToken)
+        => _context.EventStocks.AsNoTracking().FirstOrDefaultAsync(s => s.Id == eventId, cancellationToken);
+
+    public async Task<IReadOnlyList<EventSeat>> GetSeatsAsync(Guid eventId, IReadOnlyCollection<Guid> seatIds, CancellationToken cancellationToken)
+        => await _context.EventSeats
+            .AsNoTracking()
+            .Where(s => s.EventId == eventId && seatIds.Contains(s.SeatId))
+            .ToListAsync(cancellationToken);
+
     public Task<EventStock?> GetWithSeatsAsync(Guid eventId, CancellationToken cancellationToken)
         => _context.EventStocks
             .AsNoTracking()

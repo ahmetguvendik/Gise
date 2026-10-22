@@ -12,4 +12,14 @@ public class ConflictException : AppException
         ErrorCodes.Event.AlreadyPublished,
         "Etkinlik zaten yayında.",
         $"'{eventId}' ID'li etkinlik daha önce yayınlanmış.");
+
+    public static ConflictException SeatsUnavailable() => new(
+        ErrorCodes.Hold.SeatsUnavailable,
+        "Seçtiğiniz koltuklardan en az biri artık müsait değil.",
+        "Koltuk başka biri tarafından tutuldu ya da satıldı; haritayı yenileyip yeniden seçin.");
+
+    public static ConflictException HoldAlreadyActive(Guid eventId) => new(
+        ErrorCodes.Hold.AlreadyActive,
+        "Bu etkinlikte zaten tuttuğunuz koltuklar var.",
+        $"'{eventId}' ID'li etkinlikte süresi dolmamış bir tutmanız var; yenisi için önce onu bırakın.");
 }

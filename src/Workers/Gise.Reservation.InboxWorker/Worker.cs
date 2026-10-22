@@ -206,7 +206,8 @@ public sealed class Worker : BackgroundService
         }
     }
 
-    // Satış durur, tutulan koltuklar bırakılır. Satılmış koltukların iadesi Order'ın işi (bkz. tasarım 4.3).
+    // Satış durur, açık tutmalar bırakılmış sayılır. Redis'teki kilitler süre dolunca kendiliğinden kalkar; o arada
+    // yeni tutma zaten açılamaz, çünkü stok iptal. Satılmış koltukların iadesi Order'ın işi (bkz. tasarım 4.3).
     private async Task CloseStockAsync(InboxWorkerDbContext db, EventCancelled evt, CancellationToken cancellationToken)
     {
         var stock = await db.EventStocks.SingleOrDefaultAsync(s => s.Id == evt.EventId, cancellationToken);
@@ -226,13 +227,6 @@ public sealed class Worker : BackgroundService
             .ToListAsync(cancellationToken);
         foreach (var hold in holds)
             hold.Status = HoldStatus.Released;
-
-        await db.EventSeats
-            .Where(s => s.EventId == evt.EventId && s.Status == SeatStatus.Held)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(s => s.Status, SeatStatus.Available)
-                .SetProperty(s => s.HoldId, (Guid?)null)
-                .SetProperty(s => s.UpdatedAt, DateTime.UtcNow), cancellationToken);
     }
 
     // Koltuklar ve güncel fiyatlar. Etkinlik artık yayında değilse (iptal edilmiş) null döner; diğer hatalar

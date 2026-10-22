@@ -102,4 +102,14 @@ public class BusinessException : AppException
         ErrorCodes.Media.CorruptContent,
         "Dosya içeriği türüyle uyuşmuyor.",
         "Dosya bozuk olabilir ya da uzantısı gerçek içeriğini yansıtmıyor.");
+
+    public static BusinessException EventNotOnSale(Guid eventId) => new(
+        ErrorCodes.Stock.NotOnSale,
+        "Bu etkinlik satışta değil.",
+        $"'{eventId}' ID'li etkinlik iptal edilmiş ya da başlamış.");
+
+    public static BusinessException SeatsNotInEvent(IEnumerable<Guid> seatIds) => new(
+        ErrorCodes.Hold.SeatNotInEvent,
+        "Seçilen koltuklardan biri bu etkinliğe ait değil.",
+        $"Etkinlikte olmayan koltuklar: {string.Join(", ", seatIds)}.");
 }

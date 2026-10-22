@@ -251,7 +251,8 @@ Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik 
 | `EventCancelled` | Satış kapanır (`CancelledAt`); tutulan koltuklar bırakılır. Satılmış koltukların iadesi Order'ın işi (bkz. 4.3). |
 
 - `GET /api/reservation/events/{id}/seats` (herkese açık): bölümler, bölüm fiyatı, boş koltuk sayısı ve her koltuğun boş olup olmadığı. Tutulmuş ya da satılmış ayrımı dışarı verilmez. Stok yoksa 404 `STOCK_NOT_FOUND` (etkinlik yayında değil ya da worker henüz kurmadı). `/api/events` Catalog'un olduğu için Reservation'ın uçları gateway'de `/api/reservation` altında.
-- **Henüz yok:** koltuk tutma ve satış (Redis + RabbitMQ `ReserveSeats`/`ConfirmSeats`/`ReleaseSeats`) Order ile gelecek. gRPC çağrısında servisler arası kimlik doğrulama yok.
+- Koltuk haritasında "boş" = satılmamış ve şu an tutulmuyor (Redis'e bakılır, bkz. 5).
+- **Henüz yok:** satış (`ConfirmSeats`) ve Order'ın RabbitMQ komutları (`ReserveSeats`/`ReleaseSeats`). gRPC çağrısında servisler arası kimlik doğrulama yok.
 
 ---
 
@@ -346,6 +347,23 @@ Catalog `EventCancelled` ve `EventUpdated` olaylarını Kafka'ya gönderir (bkz.
 2. **PostgreSQL: kalıcı gerçek.** Satılmış koltuklar Reservation veritabanında tutulur. `(EtkinlikId, KoltukId)` üzerinde, yalnızca satılmışları kapsayan **tekil indeks**, Redis'te bir hata olsa bile aynı koltuğun iki kez satılmasını veritabanı seviyesinde engeller.
 
 **Kanıt:** k6 ile aynı koltuğa aynı anda 1.000 istek gönderilir; tam olarak bir tanesinin başarılı olması beklenir. Bu test CI'da çalışır.
+
+
+### 5.1 Uygulama
+
+- **Uçlar** (giriş yapmış kullanıcı; gateway'de `/api/reservation/holds`):
+  - `POST` (etkinlik, koltuk ID'leri) → 201, tutmanın ID'si, bitiş zamanı, koltuklar ve toplam fiyat.
+  - `GET {id}`: durum (`Active`, `Expired`, `Released`, `Confirmed`) ve koltuklar; yalnızca sahibi ve admin görür.
+  - `DELETE {id}`: süresi dolmadan bırakır; tekrar çağrılması zararsız.
+  - İş mantığı MediatR komutlarında (`HoldSeatsCommand`, `ReleaseHoldCommand`). Order gelince RabbitMQ'daki `ReserveSeats` aynı komutu çağıracak.
+- **Kurallar** (`ReservationRules`, appsettings): tutma 10 dakika; bir seferde en fazla 10 koltuk; aynı koltuk iki kez seçilemez.
+  - Etkinlik satışta olmalı (iptal edilmemiş, başlamamış): değilse 422 `STOCK_NOT_ON_SALE`.
+  - Koltuklar o etkinliğe ait olmalı: değilse 422 `HOLD_SEAT_NOT_IN_EVENT`.
+  - Bir kullanıcının aynı etkinlikte tek tutması olur: 409 `HOLD_ALREADY_ACTIVE`.
+  - Koltuklardan biri satılmış ya da tutulmuşsa hiçbiri tutulmaz: 409 `HOLD_SEATS_UNAVAILABLE`.
+- **Redis:** koltuk başına `hold:{etkinlik}:{koltuk}`, kullanıcı başına `hold-user:{etkinlik}:{kullanıcı}`; değer tutmanın ID'si, süre 10 dakika. Kontrol ve yazma tek Lua betiğinde; aynı koltuğa aynı anda gelen isteklerden yalnızca biri kazanır (60 eşzamanlı istekle denendi). Bırakırken yalnızca değeri bu tutmanın ID'si olan anahtarlar silinir.
+- **PostgreSQL:** `seat_holds` kimin hangi koltukları ne zamana kadar tuttuğunu saklar; kayıt yazılamazsa Redis kilidi geri bırakılır. Koltuğun kalıcı durumu yalnızca `Available` ya da `Sold`. Süre dolunca Redis anahtarı kendiliğinden silinir; tarama işi yok. Kayıt "Active" kalır ama bitiş zamanı geçtiği için dışarıya `Expired` görünür.
+- Etkinlik iptal edilince açık tutmalar kayıtta bırakılmış sayılır; Redis'teki kilitler süre dolunca kalkar, o arada yeni tutma zaten açılamaz.
 
 ---
 

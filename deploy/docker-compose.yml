@@ -234,6 +234,11 @@ services:
     restart: unless-stopped
     environment:
       ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
+      Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
+      Keycloak__PublicAuthority: http://localhost:8180/realms/gise
+      Keycloak__RequireHttpsMetadata: "false"
+      # Koltuk tutma kilitleri.
+      Redis__Connection: redis:6379,password=${REDIS_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
       interval: 10s
@@ -245,6 +250,8 @@ services:
         condition: service_healthy
       # Catalog'un olaylarını Kafka'dan okuyup inbox'a yazar.
       kafka:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   # Reservation'ın inbox'ındaki Catalog olaylarını işler (koltuk stoğu); reservation-api'den ayrı process.

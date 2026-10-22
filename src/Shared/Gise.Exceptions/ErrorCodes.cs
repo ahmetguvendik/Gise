@@ -46,6 +46,16 @@ public static class ErrorCodes
     public static class Stock
     {
         public const string NotFound = "STOCK_NOT_FOUND";
+        public const string NotOnSale = "STOCK_NOT_ON_SALE";
+    }
+
+    public static class Hold
+    {
+        public const string NotFound = "HOLD_NOT_FOUND";
+        public const string NotOwner = "HOLD_NOT_OWNER";
+        public const string SeatsUnavailable = "HOLD_SEATS_UNAVAILABLE";
+        public const string SeatNotInEvent = "HOLD_SEAT_NOT_IN_EVENT";
+        public const string AlreadyActive = "HOLD_ALREADY_ACTIVE";
     }
 
     public static class Price

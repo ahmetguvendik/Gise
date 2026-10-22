@@ -10,11 +10,13 @@ namespace Gise.Reservation.Application.Features.Handlers.EventSeat.QueryHandlers
 public sealed class GetEventSeatsQueryHandler : IRequestHandler<GetEventSeatsQuery, GetEventSeatsResponse>
 {
     private readonly IEventStockRepository _eventStockRepository;
+    private readonly ISeatLockService _seatLockService;
     private readonly TimeProvider _timeProvider;
 
-    public GetEventSeatsQueryHandler(IEventStockRepository eventStockRepository, TimeProvider timeProvider)
+    public GetEventSeatsQueryHandler(IEventStockRepository eventStockRepository, ISeatLockService seatLockService, TimeProvider timeProvider)
     {
         _eventStockRepository = eventStockRepository;
+        _seatLockService = seatLockService;
         _timeProvider = timeProvider;
     }
 
@@ -23,6 +25,10 @@ public sealed class GetEventSeatsQueryHandler : IRequestHandler<GetEventSeatsQue
         // Stok yoksa etkinlik ya yayında değil ya da worker koltukları henüz kurmadı.
         var stock = await _eventStockRepository.GetWithSeatsAsync(request.EventId, cancellationToken)
             ?? throw NotFoundException.EventStock(request.EventId);
+
+        // Boş koltuk: satılmamış ve şu an kimse tarafından tutulmuyor.
+        var locked = await _seatLockService.GetLockedSeatIdsAsync(stock.Id, stock.Seats.Select(s => s.SeatId).ToList());
+        bool IsAvailable(Domain.Entities.EventSeat seat) => seat.Status == SeatStatus.Available && !locked.Contains(seat.SeatId);
 
         return new GetEventSeatsResponse
         {
@@ -38,7 +44,7 @@ public sealed class GetEventSeatsQueryHandler : IRequestHandler<GetEventSeatsQue
                     SectionName = g.Key.SectionName,
                     // Fiyat bölüm başına; bölümün bütün koltukları aynı fiyatta.
                     Price = g.First().Price,
-                    AvailableCount = g.Count(s => s.Status == SeatStatus.Available),
+                    AvailableCount = g.Count(IsAvailable),
                     // "2", "10"dan önce gelsin: sıra adı önce uzunluğa, sonra metne göre sıralanır.
                     Seats = g
                         .OrderBy(s => s.Row.Length)
@@ -49,7 +55,7 @@ public sealed class GetEventSeatsQueryHandler : IRequestHandler<GetEventSeatsQue
                             SeatId = s.SeatId,
                             Row = s.Row,
                             Number = s.Number,
-                            IsAvailable = s.Status == SeatStatus.Available
+                            IsAvailable = IsAvailable(s)
                         })
                         .ToList()
                 })

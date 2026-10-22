@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Gise.Reservation.Api.Authentication;
 using Gise.Reservation.Api.ErrorHandling;
 using Gise.Reservation.Application;
 using Gise.Reservation.Infrastructure;
@@ -14,18 +15,21 @@ builder.Services.AddControllers();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
 {
-    // Gövdesiz 404 yanıtları da Türkçe başlıklı ProblemDetails olarak döner.
+    // Gövdesiz 401/403/404 yanıtları da Türkçe başlıklı ProblemDetails olarak döner.
     context.ProblemDetails.Title = context.ProblemDetails.Status switch
     {
+        StatusCodes.Status401Unauthorized => "Bu işlem için giriş yapmalısınız.",
+        StatusCodes.Status403Forbidden when context.Exception is null => "Bu işlem için yetkiniz yok.",
         StatusCodes.Status404NotFound when context.Exception is null => "İstenen adres bulunamadı.",
         _ => context.ProblemDetails.Title
     };
     context.ProblemDetails.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
 });
 
+builder.Services.AddKeycloakAuthentication(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddPersistenceServices(builder.Configuration);
-builder.Services.AddInfrastructureServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<ReservationDbContext>("postgres", tags: ["ready"]);
@@ -41,6 +45,9 @@ await using (var scope = app.Services.CreateAsyncScope())
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });

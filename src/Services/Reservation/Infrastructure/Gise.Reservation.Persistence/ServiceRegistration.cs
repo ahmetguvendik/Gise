@@ -19,6 +19,7 @@ public static class ServiceRegistration
 
         services.AddScoped<IEventStockRepository, EventStockRepository>();
         services.AddScoped<IInboxMessageRepository, InboxMessageRepository>();
+        services.AddScoped<ISeatHoldRepository, SeatHoldRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
