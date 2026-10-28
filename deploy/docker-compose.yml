@@ -57,6 +57,9 @@ services:
       REDISCLI_AUTH: ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
+    ports:
+      # Yalnızca bu bilgisayardan (RedisInsight gibi araçlarla) bağlanmak için; kullanıcı "default", şifre .env'deki REDIS_PASSWORD.
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
