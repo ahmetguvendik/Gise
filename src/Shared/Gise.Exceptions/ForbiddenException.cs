@@ -13,10 +13,10 @@ public class ForbiddenException : AppException
         "Yalnızca kendi etkinliğinizde değişiklik yapabilirsiniz.",
         $"'{eventId}' ID'li etkinlik başka bir organizatöre ait.");
 
-    public static ForbiddenException NotHoldOwner(Guid holdId) => new(
-        ErrorCodes.Hold.NotOwner,
-        "Yalnızca kendi tuttuğunuz koltukları görebilir ve bırakabilirsiniz.",
-        $"'{holdId}' ID'li tutma başka bir kullanıcıya ait.");
+    public static ForbiddenException NotOrderOwner(Guid orderId) => new(
+        ErrorCodes.Order.NotOwner,
+        "Yalnızca kendi siparişinizi görebilir ve değiştirebilirsiniz.",
+        $"'{orderId}' ID'li sipariş başka bir müşteriye ait.");
 
     public static ForbiddenException PublishedEventAdminOnly(Guid eventId) => new(
         ErrorCodes.Event.AdminOnly,

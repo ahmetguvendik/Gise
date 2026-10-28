@@ -248,11 +248,11 @@ Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik 
 |---|---|
 | `EventPublished` | Koltuklar Catalog'dan gRPC ile alınır (`GetEventSeats`); stok kurulur: bölüm, sıra, numara ve fiyatın kopyası. Olay ikinci kez gelirse stok zaten vardır. Etkinlik bu arada iptal edildiyse stok iptal olarak açılır. |
 | `EventUpdated` | Tarih güncellenir; olay yalnızca en düşük fiyatı taşıdığı için bölüm fiyatları Catalog'dan yeniden okunur. |
-| `EventCancelled` | Satış kapanır (`CancelledAt`); tutulan koltuklar bırakılır. Satılmış koltukların iadesi Order'ın işi (bkz. 4.3). |
+| `EventCancelled` | Satış kapanır (`CancelledAt`); tutulan koltuklar bırakılır. Satılmış koltukların iadesi Order'ın işi (bkz. 4.4). |
 
 - `GET /api/reservation/events/{id}/seats` (herkese açık): bölümler, bölüm fiyatı, boş koltuk sayısı ve her koltuğun boş olup olmadığı. Tutulmuş ya da satılmış ayrımı dışarı verilmez. Stok yoksa 404 `STOCK_NOT_FOUND` (etkinlik yayında değil ya da worker henüz kurmadı). `/api/events` Catalog'un olduğu için Reservation'ın uçları gateway'de `/api/reservation` altında.
 - Koltuk haritasında "boş" = satılmamış ve şu an tutulmuyor (Redis'e bakılır, bkz. 5).
-- **Henüz yok:** satış (`ConfirmSeats`) ve Order'ın RabbitMQ komutları (`ReserveSeats`/`ReleaseSeats`). gRPC çağrısında servisler arası kimlik doğrulama yok.
+- **Henüz yok:** satış (`ConfirmSeats`, Payment ile gelecek). gRPC çağrısında servisler arası kimlik doğrulama yok.
 
 ---
 
@@ -311,10 +311,34 @@ stateDiagram-v2
 
 **Kurallar**
 - Her komut ve cevap **idempotent** işlenir: aynı mesaj iki kez gelirse ikinci kez etkisi olmaz (MassTransit inbox/outbox).
-- Zaman aşımı saga'nın kendi zamanlayıcısıyla yönetilir (RabbitMQ gecikmeli mesaj).
+- Zaman aşımı saga'nın kendi zamanlayıcısıyla yönetilir (MassTransit + Quartz, bkz. 4.3). RabbitMQ'nun gecikmeli mesaj eklentisi kullanılmaz: arşivlendi ve RabbitMQ 4.3'te çalışmıyor (dayandığı Mnesia kaldırıldı).
 - Bir telafi adımı da başarısız olabilir. Bu durumda yeniden denenir, sınır aşılınca saga **"elle müdahale gerekli"** olarak işaretlenir ve uyarı üretilir. Sessizce yutulmaz.
 
-### 4.3 Etkinlik iptal edilince ve tarihi değişince
+### 4.3 Uygulama (Order + Reservation)
+
+Saga'nın koltuk tutma kısmı yazıldı; ödeme (Payment) ve bilet (Ticket) adımları sonra eklenecek.
+
+- **MassTransit 8.5.x** (Apache-2.0). Saga durum makinesi `OrderStateMachine` (`Gise.Order.Application/Sagas`); durumu `order_state` tablosunda. Müşterinin gördüğü sipariş (`orders`) her adımda saga ile aynı transaction'da güncellenir.
+- **Uçlar** (giriş yapmış müşteri; gateway'de `/api/orders`):
+  - `POST` (etkinlik, koltuklar) → 202 ve siparişin ID'si; durum `Pending`. Koltuklar arkada tutulur, sonucu `GET {id}` gösterir.
+  - `GET {id}` (sahibi ve admin), `GET mine`.
+  - `POST {id}/cancel`: yalnızca `AwaitingPayment` iken (değilse 422 `ORDER_NOT_CANCELLABLE`).
+- **Akış:**
+  - Sipariş açılınca `OrderSubmitted` siparişle aynı transaction'da outbox'a yazılır; saga `ReserveSeats` komutunu `reserve-seats` kuyruğuna gönderir.
+  - Reservation `SeatsReserved` ile cevap verirse sipariş `AwaitingPayment` olur; koltuklar ve fiyatlar siparişe kopyalanır. Ödeme süresi tutmanın bitişine eşitlenir.
+  - `SeatReservationFailed` gelirse sipariş sebebiyle `Cancelled` olur (koltuk dolu, etkinlik satışta değil, aynı etkinlikte ödemesi bekleyen başka sipariş var).
+  - Müşteri vazgeçerse ya da süre dolarsa `ReleaseSeats` gönderilir; sipariş `Cancelled` ya da `Expired` olur.
+  - Reservation hiç cevap vermezse sipariş açılışta kurulan zaman aşımıyla `Expired` olur ("Koltuklar zamanında tutulamadı"); saga yine de `ReleaseSeats` gönderir.
+  - Kapanan saga'nın satırı silinir, sipariş geçmiş olarak kalır. Kapandıktan sonra gelen geç cevaplar yok sayılır.
+- **Zaman aşımı:** MassTransit + Quartz; planlanan mesajlar Order veritabanındaki `qrtz_*` tablolarında (migration `AddQuartzTables`), order-api yeniden başlasa da kaybolmaz. Kümelenme açık; her kopya kendi kimliğini alır.
+- **Güvenilirlik:** iki tarafta da MassTransit'in EF Core inbox/outbox'ı (`inbox_state`, `outbox_message`, `outbox_state`); Kafka tarafındaki kendi outbox/inbox'ımızdan ayrı tablolar. Geçici hatalar 1, 5, 15 sn aralıkla yeniden denenir, sonra `_error` kuyruğuna düşer.
+- **Tekrar ve sıra:**
+  - Tutmanın ID'si siparişin ID'sidir: `ReserveSeats` yeniden gelirse Lua betiği kendi kilidini tanır, var olan tutma döner.
+  - `ReserveSeats` ve `ReleaseSeats` ayrı kuyruklarda olduğu için sıraları garanti değildir. "Bırak" önce gelirse sipariş için "bırakıldı" kaydı yazılır; sonradan gelen "tut" koltuk tutmaz (`HOLD_ORDER_CLOSED`).
+- **Ayarlar:** `OrderRules` (ödeme süresi 10 dk, siparişte en fazla 10 koltuk), `RabbitMq`.
+- **Denendi:** başarılı sipariş, dolu koltuk, aynı etkinlikte ikinci sipariş, yetki, vazgeçme, ödeme süresinin dolması ve Reservation kapalıyken siparişin askıda kalmaması (süreler test için 1 dakikaya indirilerek).
+
+### 4.4 Etkinlik iptal edilince ve tarihi değişince
 
 Catalog `EventCancelled` ve `EventUpdated` olaylarını Kafka'ya gönderir (bkz. 3.5). Bilet sahiplerini ilgilendiren işler bu olayları dinleyen servislerde yapılır; bu servisler yazılırken uygulanacak.
 
@@ -351,16 +375,13 @@ Catalog `EventCancelled` ve `EventUpdated` olaylarını Kafka'ya gönderir (bkz.
 
 ### 5.1 Uygulama
 
-- **Uçlar** (giriş yapmış kullanıcı; gateway'de `/api/reservation/holds`):
-  - `POST` (etkinlik, koltuk ID'leri) → 201, tutmanın ID'si, bitiş zamanı, koltuklar ve toplam fiyat.
-  - `GET {id}`: durum (`Active`, `Expired`, `Released`, `Confirmed`) ve koltuklar; yalnızca sahibi ve admin görür.
-  - `DELETE {id}`: süresi dolmadan bırakır; tekrar çağrılması zararsız.
-  - İş mantığı MediatR komutlarında (`HoldSeatsCommand`, `ReleaseHoldCommand`). Order gelince RabbitMQ'daki `ReserveSeats` aynı komutu çağıracak.
+- Koltukları müşteri doğrudan tutmaz; sipariş tutar (bkz. 4.3). Reservation'ın RabbitMQ tüketicileri (`ReserveSeatsConsumer`, `ReleaseSeatsConsumer`) MediatR komutlarını (`HoldSeatsCommand`, `ReleaseHoldCommand`) çağırır. Tutmanın ID'si siparişin ID'sidir.
 - **Kurallar** (`ReservationRules`, appsettings): tutma 10 dakika; bir seferde en fazla 10 koltuk; aynı koltuk iki kez seçilemez.
-  - Etkinlik satışta olmalı (iptal edilmemiş, başlamamış): değilse 422 `STOCK_NOT_ON_SALE`.
-  - Koltuklar o etkinliğe ait olmalı: değilse 422 `HOLD_SEAT_NOT_IN_EVENT`.
-  - Bir kullanıcının aynı etkinlikte tek tutması olur: 409 `HOLD_ALREADY_ACTIVE`.
-  - Koltuklardan biri satılmış ya da tutulmuşsa hiçbiri tutulmaz: 409 `HOLD_SEATS_UNAVAILABLE`.
+  - Etkinlik satışta olmalı (iptal edilmemiş, başlamamış): değilse `STOCK_NOT_ON_SALE`.
+  - Koltuklar o etkinliğe ait olmalı: değilse `HOLD_SEAT_NOT_IN_EVENT`.
+  - Bir müşterinin aynı etkinlikte ödemesi bekleyen tek siparişi olur: `HOLD_ALREADY_ACTIVE`.
+  - Koltuklardan biri satılmış ya da tutulmuşsa hiçbiri tutulmaz: `HOLD_SEATS_UNAVAILABLE`.
+  - Kural ihlallerinde sipariş bu kod ve açıklamayla iptal olur (`SeatReservationFailed`).
 - **Redis:** koltuk başına `hold:{etkinlik}:{koltuk}`, kullanıcı başına `hold-user:{etkinlik}:{kullanıcı}`; değer tutmanın ID'si, süre 10 dakika. Kontrol ve yazma tek Lua betiğinde; aynı koltuğa aynı anda gelen isteklerden yalnızca biri kazanır (60 eşzamanlı istekle denendi). Bırakırken yalnızca değeri bu tutmanın ID'si olan anahtarlar silinir.
 - **PostgreSQL:** `seat_holds` kimin hangi koltukları ne zamana kadar tuttuğunu saklar; kayıt yazılamazsa Redis kilidi geri bırakılır. Koltuğun kalıcı durumu yalnızca `Available` ya da `Sold`. Süre dolunca Redis anahtarı kendiliğinden silinir; tarama işi yok. Kayıt "Active" kalır ama bitiş zamanı geçtiği için dışarıya `Expired` görünür.
 - Etkinlik iptal edilince açık tutmalar kayıtta bırakılmış sayılır; Redis'teki kilitler süre dolunca kalkar, o arada yeni tutma zaten açılamaz.
@@ -501,6 +522,8 @@ Kodda ve konteyner adlarında ASCII **`gise`** kullanılır; klasör adındaki `
 
 ## 13. Açık sorular
 
-1. **MassTransit sürümü ve lisansı:** v8 açık kaynak; sonraki ana sürüm ticari lisansa geçti. Hangi sürümün kullanılacağı 3. aşamadan önce güncel lisans durumuna bakılarak seçilmeli.
+Şu an açık soru yok.
+
+**Karara bağlananlar (2026-10-28):** MassTransit 8.5.x (Apache-2.0) kullanılır; 9.x ticari lisanslı. Saga zaman aşımları için RabbitMQ'nun gecikmeli mesaj eklentisi yerine Quartz (Order veritabanında) kullanılır.
 
 **Karara bağlananlar (2026-10-17):** Kafka olayları için kendi outbox/inbox'ımız yazılır ve entity'leri her servisin kendi içinde durur; Kafka KRaft modunda çalışır; ödeme test sağlayıcıyla yapılır (bkz. 3.2).

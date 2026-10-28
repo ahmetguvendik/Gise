@@ -112,4 +112,14 @@ public class BusinessException : AppException
         ErrorCodes.Hold.SeatNotInEvent,
         "Seçilen koltuklardan biri bu etkinliğe ait değil.",
         $"Etkinlikte olmayan koltuklar: {string.Join(", ", seatIds)}.");
+
+    public static BusinessException OrderNotCancellable(Guid orderId) => new(
+        ErrorCodes.Order.NotCancellable,
+        "Bu siparişten şu an vazgeçilemez.",
+        $"'{orderId}' ID'li siparişin koltukları henüz tutulmadı ya da sipariş kapandı.");
+
+    public static BusinessException HoldOrderClosed(Guid orderId) => new(
+        ErrorCodes.Hold.OrderClosed,
+        "Sipariş kapandığı için koltuklar tutulmadı.",
+        $"'{orderId}' ID'li siparişin koltukları daha önce bırakıldı (vazgeçildi ya da süresi doldu).");
 }

@@ -237,11 +237,10 @@ services:
     restart: unless-stopped
     environment:
       ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
-      Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
-      Keycloak__PublicAuthority: http://localhost:8180/realms/gise
-      Keycloak__RequireHttpsMetadata: "false"
       # Koltuk tutma kilitleri.
       Redis__Connection: redis:6379,password=${REDIS_PASSWORD}
+      # Order saga'sının komutları (ReserveSeats, ReleaseSeats).
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
       interval: 10s
@@ -255,6 +254,8 @@ services:
       kafka:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   # Reservation'ın inbox'ındaki Catalog olaylarını işler (koltuk stoğu); reservation-api'den ayrı process.
@@ -288,6 +289,11 @@ services:
     restart: unless-stopped
     environment:
       ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
+      Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
+      Keycloak__PublicAuthority: http://localhost:8180/realms/gise
+      Keycloak__RequireHttpsMetadata: "false"
+      # Satın alma saga'sı.
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
       interval: 10s
@@ -296,6 +302,8 @@ services:
       start_period: 15s
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   payment-api:

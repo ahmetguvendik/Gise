@@ -18,10 +18,10 @@ public class NotFoundException : AppException
         "Etkinlik bulunamadı.",
         $"'{id}' ID'li etkinlik sistemde yok.");
 
-    public static NotFoundException Hold(Guid id) => new(
-        ErrorCodes.Hold.NotFound,
-        "Koltuk tutma kaydı bulunamadı.",
-        $"'{id}' ID'li tutma sistemde yok.");
+    public static NotFoundException Order(Guid id) => new(
+        ErrorCodes.Order.NotFound,
+        "Sipariş bulunamadı.",
+        $"'{id}' ID'li sipariş sistemde yok.");
 
     public static NotFoundException EventStock(Guid eventId) => new(
         ErrorCodes.Stock.NotFound,

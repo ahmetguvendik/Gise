@@ -2,9 +2,15 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
     <ProjectReference Include="..\..\Core\Gise.Reservation.Application\Gise.Reservation.Application.csproj" />
+    <!-- MassTransit'in outbox/inbox'ı Reservation veritabanında (ReservationDbContext). -->
+    <ProjectReference Include="..\Gise.Reservation.Persistence\Gise.Reservation.Persistence.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <!-- MassTransit.EntityFrameworkCore eski Relational sürümünü getiriyor; projenin kalanıyla aynı sürüme sabitlenir. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="MassTransit.RabbitMQ" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="StackExchange.Redis" />

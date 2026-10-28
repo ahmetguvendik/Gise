@@ -1,6 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
     <ProjectReference Include="..\..\..\..\Shared\Gise.Exceptions\Gise.Exceptions.csproj" />
     <ProjectReference Include="..\Gise.Order.Domain\Gise.Order.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
   </ItemGroup>
 </Project>

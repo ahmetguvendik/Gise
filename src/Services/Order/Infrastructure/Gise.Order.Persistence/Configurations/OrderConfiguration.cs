@@ -14,6 +14,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Domain.Entitie
         builder.Property(o => o.CustomerId).HasMaxLength(64).IsRequired();
         builder.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(o => o.TotalAmount).HasPrecision(10, 2);
+        builder.Property(o => o.FailureReason).HasMaxLength(200);
 
         builder.HasMany(o => o.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
 

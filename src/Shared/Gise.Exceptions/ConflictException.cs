@@ -20,6 +20,6 @@ public class ConflictException : AppException
 
     public static ConflictException HoldAlreadyActive(Guid eventId) => new(
         ErrorCodes.Hold.AlreadyActive,
-        "Bu etkinlikte zaten tuttuğunuz koltuklar var.",
-        $"'{eventId}' ID'li etkinlikte süresi dolmamış bir tutmanız var; yenisi için önce onu bırakın.");
+        "Bu etkinlik için ödemesi bekleyen bir siparişiniz var.",
+        $"'{eventId}' ID'li etkinlikte koltukları hâlâ tutulan bir siparişiniz var; yenisi için önce onu tamamlayın ya da vazgeçin.");
 }

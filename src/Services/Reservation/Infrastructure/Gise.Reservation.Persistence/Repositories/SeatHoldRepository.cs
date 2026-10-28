@@ -17,9 +17,9 @@ public sealed class SeatHoldRepository : ISeatHoldRepository
     public async Task AddAsync(SeatHold hold, CancellationToken cancellationToken)
         => await _context.SeatHolds.AddAsync(hold, cancellationToken);
 
-    public Task<SeatHold?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
-        => _context.SeatHolds.AsNoTracking().FirstOrDefaultAsync(h => h.Id == id, cancellationToken);
+    public Task<SeatHold?> GetByOrderIdAsync(Guid orderId, CancellationToken cancellationToken)
+        => _context.SeatHolds.AsNoTracking().FirstOrDefaultAsync(h => h.OrderId == orderId, cancellationToken);
 
-    public Task<SeatHold?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
-        => _context.SeatHolds.FirstOrDefaultAsync(h => h.Id == id, cancellationToken);
+    public Task<SeatHold?> GetByOrderIdForUpdateAsync(Guid orderId, CancellationToken cancellationToken)
+        => _context.SeatHolds.FirstOrDefaultAsync(h => h.OrderId == orderId, cancellationToken);
 }

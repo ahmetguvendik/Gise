@@ -51,11 +51,17 @@ public static class ErrorCodes
 
     public static class Hold
     {
-        public const string NotFound = "HOLD_NOT_FOUND";
-        public const string NotOwner = "HOLD_NOT_OWNER";
         public const string SeatsUnavailable = "HOLD_SEATS_UNAVAILABLE";
         public const string SeatNotInEvent = "HOLD_SEAT_NOT_IN_EVENT";
         public const string AlreadyActive = "HOLD_ALREADY_ACTIVE";
+        public const string OrderClosed = "HOLD_ORDER_CLOSED";
+    }
+
+    public static class Order
+    {
+        public const string NotFound = "ORDER_NOT_FOUND";
+        public const string NotOwner = "ORDER_NOT_OWNER";
+        public const string NotCancellable = "ORDER_NOT_CANCELLABLE";
     }
 
     public static class Price

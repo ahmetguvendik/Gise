@@ -11,6 +11,7 @@ public sealed class HoldSeatsCommandValidator : AbstractValidator<HoldSeatsComma
         // Sınır appsettings'teki ReservationRules bölümünden okunur.
         var maxSeats = configuration.GetRequiredSection("ReservationRules").GetValue<int>("MaxSeatsPerHold");
 
+        RuleFor(x => x.OrderId).NotEmpty().WithMessage("Sipariş belirtilmelidir.");
         RuleFor(x => x.EventId).NotEmpty().WithMessage("Etkinlik seçilmelidir.");
 
         RuleFor(x => x.SeatIds)

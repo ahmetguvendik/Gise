@@ -7,8 +7,8 @@ public interface ISeatHoldRepository
     Task AddAsync(SeatHold hold, CancellationToken cancellationToken);
 
     // Salt okunur.
-    Task<SeatHold?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<SeatHold?> GetByOrderIdAsync(Guid orderId, CancellationToken cancellationToken);
 
     // Değişiklikler izlenir.
-    Task<SeatHold?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken);
+    Task<SeatHold?> GetByOrderIdForUpdateAsync(Guid orderId, CancellationToken cancellationToken);
 }

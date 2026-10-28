@@ -1,5 +1,7 @@
 using Gise.Order.Domain.Common;
 using Gise.Order.Domain.Entities;
+using Gise.Order.Persistence.Configurations;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gise.Order.Persistence.Contexts;
@@ -11,7 +13,16 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
-        => modelBuilder.ApplyConfigurationsFromAssembly(typeof(OrderDbContext).Assembly);
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(OrderDbContext).Assembly);
+
+        // Satın alma saga'sının durumu ve MassTransit'in hazır inbox/outbox'ı (RabbitMQ tarafı, bkz. tasarım 2.2).
+        // Kafka tarafındaki kendi outbox'ımızdan (outbox_messages) ayrı tablolardır.
+        new OrderStateMap().Configure(modelBuilder);
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
+    }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

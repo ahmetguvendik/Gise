@@ -36,6 +36,17 @@ public sealed class HoldSeatsCommandHandler : IRequestHandler<HoldSeatsCommand, 
 
     public async Task<HoldSeatsResponse> Handle(HoldSeatsCommand request, CancellationToken cancellationToken)
     {
+        // Aynı sipariş için komut ikinci kez gelirse (yeniden teslim) var olan tutma döner. Sipariş bu arada kapandıysa
+        // (ReleaseSeats bu komuttan önce işlendiyse) koltuklar tutulmaz.
+        var existing = await _seatHoldRepository.GetByOrderIdAsync(request.OrderId, cancellationToken);
+        if (existing is not null)
+        {
+            if (existing.Status != HoldStatus.Active)
+                throw BusinessException.HoldOrderClosed(request.OrderId);
+
+            return await ToResponseAsync(existing, cancellationToken);
+        }
+
         var stock = await _eventStockRepository.GetByIdAsync(request.EventId, cancellationToken)
             ?? throw NotFoundException.EventStock(request.EventId);
 
@@ -51,8 +62,11 @@ public sealed class HoldSeatsCommandHandler : IRequestHandler<HoldSeatsCommand, 
         if (seats.Any(s => s.Status == SeatStatus.Sold))
             throw ConflictException.SeatsUnavailable();
 
+        // Tutmanın ID'si siparişin ID'si: kayıt yazılamadan kalan kilit, komut yeniden gelince aynı tutmanın sayılır.
         var hold = new Domain.Entities.SeatHold
         {
+            Id = request.OrderId,
+            OrderId = request.OrderId,
             EventId = stock.Id,
             UserId = request.UserId,
             SeatIds = request.SeatIds,
@@ -78,10 +92,17 @@ public sealed class HoldSeatsCommandHandler : IRequestHandler<HoldSeatsCommand, 
             throw;
         }
 
-        return new HoldSeatsResponse
+        return ToResponse(hold, seats);
+    }
+
+    private async Task<HoldSeatsResponse> ToResponseAsync(Domain.Entities.SeatHold hold, CancellationToken cancellationToken)
+        => ToResponse(hold, await _eventStockRepository.GetSeatsAsync(hold.EventId, hold.SeatIds, cancellationToken));
+
+    private static HoldSeatsResponse ToResponse(Domain.Entities.SeatHold hold, IReadOnlyList<Domain.Entities.EventSeat> seats)
+        => new()
         {
             HoldId = hold.Id,
-            EventId = stock.Id,
+            EventId = hold.EventId,
             ExpiresAt = hold.ExpiresAt,
             TotalPrice = seats.Sum(s => s.Price),
             Seats = seats
@@ -99,5 +120,4 @@ public sealed class HoldSeatsCommandHandler : IRequestHandler<HoldSeatsCommand, 
                 })
                 .ToList()
         };
-    }
 }

@@ -8,11 +8,14 @@ namespace Gise.Reservation.Infrastructure.Locking;
 public sealed class RedisSeatLockService : ISeatLockService
 {
     // Kontrol ve yazma tek betikte: Redis betiği atomik çalıştırır, araya başka istek giremez.
-    // Bir koltuk bile doluysa hiçbiri yazılmaz.
+    // Bir koltuk bile başka bir tutmadaysa hiçbiri yazılmaz. Değeri bu tutmanın ID'si olan anahtar engel sayılmaz:
+    // komut yeniden geldiğinde aynı tutma kilidini tekrar alır.
     private const string LockScript = @"
-        if redis.call('EXISTS', KEYS[1]) == 1 then return 2 end
+        local owner = redis.call('GET', KEYS[1])
+        if owner and owner ~= ARGV[1] then return 2 end
         for i = 2, #KEYS do
-            if redis.call('EXISTS', KEYS[i]) == 1 then return 1 end
+            local holder = redis.call('GET', KEYS[i])
+            if holder and holder ~= ARGV[1] then return 1 end
         end
         for i = 1, #KEYS do
             redis.call('SET', KEYS[i], ARGV[1], 'PX', ARGV[2])

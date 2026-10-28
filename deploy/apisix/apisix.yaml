@@ -11,6 +11,10 @@ upstreams:
     type: roundrobin
     nodes:
       "reservation-api:8080": 1
+  - id: order
+    type: roundrobin
+    nodes:
+      "order-api:8080": 1
 
 routes:
   - id: catalog
@@ -30,6 +34,19 @@ routes:
   - id: reservation
     uris: ["/api/reservation/*"]
     upstream_id: reservation
+    priority: 10
+    plugins:
+      limit-count:
+        count: 300
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        policy: local
+        rejected_code: 429
+
+  - id: order
+    uris: ["/api/orders", "/api/orders/*"]
+    upstream_id: order
     priority: 10
     plugins:
       limit-count:

@@ -5,7 +5,6 @@
     <ProjectReference Include="..\..\Infrastructure\Gise.Reservation.Infrastructure\Gise.Reservation.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
   </ItemGroup>
 </Project>

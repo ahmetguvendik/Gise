@@ -22,6 +22,28 @@ namespace Gise.Order.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Gise.Order.Application.Sagas.OrderState", b =>
+                {
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<string>("CurrentState")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("current_state");
+
+                    b.Property<Guid?>("ExpiryTokenId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("expiry_token_id");
+
+                    b.HasKey("CorrelationId")
+                        .HasName("pk_order_state");
+
+                    b.ToTable("order_state", (string)null);
+                });
+
             modelBuilder.Entity("Gise.Order.Domain.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -45,6 +67,11 @@ namespace Gise.Order.Persistence.Migrations
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("failure_reason");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -80,6 +107,10 @@ namespace Gise.Order.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uuid")
                         .HasColumnName("order_id");
@@ -89,9 +120,21 @@ namespace Gise.Order.Persistence.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("price");
 
+                    b.Property<string>("Row")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("row");
+
                     b.Property<Guid>("SeatId")
                         .HasColumnType("uuid")
                         .HasColumnName("seat_id");
+
+                    b.Property<string>("SectionName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("section_name");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -174,6 +217,224 @@ namespace Gise.Order.Persistence.Migrations
                     b.ToTable("outbox_messages", (string)null);
                 });
 
+            modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.InboxState", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("Consumed")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("consumed");
+
+                    b.Property<Guid>("ConsumerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("consumer_id");
+
+                    b.Property<DateTime?>("Delivered")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("delivered");
+
+                    b.Property<DateTime?>("ExpirationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expiration_time");
+
+                    b.Property<long?>("LastSequenceNumber")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_sequence_number");
+
+                    b.Property<Guid>("LockId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lock_id");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("message_id");
+
+                    b.Property<int>("ReceiveCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("receive_count");
+
+                    b.Property<DateTime>("Received")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("bytea")
+                        .HasColumnName("row_version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_inbox_state");
+
+                    b.HasAlternateKey("MessageId", "ConsumerId")
+                        .HasName("ak_inbox_state_message_id_consumer_id");
+
+                    b.HasIndex("Delivered")
+                        .HasDatabaseName("ix_inbox_state_delivered");
+
+                    b.ToTable("inbox_state", (string)null);
+                });
+
+            modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
+                {
+                    b.Property<long>("SequenceNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence_number");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("SequenceNumber"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("content_type");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<Guid?>("CorrelationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<string>("DestinationAddress")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("destination_address");
+
+                    b.Property<DateTime?>("EnqueueTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enqueue_time");
+
+                    b.Property<DateTime?>("ExpirationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expiration_time");
+
+                    b.Property<string>("FaultAddress")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("fault_address");
+
+                    b.Property<string>("Headers")
+                        .HasColumnType("text")
+                        .HasColumnName("headers");
+
+                    b.Property<Guid?>("InboxConsumerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inbox_consumer_id");
+
+                    b.Property<Guid?>("InboxMessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inbox_message_id");
+
+                    b.Property<Guid?>("InitiatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("initiator_id");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("message_id");
+
+                    b.Property<string>("MessageType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message_type");
+
+                    b.Property<Guid?>("OutboxId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("outbox_id");
+
+                    b.Property<string>("Properties")
+                        .HasColumnType("text")
+                        .HasColumnName("properties");
+
+                    b.Property<Guid?>("RequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("request_id");
+
+                    b.Property<string>("ResponseAddress")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("response_address");
+
+                    b.Property<DateTime>("SentTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_time");
+
+                    b.Property<string>("SourceAddress")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("source_address");
+
+                    b.HasKey("SequenceNumber")
+                        .HasName("pk_outbox_message");
+
+                    b.HasIndex("EnqueueTime")
+                        .HasDatabaseName("ix_outbox_message_enqueue_time");
+
+                    b.HasIndex("ExpirationTime")
+                        .HasDatabaseName("ix_outbox_message_expiration_time");
+
+                    b.HasIndex("OutboxId", "SequenceNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_outbox_message_outbox_id_sequence_number");
+
+                    b.HasIndex("InboxMessageId", "InboxConsumerId", "SequenceNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_outbox_message_inbox_message_id_inbox_consumer_id_sequence_");
+
+                    b.ToTable("outbox_message", (string)null);
+                });
+
+            modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxState", b =>
+                {
+                    b.Property<Guid>("OutboxId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("outbox_id");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created");
+
+                    b.Property<DateTime?>("Delivered")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("delivered");
+
+                    b.Property<long?>("LastSequenceNumber")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_sequence_number");
+
+                    b.Property<Guid>("LockId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lock_id");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("bytea")
+                        .HasColumnName("row_version");
+
+                    b.HasKey("OutboxId")
+                        .HasName("pk_outbox_state");
+
+                    b.HasIndex("Created")
+                        .HasDatabaseName("ix_outbox_state_created");
+
+                    b.ToTable("outbox_state", (string)null);
+                });
+
             modelBuilder.Entity("Gise.Order.Domain.Entities.OrderItem", b =>
                 {
                     b.HasOne("Gise.Order.Domain.Entities.Order", null)
@@ -182,6 +443,20 @@ namespace Gise.Order.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_order_items_orders_order_id");
+                });
+
+            modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
+                {
+                    b.HasOne("MassTransit.EntityFrameworkCoreIntegration.OutboxState", null)
+                        .WithMany()
+                        .HasForeignKey("OutboxId")
+                        .HasConstraintName("fk_outbox_message_outbox_state_outbox_id");
+
+                    b.HasOne("MassTransit.EntityFrameworkCoreIntegration.InboxState", null)
+                        .WithMany()
+                        .HasForeignKey("InboxMessageId", "InboxConsumerId")
+                        .HasPrincipalKey("MessageId", "ConsumerId")
+                        .HasConstraintName("fk_outbox_message_inbox_state_inbox_message_id_inbox_consumer_");
                 });
 
             modelBuilder.Entity("Gise.Order.Domain.Entities.Order", b =>
