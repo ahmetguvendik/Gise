@@ -74,6 +74,21 @@ Desen bu projede **bilerek iki farklı şekilde** kullanılır:
 - Asıl iş (e-posta göndermek, arama dizinini güncellemek) ayrı bir işlemci tarafından yapılır ve başarısız olursa yeniden denenir. Kafka'dan okuma ile işi yapma birbirinden ayrılır.
 - Kafka offset'i, mesaj inbox'a yazıldıktan **sonra** onaylanır; arada çökme olursa mesaj yeniden gelir ve inbox tekrarı yakalar.
 
+
+**Mesajlaşma worker'larda (her servis için aynı kural, 2026-10-28)**
+- API'ler (`*-api`) yalnızca HTTP'ye cevap verir ve göndereceği mesajı outbox'a yazar; hiçbir Kafka ya da RabbitMQ mesajını dinlemez.
+- Mesajı göndermek ve dinlemek ayrı worker'lardadır (`src/Workers/`), her worker tek iş yapar. API çökse de mesaj akışı sürer; worker çökerse mesajlar outbox'ta ya da kuyrukta bekler, kaybolmaz.
+- RabbitMQ tarafında API, MassTransit'in bus outbox'ını gönderimi kapalı olarak kullanır (`DisableDeliveryService`). RabbitMQ'ya yine bağlanır, çünkü outbox'a yazılan hedef adresleri RabbitMQ'nunkiler olmalı. Gönderimi ilgili worker yapar; API ayrı process olduğu için worker outbox'ı her `Outbox:QueryDelaySeconds` (1 sn) taramada okur.
+
+| Servis | Worker | İşi |
+|---|---|---|
+| Catalog | `catalog-outbox-worker` | Kafka outbox'ını gönderir |
+| Reservation | `reservation-inbox-worker` | Kafka'dan okur, inbox'a yazar ve işler (koltuk stoğu) |
+| Reservation | `reservation-command-worker` | RabbitMQ: `ReserveSeats`, `ReleaseSeats` |
+| Order | `order-saga-worker` | Satın alma saga'sı, zaman aşımları (Quartz), Order outbox'ının gönderimi |
+
+Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
+
 ---
 
 ## 3. Servisler
@@ -236,10 +251,10 @@ sequenceDiagram
 
 ### 3.7 Reservation: koltuk stoğu
 
-Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik için kendi koltuk stoğunu tutar. Koltuk haritası ve satış Catalog'a sormadan çalışır. Inbox, Telgraf'taki gibi iki parçalıdır:
+Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik için kendi koltuk stoğunu tutar. Koltuk haritası ve satış Catalog'a sormadan çalışır. Okuma ve işleme aynı worker'da (`src/Workers/Gise.Reservation.InboxWorker`, compose'da `reservation-inbox-worker`), iki ayrı parça olarak çalışır:
 
-- **Tüketici** (`Gise.Reservation.Infrastructure/Consumers/CatalogEventsConsumer`): reservation-api içinde çalışan bir `BackgroundService`. `catalog.events`'ten okur, mesajı `message-id` başlığıyla `inbox_messages`'a yazar (aynı mesaj ikinci kez yazılmaz), sonra offset'i onaylar. Yazamazsa okuma konumunu geri sarar; mesaj atlanmaz.
-- **Worker** (`src/Workers/Gise.Reservation.InboxWorker`, compose'da `reservation-inbox-worker`): ayrı process. Inbox'ı işler:
+- **Tüketici** (`CatalogEventsConsumer`): `catalog.events`'ten okur, mesajı `message-id` başlığıyla `inbox_messages`'a yazar (aynı mesaj ikinci kez yazılmaz), sonra offset'i onaylar. Yazamazsa okuma konumunu geri sarar; mesaj atlanmaz.
+- **İşlemci** (`Worker`): inbox'ı işler:
   - Aynı etkinliğin olayları geldiği sırayla işlenir; birden çok kopya `FOR UPDATE SKIP LOCKED` ile çakışmaz.
   - Her mesaj kendi transaction'ında işlenir; hata olursa yarım değişiklik geri alınır, artan aralıklarla yeniden denenir, `MaxRetryCount` aşılınca dead-letter olur.
   - Sağlık: heartbeat, Postgres, dead-letter (`/health/ready`).
@@ -318,7 +333,7 @@ stateDiagram-v2
 
 Saga'nın koltuk tutma kısmı yazıldı; ödeme (Payment) ve bilet (Ticket) adımları sonra eklenecek.
 
-- **MassTransit 8.5.x** (Apache-2.0). Saga durum makinesi `OrderStateMachine` (`Gise.Order.Application/Sagas`); durumu `order_state` tablosunda. Müşterinin gördüğü sipariş (`orders`) her adımda saga ile aynı transaction'da güncellenir.
+- **MassTransit 8.5.x** (Apache-2.0). Saga durum makinesi `OrderStateMachine` (`Gise.Order.Application/Sagas`), `order-saga-worker`'da çalışır; durumu `order_state` tablosunda. order-api yalnızca sipariş açıp outbox'a yazar. Müşterinin gördüğü sipariş (`orders`) her adımda saga ile aynı transaction'da güncellenir.
 - **Uçlar** (giriş yapmış müşteri; gateway'de `/api/orders`):
   - `POST` (etkinlik, koltuklar) → 202 ve siparişin ID'si; durum `Pending`. Koltuklar arkada tutulur, sonucu `GET {id}` gösterir.
   - `GET {id}` (sahibi ve admin), `GET mine`.
@@ -330,7 +345,7 @@ Saga'nın koltuk tutma kısmı yazıldı; ödeme (Payment) ve bilet (Ticket) ad�
   - Müşteri vazgeçerse ya da süre dolarsa `ReleaseSeats` gönderilir; sipariş `Cancelled` ya da `Expired` olur.
   - Reservation hiç cevap vermezse sipariş açılışta kurulan zaman aşımıyla `Expired` olur ("Koltuklar zamanında tutulamadı"); saga yine de `ReleaseSeats` gönderir.
   - Kapanan saga'nın satırı silinir, sipariş geçmiş olarak kalır. Kapandıktan sonra gelen geç cevaplar yok sayılır.
-- **Zaman aşımı:** MassTransit + Quartz; planlanan mesajlar Order veritabanındaki `qrtz_*` tablolarında (migration `AddQuartzTables`), order-api yeniden başlasa da kaybolmaz. Kümelenme açık; her kopya kendi kimliğini alır.
+- **Zaman aşımı:** MassTransit + Quartz; planlanan mesajlar Order veritabanındaki `qrtz_*` tablolarında (migration `AddQuartzTables`), worker yeniden başlasa da kaybolmaz. Kümelenme açık; her kopya kendi kimliğini alır.
 - **Güvenilirlik:** iki tarafta da MassTransit'in EF Core inbox/outbox'ı (`inbox_state`, `outbox_message`, `outbox_state`); Kafka tarafındaki kendi outbox/inbox'ımızdan ayrı tablolar. Geçici hatalar 1, 5, 15 sn aralıkla yeniden denenir, sonra `_error` kuyruğuna düşer.
 - **Tekrar ve sıra:**
   - Tutmanın ID'si siparişin ID'sidir: `ReserveSeats` yeniden gelirse Lua betiği kendi kilidini tanır, var olan tutma döner.
@@ -375,7 +390,7 @@ Catalog `EventCancelled` ve `EventUpdated` olaylarını Kafka'ya gönderir (bkz.
 
 ### 5.1 Uygulama
 
-- Koltukları müşteri doğrudan tutmaz; sipariş tutar (bkz. 4.3). Reservation'ın RabbitMQ tüketicileri (`ReserveSeatsConsumer`, `ReleaseSeatsConsumer`) MediatR komutlarını (`HoldSeatsCommand`, `ReleaseHoldCommand`) çağırır. Tutmanın ID'si siparişin ID'sidir.
+- Koltukları müşteri doğrudan tutmaz; sipariş tutar (bkz. 4.3). Reservation'ın RabbitMQ tüketicileri (`ReserveSeatsConsumer`, `ReleaseSeatsConsumer`, `reservation-command-worker`'da) MediatR komutlarını (`HoldSeatsCommand`, `ReleaseHoldCommand`) çağırır. Tutmanın ID'si siparişin ID'sidir.
 - **Kurallar** (`ReservationRules`, appsettings): tutma 10 dakika; bir seferde en fazla 10 koltuk; aynı koltuk iki kez seçilemez.
   - Etkinlik satışta olmalı (iptal edilmemiş, başlamamış): değilse `STOCK_NOT_ON_SALE`.
   - Koltuklar o etkinliğe ait olmalı: değilse `HOLD_SEAT_NOT_IN_EVENT`.

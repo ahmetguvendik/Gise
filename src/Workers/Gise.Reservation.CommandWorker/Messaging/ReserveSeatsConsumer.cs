@@ -4,7 +4,7 @@ using Gise.Reservation.Application.Features.Commands.SeatHold.Request;
 using MassTransit;
 using MediatR;
 
-namespace Gise.Reservation.Infrastructure.Messaging;
+namespace Gise.Reservation.CommandWorker.Messaging;
 
 // Satın alma saga'sının ilk adımı: siparişin koltuklarını tutar, sonucu Order'a bildirir.
 public sealed class ReserveSeatsConsumer : IConsumer<ReserveSeats>

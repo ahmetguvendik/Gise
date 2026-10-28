@@ -237,10 +237,8 @@ services:
     restart: unless-stopped
     environment:
       ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
-      # Koltuk tutma kilitleri.
+      # Koltuk haritası tutulan koltukları Redis'ten okur.
       Redis__Connection: redis:6379,password=${REDIS_PASSWORD}
-      # Order saga'sının komutları (ReserveSeats, ReleaseSeats).
-      RabbitMq__Password: ${RABBITMQ_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
       interval: 10s
@@ -250,15 +248,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # Catalog'un olaylarını Kafka'dan okuyup inbox'a yazar.
-      kafka:
-        condition: service_healthy
       redis:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
 
-  # Reservation'ın inbox'ındaki Catalog olaylarını işler (koltuk stoğu); reservation-api'den ayrı process.
+  # Catalog'un olaylarını Kafka'dan okuyup inbox'a yazar ve işler (koltuk stoğu); reservation-api'den ayrı process.
   reservation-inbox-worker:
     image: gise/reservation-inbox-worker:dev
     build:
@@ -277,7 +270,36 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
       # Inbox ve stok tablolarını reservation-api'nin migration'ları kurar.
+      reservation-api:
+        condition: service_healthy
+
+  # Order saga'sının RabbitMQ komutları (ReserveSeats, ReleaseSeats): koltukları Redis'te tutar ve bırakır.
+  reservation-command-worker:
+    image: gise/reservation-command-worker:dev
+    build:
+      context: ..
+      dockerfile: src/Workers/Gise.Reservation.CommandWorker/Dockerfile
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
+      Redis__Connection: redis:6379,password=${REDIS_PASSWORD}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      # RabbitMQ bağlantısı kopuksa ready kontrolü düşer.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      # Tutma ve MassTransit tablolarını reservation-api'nin migration'ları kurar.
       reservation-api:
         condition: service_healthy
 
@@ -292,7 +314,7 @@ services:
       Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
       Keycloak__PublicAuthority: http://localhost:8180/realms/gise
       Keycloak__RequireHttpsMetadata: "false"
-      # Satın alma saga'sı.
+      # Yalnızca outbox'a yazar; RabbitMQ'ya order-saga-worker gönderir. Bağlantı, hedef adresleri doğru olsun diye.
       RabbitMq__Password: ${RABBITMQ_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
@@ -304,6 +326,30 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+
+  # Satın alma saga'sı, zaman aşımları (Quartz) ve Order outbox'ından RabbitMQ'ya gönderim; order-api'den ayrı process.
+  order-saga-worker:
+    image: gise/order-saga-worker:dev
+    build:
+      context: ..
+      dockerfile: src/Workers/Gise.Order.SagaWorker/Dockerfile
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      # RabbitMQ bağlantısı kopuksa ready kontrolü düşer.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      # Saga, outbox ve Quartz tablolarını order-api'nin migration'ları kurar.
+      order-api:
         condition: service_healthy
 
   payment-api:

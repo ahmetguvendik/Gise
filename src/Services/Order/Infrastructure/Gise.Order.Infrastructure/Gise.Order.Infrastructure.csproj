@@ -1,16 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Gise.Order.Application\Gise.Order.Application.csproj" />
-    <!-- Saga deposu ve MassTransit'in outbox/inbox'ı Order veritabanında (OrderDbContext). -->
+    <!-- MassTransit'in outbox'ı Order veritabanında (OrderDbContext). -->
     <ProjectReference Include="..\Gise.Order.Persistence\Gise.Order.Persistence.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
-    <PackageReference Include="MassTransit.Quartz" />
     <PackageReference Include="MassTransit.RabbitMQ" />
     <!-- MassTransit.EntityFrameworkCore eski Relational sürümünü getiriyor; projenin kalanıyla aynı sürüme sabitlenir. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
-    <PackageReference Include="Quartz.Extensions.Hosting" />
-    <PackageReference Include="Quartz.Serialization.SystemTextJson" />
   </ItemGroup>
 </Project>

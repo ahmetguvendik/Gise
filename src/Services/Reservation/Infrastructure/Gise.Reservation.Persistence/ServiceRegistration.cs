@@ -18,7 +18,6 @@ public static class ServiceRegistration
             .UseSnakeCaseNamingConvention());
 
         services.AddScoped<IEventStockRepository, EventStockRepository>();
-        services.AddScoped<IInboxMessageRepository, InboxMessageRepository>();
         services.AddScoped<ISeatHoldRepository, SeatHoldRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

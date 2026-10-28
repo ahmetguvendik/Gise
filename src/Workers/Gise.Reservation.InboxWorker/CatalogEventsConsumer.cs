@@ -1,18 +1,13 @@
 using System.Text;
 using Confluent.Kafka;
 using Gise.Contracts.Events;
-using Gise.Reservation.Application.Interfaces;
-using Gise.Reservation.Application.UnitOfWorks;
 using Gise.Reservation.Domain.Entities;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
-namespace Gise.Reservation.Infrastructure.Consumers;
+namespace Gise.Reservation.InboxWorker;
 
-// Telgraf'taki gibi: Catalog'un olaylarını Kafka'dan okuyup inbox'a yazar, sonra offset'i onaylar (bkz. tasarım 2.2).
-// Asıl işi (koltuk stoğunu kurmak) ayrı process olan reservation-inbox-worker yapar.
+// Catalog'un olaylarını Kafka'dan okuyup inbox'a yazar, sonra offset'i onaylar (bkz. tasarım 2.2). Inbox'ı aynı process'teki
+// Worker işler. API'ler mesaj dinlemez; Telgraf'ta bu tüketici API'deydi.
 public sealed class CatalogEventsConsumer : BackgroundService
 {
     // Kapanma sinyalinin en geç ne kadar sürede fark edileceği; ayar değeri değil.
@@ -106,16 +101,15 @@ public sealed class CatalogEventsConsumer : BackgroundService
             ?? $"{result.Topic}:{result.Partition.Value}:{result.Offset.Value}";
 
         using var scope = _scopeFactory.CreateScope();
-        var inbox = scope.ServiceProvider.GetRequiredService<IInboxMessageRepository>();
-        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var db = scope.ServiceProvider.GetRequiredService<InboxWorkerDbContext>();
 
-        if (await inbox.ExistsAsync(messageId, cancellationToken))
+        if (await db.InboxMessages.AnyAsync(m => m.MessageId == messageId, cancellationToken))
         {
             _logger.LogInformation("Tekrar gelen mesaj atlandı: {MessageId}", messageId);
             return;
         }
 
-        await inbox.AddAsync(new InboxMessage
+        db.InboxMessages.Add(new InboxMessage
         {
             MessageId = messageId,
             Topic = result.Topic,
@@ -123,9 +117,9 @@ public sealed class CatalogEventsConsumer : BackgroundService
             Key = result.Message.Key ?? string.Empty,
             Payload = result.Message.Value,
             TraceParent = ReadHeader(headers, Kafka.TraceParentHeader)
-        }, cancellationToken);
+        });
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private static string? ReadHeader(Headers? headers, string name)

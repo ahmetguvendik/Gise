@@ -3,7 +3,7 @@ using Gise.Reservation.Application.Features.Commands.SeatHold.Request;
 using MassTransit;
 using MediatR;
 
-namespace Gise.Reservation.Infrastructure.Messaging;
+namespace Gise.Reservation.CommandWorker.Messaging;
 
 // Saga'nın telafi adımı: müşteri vazgeçti ya da ödeme süresi doldu, koltuklar bırakılır.
 public sealed class ReleaseSeatsConsumer : IConsumer<ReleaseSeats>

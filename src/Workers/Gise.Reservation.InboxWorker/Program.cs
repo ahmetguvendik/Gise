@@ -16,6 +16,8 @@ var catalogGrpcUrl = builder.Configuration.GetRequiredSection("Catalog")["GrpcUr
     ?? throw new InvalidOperationException("Catalog:GrpcUrl ayarı eksik.");
 builder.Services.AddGrpcClient<CatalogGrpc.CatalogGrpcClient>(options => options.Address = new Uri(catalogGrpcUrl));
 
+// Kafka'dan okuyup inbox'a yazar; Worker inbox'ı işler.
+builder.Services.AddHostedService<CatalogEventsConsumer>();
 builder.Services.AddHostedService<Worker>();
 
 // Eşik tarama aralığının 4 katı (en az 30 sn): tek bir yavaş tur yanlış alarm üretmesin.
