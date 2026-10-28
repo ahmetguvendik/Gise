@@ -62,19 +62,18 @@ public sealed class HoldSeatsCommandHandler : IRequestHandler<HoldSeatsCommand, 
         if (seats.Any(s => s.Status == SeatStatus.Sold))
             throw ConflictException.SeatsUnavailable();
 
-        // Tutmanın ID'si siparişin ID'si: kayıt yazılamadan kalan kilit, komut yeniden gelince aynı tutmanın sayılır.
         var hold = new Domain.Entities.SeatHold
         {
-            Id = request.OrderId,
             OrderId = request.OrderId,
             EventId = stock.Id,
-            UserId = request.UserId,
+            CustomerId = request.CustomerId,
             SeatIds = request.SeatIds,
             ExpiresAt = now.Add(_holdDuration)
         };
 
-        // Asıl yarış burada çözülür: aynı koltuğa aynı anda gelen isteklerden yalnızca biri kilidi alır.
-        var result = await _seatLockService.TryLockAsync(stock.Id, request.UserId, request.SeatIds, hold.Id, _holdDuration);
+        // Asıl yarış burada çözülür: aynı koltuğa aynı anda gelen isteklerden yalnızca biri kilidi alır. Kilidin değeri
+        // siparişin ID'si: kayıt yazılamadan kalan kilit, komut yeniden gelince aynı siparişin sayılır.
+        var result = await _seatLockService.TryLockAsync(stock.Id, request.CustomerId, request.SeatIds, request.OrderId, _holdDuration);
         if (result == SeatLockResult.SeatTaken)
             throw ConflictException.SeatsUnavailable();
         if (result == SeatLockResult.UserAlreadyHolding)
@@ -88,7 +87,7 @@ public sealed class HoldSeatsCommandHandler : IRequestHandler<HoldSeatsCommand, 
         catch
         {
             // Kayıt yazılamazsa kilit de kaldırılır; koltuklar süre dolana kadar boşuna kilitli kalmasın.
-            await _seatLockService.ReleaseAsync(stock.Id, request.UserId, request.SeatIds, hold.Id);
+            await _seatLockService.ReleaseAsync(stock.Id, request.CustomerId, request.SeatIds, request.OrderId);
             throw;
         }
 

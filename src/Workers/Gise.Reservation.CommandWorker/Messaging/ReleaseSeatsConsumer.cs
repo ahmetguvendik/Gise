@@ -16,5 +16,10 @@ public sealed class ReleaseSeatsConsumer : IConsumer<ReleaseSeats>
     }
 
     public Task Consume(ConsumeContext<ReleaseSeats> context)
-        => _mediator.Send(new ReleaseHoldCommand { OrderId = context.Message.OrderId }, context.CancellationToken);
+        => _mediator.Send(new ReleaseHoldCommand
+        {
+            OrderId = context.Message.OrderId,
+            EventId = context.Message.EventId,
+            CustomerId = context.Message.CustomerId
+        }, context.CancellationToken);
 }

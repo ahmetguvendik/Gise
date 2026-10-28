@@ -9,5 +9,5 @@ public sealed class HoldSeatsCommand : IRequest<HoldSeatsResponse>
     public Guid OrderId { get; set; }
     public Guid EventId { get; set; }
     public List<Guid> SeatIds { get; set; } = [];
-    public string UserId { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty;
 }

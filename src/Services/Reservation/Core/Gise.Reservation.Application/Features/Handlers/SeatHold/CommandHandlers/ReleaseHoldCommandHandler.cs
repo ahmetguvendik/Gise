@@ -34,8 +34,9 @@ public sealed class ReleaseHoldCommandHandler : IRequestHandler<ReleaseHoldComma
             // sıraları garanti değil). Sipariş için "bırakıldı" kaydı yazılır; sonradan gelen ReserveSeats koltuk tutmaz.
             await _seatHoldRepository.AddAsync(new Domain.Entities.SeatHold
             {
-                Id = request.OrderId,
                 OrderId = request.OrderId,
+                EventId = request.EventId,
+                CustomerId = request.CustomerId,
                 ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime,
                 Status = HoldStatus.Released
             }, cancellationToken);
@@ -47,7 +48,7 @@ public sealed class ReleaseHoldCommandHandler : IRequestHandler<ReleaseHoldComma
             return;
 
         // Süresi dolmuşsa kilit zaten kalkmıştır; yalnızca bu tutmaya ait kilitler silinir.
-        await _seatLockService.ReleaseAsync(hold.EventId, hold.UserId, hold.SeatIds, hold.Id);
+        await _seatLockService.ReleaseAsync(hold.EventId, hold.CustomerId, hold.SeatIds, hold.OrderId);
 
         hold.Status = HoldStatus.Released;
         await _unitOfWork.SaveChangesAsync(cancellationToken);

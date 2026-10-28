@@ -5,4 +5,8 @@ namespace Gise.Contracts.Commands;
 public sealed class ReleaseSeats
 {
     public Guid OrderId { get; set; }
+
+    // Tutma henüz yoksa Reservation siparişi "bırakıldı" olarak kaydeder; kayıt bu bilgilerle yazılır.
+    public Guid EventId { get; set; }
+    public string CustomerId { get; set; } = string.Empty;
 }

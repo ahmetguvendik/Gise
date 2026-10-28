@@ -26,7 +26,7 @@ public sealed class ReserveSeatsConsumer : IConsumer<ReserveSeats>
                 OrderId = message.OrderId,
                 EventId = message.EventId,
                 SeatIds = message.SeatIds,
-                UserId = message.CustomerId
+                CustomerId = message.CustomerId
             }, context.CancellationToken);
 
             await context.Publish(new SeatsReserved

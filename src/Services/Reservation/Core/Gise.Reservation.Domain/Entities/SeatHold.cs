@@ -3,17 +3,15 @@ using Gise.Reservation.Domain.Enums;
 
 namespace Gise.Reservation.Domain.Entities;
 
-// Bir kullanıcının bir etkinlikte tuttuğu koltuk grubu. Kilidin kendisi Redis'te; bu kayıt kimin hangi koltukları
-// ne zamana kadar tuttuğunu saklar. Süresi dolan tutma "Active" kalsa da ExpiresAt geçtiği için geçersizdir.
+// Bir siparişin tuttuğu koltuklar. Kilidin kendisi Redis'te (değeri siparişin ID'si); bu kayıt hangi müşterinin hangi
+// koltukları ne zamana kadar tuttuğunu saklar. Sipariş koltuklar tutulmadan kapandıysa koltuksuz "Released" kaydı olur.
 public class SeatHold : BaseEntity
 {
+    public Guid OrderId { get; set; }
     public Guid EventId { get; set; }
 
-    // Keycloak'taki kullanıcı (sub).
-    public string UserId { get; set; } = string.Empty;
-
-    // Order gelince dolar; şimdilik tutma doğrudan müşterinin.
-    public Guid? OrderId { get; set; }
+    // Keycloak'taki müşteri (sub).
+    public string CustomerId { get; set; } = string.Empty;
 
     public List<Guid> SeatIds { get; set; } = [];
     public DateTime ExpiresAt { get; set; }

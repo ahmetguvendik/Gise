@@ -10,18 +10,17 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
 {
     public DbSet<Domain.Entities.Order> Orders => Set<Domain.Entities.Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(OrderDbContext).Assembly);
 
         // Satın alma saga'sının durumu ve MassTransit'in hazır inbox/outbox'ı (RabbitMQ tarafı, bkz. tasarım 2.2).
-        // Kafka tarafındaki kendi outbox'ımızdan (outbox_messages) ayrı tablolardır.
+        // MassTransit'in tabloları "mt_" önekiyle durur; kendi tablolarımızla karışmasın.
         new OrderStateMap().Configure(modelBuilder);
-        modelBuilder.AddInboxStateEntity();
-        modelBuilder.AddOutboxMessageEntity();
-        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddInboxStateEntity(e => e.ToTable("mt_inbox_state"));
+        modelBuilder.AddOutboxMessageEntity(e => e.ToTable("mt_outbox_message"));
+        modelBuilder.AddOutboxStateEntity(e => e.ToTable("mt_outbox_state"));
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

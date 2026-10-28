@@ -63,6 +63,11 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
 
         Initially(
             When(Submitted)
+                .Then(c =>
+                {
+                    c.Saga.EventId = c.Message.EventId;
+                    c.Saga.CustomerId = c.Message.CustomerId;
+                })
                 .Send(ReserveSeatsQueue, c => new ReserveSeats
                 {
                     OrderId = c.Message.OrderId,
@@ -86,7 +91,7 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
                 .Finalize(),
             When(Expiry.Received)
                 // Cevap gelmedi; koltuklar yine de tutulmuş olabilir, bırakılır.
-                .Send(ReleaseSeatsQueue, c => new ReleaseSeats { OrderId = c.Saga.CorrelationId })
+                .Send(ReleaseSeatsQueue, c => ReleaseSeatsFor(c.Saga))
                 .ThenAsync(c => CloseAsync(c, OrderStatus.Expired, "Koltuklar zamanında tutulamadı."))
                 .Finalize(),
             // Vazgeçme yalnızca koltuklar tutulduktan sonra kabul edilir (bkz. CancelOrderCommandHandler).
@@ -95,11 +100,11 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
         During(PaymentPending,
             When(CancellationRequested)
                 .Unschedule(Expiry)
-                .Send(ReleaseSeatsQueue, c => new ReleaseSeats { OrderId = c.Saga.CorrelationId })
+                .Send(ReleaseSeatsQueue, c => ReleaseSeatsFor(c.Saga))
                 .ThenAsync(c => CloseAsync(c, OrderStatus.Cancelled, "Siparişten vazgeçildi."))
                 .Finalize(),
             When(Expiry.Received)
-                .Send(ReleaseSeatsQueue, c => new ReleaseSeats { OrderId = c.Saga.CorrelationId })
+                .Send(ReleaseSeatsQueue, c => ReleaseSeatsFor(c.Saga))
                 .ThenAsync(c => CloseAsync(c, OrderStatus.Expired, "Ödeme süresi doldu."))
                 .Finalize(),
             // Aynı cevap ikinci kez gelirse.
@@ -108,6 +113,13 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
         // Kapanan saga silinir; sipariş (orders) geçmiş olarak kalır.
         SetCompletedWhenFinalized();
     }
+
+    private static ReleaseSeats ReleaseSeatsFor(OrderState saga) => new()
+    {
+        OrderId = saga.CorrelationId,
+        EventId = saga.EventId,
+        CustomerId = saga.CustomerId
+    };
 
     private static async Task MarkAwaitingPaymentAsync(BehaviorContext<OrderState, SeatsReserved> context)
     {

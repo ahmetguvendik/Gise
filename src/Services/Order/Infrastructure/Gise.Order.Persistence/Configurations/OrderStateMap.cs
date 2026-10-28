@@ -10,6 +10,8 @@ public sealed class OrderStateMap : SagaClassMap<OrderState>
 {
     protected override void Configure(EntityTypeBuilder<OrderState> entity, ModelBuilder model)
     {
+        entity.ToTable("order_sagas");
         entity.Property(x => x.CurrentState).HasMaxLength(64).IsRequired();
+        entity.Property(x => x.CustomerId).HasMaxLength(64).IsRequired();
     }
 }

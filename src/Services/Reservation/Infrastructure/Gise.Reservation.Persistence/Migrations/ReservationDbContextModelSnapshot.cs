@@ -213,73 +213,6 @@ namespace Gise.Reservation.Persistence.Migrations
                     b.ToTable("inbox_messages", (string)null);
                 });
 
-            modelBuilder.Entity("Gise.Reservation.Domain.Entities.OutboxMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Error")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("error");
-
-                    b.Property<bool>("IsDeadLettered")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_dead_lettered");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("key");
-
-                    b.Property<DateTime?>("NextAttemptAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("next_attempt_at");
-
-                    b.Property<string>("Payload")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("payload");
-
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("processed_at");
-
-                    b.Property<int>("RetryCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("retry_count");
-
-                    b.Property<string>("Topic")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("topic");
-
-                    b.Property<string>("TraceParent")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("trace_parent");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_outbox_messages");
-
-                    b.HasIndex("CreatedAt")
-                        .HasDatabaseName("ix_outbox_messages_created_at")
-                        .HasFilter("processed_at IS NULL AND NOT is_dead_lettered");
-
-                    b.ToTable("outbox_messages", (string)null);
-                });
-
             modelBuilder.Entity("Gise.Reservation.Domain.Entities.SeatHold", b =>
                 {
                     b.Property<Guid>("Id")
@@ -290,6 +223,12 @@ namespace Gise.Reservation.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("CustomerId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("customer_id");
+
                     b.Property<Guid>("EventId")
                         .HasColumnType("uuid")
                         .HasColumnName("event_id");
@@ -298,7 +237,7 @@ namespace Gise.Reservation.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
-                    b.Property<Guid?>("OrderId")
+                    b.Property<Guid>("OrderId")
                         .HasColumnType("uuid")
                         .HasColumnName("order_id");
 
@@ -317,12 +256,6 @@ namespace Gise.Reservation.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("user_id");
-
                     b.HasKey("Id")
                         .HasName("pk_seat_holds");
 
@@ -330,8 +263,8 @@ namespace Gise.Reservation.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_seat_holds_order_id");
 
-                    b.HasIndex("EventId", "UserId")
-                        .HasDatabaseName("ix_seat_holds_event_id_user_id");
+                    b.HasIndex("EventId", "CustomerId")
+                        .HasDatabaseName("ix_seat_holds_event_id_customer_id");
 
                     b.ToTable("seat_holds", (string)null);
                 });
@@ -388,15 +321,15 @@ namespace Gise.Reservation.Persistence.Migrations
                         .HasColumnName("row_version");
 
                     b.HasKey("Id")
-                        .HasName("pk_inbox_state");
+                        .HasName("pk_mt_inbox_state");
 
                     b.HasAlternateKey("MessageId", "ConsumerId")
                         .HasName("ak_inbox_state_message_id_consumer_id");
 
                     b.HasIndex("Delivered")
-                        .HasDatabaseName("ix_inbox_state_delivered");
+                        .HasDatabaseName("ix_mt_inbox_state_delivered");
 
-                    b.ToTable("inbox_state", (string)null);
+                    b.ToTable("mt_inbox_state", (string)null);
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
@@ -497,23 +430,23 @@ namespace Gise.Reservation.Persistence.Migrations
                         .HasColumnName("source_address");
 
                     b.HasKey("SequenceNumber")
-                        .HasName("pk_outbox_message");
+                        .HasName("pk_mt_outbox_message");
 
                     b.HasIndex("EnqueueTime")
-                        .HasDatabaseName("ix_outbox_message_enqueue_time");
+                        .HasDatabaseName("ix_mt_outbox_message_enqueue_time");
 
                     b.HasIndex("ExpirationTime")
-                        .HasDatabaseName("ix_outbox_message_expiration_time");
+                        .HasDatabaseName("ix_mt_outbox_message_expiration_time");
 
                     b.HasIndex("OutboxId", "SequenceNumber")
                         .IsUnique()
-                        .HasDatabaseName("ix_outbox_message_outbox_id_sequence_number");
+                        .HasDatabaseName("ix_mt_outbox_message_outbox_id_sequence_number");
 
                     b.HasIndex("InboxMessageId", "InboxConsumerId", "SequenceNumber")
                         .IsUnique()
-                        .HasDatabaseName("ix_outbox_message_inbox_message_id_inbox_consumer_id_sequence_");
+                        .HasDatabaseName("ix_mt_outbox_message_inbox_message_id_inbox_consumer_id_sequen");
 
-                    b.ToTable("outbox_message", (string)null);
+                    b.ToTable("mt_outbox_message", (string)null);
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxState", b =>
@@ -546,12 +479,12 @@ namespace Gise.Reservation.Persistence.Migrations
                         .HasColumnName("row_version");
 
                     b.HasKey("OutboxId")
-                        .HasName("pk_outbox_state");
+                        .HasName("pk_mt_outbox_state");
 
                     b.HasIndex("Created")
-                        .HasDatabaseName("ix_outbox_state_created");
+                        .HasDatabaseName("ix_mt_outbox_state_created");
 
-                    b.ToTable("outbox_state", (string)null);
+                    b.ToTable("mt_outbox_state", (string)null);
                 });
 
             modelBuilder.Entity("Gise.Reservation.Domain.Entities.EventSeat", b =>
@@ -575,13 +508,13 @@ namespace Gise.Reservation.Persistence.Migrations
                     b.HasOne("MassTransit.EntityFrameworkCoreIntegration.OutboxState", null)
                         .WithMany()
                         .HasForeignKey("OutboxId")
-                        .HasConstraintName("fk_outbox_message_outbox_state_outbox_id");
+                        .HasConstraintName("fk_mt_outbox_message_outbox_state_outbox_id");
 
                     b.HasOne("MassTransit.EntityFrameworkCoreIntegration.InboxState", null)
                         .WithMany()
                         .HasForeignKey("InboxMessageId", "InboxConsumerId")
                         .HasPrincipalKey("MessageId", "ConsumerId")
-                        .HasConstraintName("fk_outbox_message_inbox_state_inbox_message_id_inbox_consumer_");
+                        .HasConstraintName("fk_mt_outbox_message_mt_inbox_state_inbox_message_id_inbox_con");
                 });
 
             modelBuilder.Entity("Gise.Reservation.Domain.Entities.EventStock", b =>
