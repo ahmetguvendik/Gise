@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/Gise.Authentication/Gise.Authentication.csproj" />
     <Project Path="src/Shared/Gise.Contracts/Gise.Contracts.csproj" />
     <Project Path="src/Shared/Gise.Exceptions/Gise.Exceptions.csproj" />
     <Project Path="src/Shared/Gise.HealthChecks/Gise.HealthChecks.csproj" />

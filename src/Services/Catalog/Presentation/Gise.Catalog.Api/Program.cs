@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Gise.Authentication;
 using Gise.Catalog.Api.Authentication;
 using Gise.Catalog.Api.ErrorHandling;
 using Gise.Catalog.Api.GrpcServices;
@@ -29,7 +30,7 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
     context.ProblemDetails.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
 });
 
-builder.Services.AddKeycloakAuthentication(builder.Configuration);
+builder.Services.AddKeycloakAuthentication(builder.Configuration).AddCatalogPolicies();
 builder.Services.AddApplicationServices();
 builder.Services.AddPersistenceServices(builder.Configuration);
 builder.Services.AddInfrastructureServices(builder.Configuration);

@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Gise.Order.Api.Authentication;
+using Gise.Authentication;
 using Gise.Order.Api.ErrorHandling;
 using Gise.Order.Application;
 using Gise.Order.Infrastructure;

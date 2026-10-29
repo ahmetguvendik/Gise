@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Gise.Authentication;
 using Gise.Ticket.Api.Authentication;
 using Gise.Ticket.Api.ErrorHandling;
 using Gise.Ticket.Application;
@@ -26,7 +27,7 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
     context.ProblemDetails.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
 });
 
-builder.Services.AddKeycloakAuthentication(builder.Configuration);
+builder.Services.AddKeycloakAuthentication(builder.Configuration).AddTicketPolicies();
 builder.Services.AddApplicationServices();
 builder.Services.AddPersistenceServices(builder.Configuration);
 builder.Services.AddInfrastructureServices();

@@ -1,5 +1,5 @@
 using Gise.Exceptions;
-using Gise.Order.Api.Authentication;
+using Gise.Authentication;
 using Gise.Order.Application.Features.Commands.Order.Request;
 using Gise.Order.Application.Features.Commands.Order.Response;
 using Gise.Order.Application.Features.Queries.Order.Request;

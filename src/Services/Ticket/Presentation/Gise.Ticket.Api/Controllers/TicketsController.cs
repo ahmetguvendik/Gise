@@ -1,4 +1,5 @@
 using Gise.Exceptions;
+using Gise.Authentication;
 using Gise.Ticket.Api.Authentication;
 using Gise.Ticket.Application.Features.Commands.Ticket.Request;
 using Gise.Ticket.Application.Features.Commands.Ticket.Response;

@@ -1,11 +1,16 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Gise.Catalog.Api.Authentication;
+namespace Gise.Authentication;
 
+// Bütün API'ler token'ı aynı şekilde doğrular. Ayarlar appsettings'teki Keycloak bölümünden okunur; adresler compose'dan
+// ortam değişkeniyle gelir.
 public static class KeycloakAuthentication
 {
-    public static IServiceCollection AddKeycloakAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static AuthorizationBuilder AddKeycloakAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -27,13 +32,7 @@ public static class KeycloakAuthentication
                 };
             });
 
-        services.AddAuthorizationBuilder()
-            .AddPolicy(Policies.Organizer, policy => policy.RequireRole(Roles.Organizer, Roles.Admin))
-            // Mekânlar platformun ortak verisi; organizatör yalnızca var olan mekânlarda etkinlik açar.
-            .AddPolicy(Policies.VenueManager, policy => policy.RequireRole(Roles.Admin))
-            // Organizatör taslak hazırlar ve onaya gönderir; yayınlama, geri gönderme ve iptal admin'in işi.
-            .AddPolicy(Policies.EventModerator, policy => policy.RequireRole(Roles.Admin));
-
-        return services;
+        // API kendi policy'lerini dönen builder'a ekler (her API'nin Authentication/Policies.cs dosyası).
+        return services.AddAuthorizationBuilder();
     }
 }

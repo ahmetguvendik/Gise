@@ -1,3 +1,4 @@
+using Gise.Authentication;
 using Gise.Catalog.Api.Authentication;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Features.Commands.Event.Response;

@@ -546,6 +546,7 @@ Gişe/
 │   └── scripts/                   # dev-users.sh
 ├── src/
 │   ├── Shared/
+│   │   ├── Gise.Authentication/   # API'lerin ortak Keycloak JWT ayarı ve rol adları; policy'ler her API'de
 │   │   ├── Gise.Contracts/        # yalnızca servisler arası sözleşmeler: Commands/, Events/, Protos/ (gRPC)
 │   │   ├── Gise.Exceptions/       # merkezi hata türleri ve ErrorCodes; her servisin Application'ı kullanır
 │   │   └── Gise.HealthChecks/     # worker'ların ortak sağlık kontrolleri (heartbeat)
