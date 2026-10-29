@@ -28,6 +28,9 @@ public sealed class OrdersController : ControllerBase
     {
         command.CustomerId = User.FindFirst("sub")?.Value
             ?? throw UnauthorizedException.MissingClaim("sub");
+        // Bilet e-postası için; token'da yoksa bildirim gönderilmez, sipariş yine açılır.
+        command.CustomerEmail = User.FindFirst("email")?.Value ?? string.Empty;
+        command.CustomerName = User.FindFirst("name")?.Value ?? string.Empty;
 
         var result = await _mediator.Send(command, cancellationToken);
         return AcceptedAtAction(nameof(GetById), new { id = result.OrderId }, result);

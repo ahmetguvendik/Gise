@@ -11,5 +11,8 @@ public enum OrderStatus
     PaymentProcessing,
     Completed,
     Cancelled,
-    Expired
+    Expired,
+
+    // Tamamlanmış siparişin etkinliği iptal edildi; para iade edildi (bkz. tasarım 4.4).
+    Refunded
 }

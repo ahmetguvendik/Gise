@@ -43,6 +43,8 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
         var order = new Domain.Entities.Order
         {
             CustomerId = request.CustomerId,
+            CustomerEmail = request.CustomerEmail,
+            CustomerName = request.CustomerName,
             EventId = request.EventId,
             EventTitle = summary.Title,
             EventStartsAt = summary.StartsAt,

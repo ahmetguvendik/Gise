@@ -8,6 +8,7 @@ public sealed class NotificationDbContext(DbContextOptions<NotificationDbContext
 {
     public DbSet<SentNotification> SentNotifications => Set<SentNotification>();
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
+    public DbSet<TicketHolder> TicketHolders => Set<TicketHolder>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
         => modelBuilder.ApplyConfigurationsFromAssembly(typeof(NotificationDbContext).Assembly);

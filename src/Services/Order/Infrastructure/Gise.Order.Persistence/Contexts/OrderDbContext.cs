@@ -10,6 +10,7 @@ public sealed class OrderDbContext(DbContextOptions<OrderDbContext> options) : D
 {
     public DbSet<Domain.Entities.Order> Orders => Set<Domain.Entities.Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

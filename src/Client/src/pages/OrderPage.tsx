@@ -18,7 +18,7 @@ const PAYMENT_POLL_MS = 2000
 // Saga denemeyi bu sürede işlemezse (ör. iki sekmeden aynı anda ödendi, ikincisi yok sayıldı) bekleme bırakılır.
 const SAGA_WAIT_MS = 20000
 
-const CLOSED: OrderStatus[] = ['Completed', 'Cancelled', 'Expired']
+const CLOSED: OrderStatus[] = ['Completed', 'Cancelled', 'Expired', 'Refunded']
 
 function formatRemaining(ms: number) {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
@@ -141,7 +141,7 @@ export function OrderPage() {
   }
 
   const awaiting = order.status === 'AwaitingPayment' && !processing
-  const closed = order.status === 'Cancelled' || order.status === 'Expired'
+  const closed = order.status === 'Cancelled' || order.status === 'Expired' || order.status === 'Refunded'
 
   return (
     <div className="container page">
@@ -208,7 +208,11 @@ export function OrderPage() {
       {closed && (
         <div className="order-status order-status--closed" role="status">
           <strong className="order-status__title">
-            {order.status === 'Expired' ? 'Siparişin süresi doldu' : 'Sipariş iptal edildi'}
+            {order.status === 'Expired'
+              ? 'Siparişin süresi doldu'
+              : order.status === 'Refunded'
+                ? 'Ödemeniz iade edildi'
+                : 'Sipariş iptal edildi'}
           </strong>
           {order.failureReason && <span>{order.failureReason}</span>}
           <Link className="button button--contrast order-status__action" to={`/etkinlik/${order.eventId}`}>

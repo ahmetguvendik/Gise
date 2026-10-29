@@ -7,12 +7,15 @@
   </Folder>
   <Folder Name="/src/Workers/">
     <Project Path="src/Workers/Gise.Catalog.OutboxWorker/Gise.Catalog.OutboxWorker.csproj" />
+    <Project Path="src/Workers/Gise.Notification.InboxWorker/Gise.Notification.InboxWorker.csproj" />
+    <Project Path="src/Workers/Gise.Order.InboxWorker/Gise.Order.InboxWorker.csproj" />
     <Project Path="src/Workers/Gise.Order.SagaWorker/Gise.Order.SagaWorker.csproj" />
     <Project Path="src/Workers/Gise.Payment.CommandWorker/Gise.Payment.CommandWorker.csproj" />
     <Project Path="src/Workers/Gise.Reservation.CommandWorker/Gise.Reservation.CommandWorker.csproj" />
     <Project Path="src/Workers/Gise.Reservation.InboxWorker/Gise.Reservation.InboxWorker.csproj" />
     <Project Path="src/Workers/Gise.Ticket.CommandWorker/Gise.Ticket.CommandWorker.csproj" />
     <Project Path="src/Workers/Gise.Ticket.InboxWorker/Gise.Ticket.InboxWorker.csproj" />
+    <Project Path="src/Workers/Gise.Ticket.OutboxWorker/Gise.Ticket.OutboxWorker.csproj" />
   </Folder>
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/Catalog/" />

@@ -11,6 +11,6 @@ public class SentNotification : BaseEntity
     public string RecipientId { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
 
-    // Bildirimi tetikleyen kayıt: sipariş ya da bilet grubu.
+    // Bildirimi tetikleyen kayıt (bkz. NotificationType).
     public Guid ReferenceId { get; set; }
 }

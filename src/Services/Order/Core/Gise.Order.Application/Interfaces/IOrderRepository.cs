@@ -10,6 +10,9 @@ public interface IOrderRepository
     // Koltuklarıyla birlikte, değişiklikler izlenir.
     Task<Domain.Entities.Order?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken);
 
+    // Etkinliğin tamamlanmış siparişleri; değişiklikler izlenir.
+    Task<IReadOnlyList<Domain.Entities.Order>> GetCompletedByEventForUpdateAsync(Guid eventId, CancellationToken cancellationToken);
+
     // Müşterinin siparişleri, en yenisi önce.
     Task<IReadOnlyList<Domain.Entities.Order>> GetByCustomerAsync(string customerId, CancellationToken cancellationToken);
 }

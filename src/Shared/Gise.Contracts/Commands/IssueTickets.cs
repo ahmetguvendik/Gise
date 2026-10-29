@@ -10,6 +10,10 @@ public sealed class IssueTickets
     // Keycloak'taki müşteri (sub); biletler onun adına çıkar.
     public string CustomerId { get; set; } = string.Empty;
 
+    // Bilet e-postası için (Kafka TicketsIssued ile Notification'a geçer); biletlerde saklanmaz.
+    public string CustomerEmail { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+
     // Bilet ve PDF Catalog'a sormadan hazırlansın diye siparişten kopyalanır.
     public string EventTitle { get; set; } = string.Empty;
     public DateTime EventStartsAt { get; set; }

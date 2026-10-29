@@ -12,6 +12,8 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Domain.Entitie
         builder.Property(o => o.Id).ValueGeneratedNever();
 
         builder.Property(o => o.CustomerId).HasMaxLength(64).IsRequired();
+        builder.Property(o => o.CustomerEmail).HasMaxLength(320).IsRequired();
+        builder.Property(o => o.CustomerName).HasMaxLength(200).IsRequired();
         builder.Property(o => o.EventTitle).HasMaxLength(200).IsRequired();
         builder.Property(o => o.VenueName).HasMaxLength(200).IsRequired();
         builder.Property(o => o.City).HasMaxLength(100).IsRequired();
@@ -23,5 +25,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Domain.Entitie
 
         // "Siparişlerim" sorgusu için.
         builder.HasIndex(o => new { o.CustomerId, o.CreatedAt });
+        // Etkinlik iptal edilince tamamlanmış siparişleri bulmak için.
+        builder.HasIndex(o => new { o.EventId, o.Status });
     }
 }

@@ -26,6 +26,8 @@ public sealed class IssueTicketsConsumer : IConsumer<IssueTickets>
                 OrderId = message.OrderId,
                 EventId = message.EventId,
                 CustomerId = message.CustomerId,
+                CustomerEmail = message.CustomerEmail,
+                CustomerName = message.CustomerName,
                 EventTitle = message.EventTitle,
                 EventStartsAt = message.EventStartsAt,
                 VenueName = message.VenueName,

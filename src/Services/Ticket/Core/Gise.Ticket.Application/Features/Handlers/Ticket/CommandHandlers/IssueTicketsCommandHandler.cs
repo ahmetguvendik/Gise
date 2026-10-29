@@ -1,3 +1,4 @@
+using Gise.Contracts.Events;
 using Gise.Exceptions;
 using Gise.Ticket.Application.Features.Commands.Ticket.Request;
 using Gise.Ticket.Application.Interfaces;
@@ -13,6 +14,7 @@ public sealed class IssueTicketsCommandHandler : IRequestHandler<IssueTicketsCom
     private readonly ICancelledEventRepository _cancelledEventRepository;
     private readonly ITicketPdfRenderer _pdfRenderer;
     private readonly ITicketStorage _ticketStorage;
+    private readonly IOutboxMessageRepository _outboxMessageRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public IssueTicketsCommandHandler(
@@ -20,12 +22,14 @@ public sealed class IssueTicketsCommandHandler : IRequestHandler<IssueTicketsCom
         ICancelledEventRepository cancelledEventRepository,
         ITicketPdfRenderer pdfRenderer,
         ITicketStorage ticketStorage,
+        IOutboxMessageRepository outboxMessageRepository,
         IUnitOfWork unitOfWork)
     {
         _ticketRepository = ticketRepository;
         _cancelledEventRepository = cancelledEventRepository;
         _pdfRenderer = pdfRenderer;
         _ticketStorage = ticketStorage;
+        _outboxMessageRepository = outboxMessageRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -72,6 +76,22 @@ public sealed class IssueTicketsCommandHandler : IRequestHandler<IssueTicketsCom
             await _ticketStorage.UploadPdfAsync(ticket.PdfKey, _pdfRenderer.Render(ticket), cancellationToken);
 
         await _ticketRepository.AddRangeAsync(tickets, cancellationToken);
+
+        // Notification'ın e-postası için; biletlerle aynı SaveChanges'te outbox'a yazılır.
+        await _outboxMessageRepository.AddTicketEventAsync(request.EventId, new TicketsIssued
+        {
+            OrderId = request.OrderId,
+            EventId = request.EventId,
+            CustomerId = request.CustomerId,
+            CustomerEmail = request.CustomerEmail,
+            CustomerName = request.CustomerName,
+            EventTitle = request.EventTitle,
+            EventStartsAt = request.EventStartsAt,
+            VenueName = request.VenueName,
+            City = request.City,
+            Tickets = tickets.Select(t => new IssuedTicket { SectionName = t.SectionName, Row = t.Row, Number = t.Number }).ToList()
+        }, cancellationToken);
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

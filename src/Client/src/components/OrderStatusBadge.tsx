@@ -7,6 +7,7 @@ const LABELS: Record<OrderStatus, string> = {
   Completed: 'Tamamlandı',
   Cancelled: 'İptal',
   Expired: 'Süresi doldu',
+  Refunded: 'İade edildi',
 }
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {

@@ -8,6 +8,10 @@ public sealed class IssueTicketsCommand : IRequest
     public Guid OrderId { get; set; }
     public Guid EventId { get; set; }
     public string CustomerId { get; set; } = string.Empty;
+
+    // Yalnızca Kafka'daki TicketsIssued olayına (Notification'ın e-postası) geçer; biletlerde saklanmaz.
+    public string CustomerEmail { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
     public string EventTitle { get; set; } = string.Empty;
     public DateTime EventStartsAt { get; set; }
     public string VenueName { get; set; } = string.Empty;

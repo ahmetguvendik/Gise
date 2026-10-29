@@ -135,10 +135,10 @@ export interface SeatMapSeat {
 
 /**
  * Pending: koltuklar tutuluyor; AwaitingPayment: koltuklar ayrıldı, ödeme bekleniyor (son deneme reddedildiyse sebep
- * failureReason'da); PaymentProcessing: ödeme ve koltuk satışı sürüyor; Completed: ödendi, koltuklar satıldı;
- * Cancelled ve Expired kapanmış siparişlerdir (sebep failureReason'da).
+ * failureReason'da); PaymentProcessing: ödeme, koltuk satışı ve biletler sürüyor; Completed: ödendi, biletler hazır;
+ * Cancelled ve Expired kapanmış siparişlerdir (sebep failureReason'da); Refunded: etkinlik iptal edildi, para iade edildi.
  */
-export type OrderStatus = 'Pending' | 'AwaitingPayment' | 'PaymentProcessing' | 'Completed' | 'Cancelled' | 'Expired'
+export type OrderStatus = 'Pending' | 'AwaitingPayment' | 'PaymentProcessing' | 'Completed' | 'Cancelled' | 'Expired' | 'Refunded'
 
 export interface OrderItem {
   seatId: string

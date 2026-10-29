@@ -41,6 +41,12 @@ namespace Gise.Notification.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_dead_lettered");
 
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("key");
+
                     b.Property<string>("MessageId")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -74,6 +80,12 @@ namespace Gise.Notification.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("trace_parent");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("type");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -137,6 +149,77 @@ namespace Gise.Notification.Persistence.Migrations
                         .HasDatabaseName("ix_sent_notifications_reference_id_type_recipient_id");
 
                     b.ToTable("sent_notifications", (string)null);
+                });
+
+            modelBuilder.Entity("Gise.Notification.Domain.Entities.TicketHolder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("city");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CustomerId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("customer_id");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("email");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<DateTime>("EventStartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("event_starts_at");
+
+                    b.Property<string>("EventTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("event_title");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("TicketCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("ticket_count");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("VenueName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("venue_name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ticket_holders");
+
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_ticket_holders_event_id");
+
+                    b.ToTable("ticket_holders", (string)null);
                 });
 #pragma warning restore 612, 618
         }

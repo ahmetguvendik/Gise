@@ -1,4 +1,5 @@
 using Gise.Order.Application.Interfaces;
+using Gise.Order.Domain.Enums;
 using Gise.Order.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +27,11 @@ public sealed class OrderRepository : IOrderRepository
         => _context.Orders
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<Domain.Entities.Order>> GetCompletedByEventForUpdateAsync(Guid eventId, CancellationToken cancellationToken)
+        => await _context.Orders
+            .Where(o => o.EventId == eventId && o.Status == OrderStatus.Completed)
+            .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<Domain.Entities.Order>> GetByCustomerAsync(string customerId, CancellationToken cancellationToken)
         => await _context.Orders

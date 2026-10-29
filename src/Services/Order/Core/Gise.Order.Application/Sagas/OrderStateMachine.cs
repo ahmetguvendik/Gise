@@ -228,6 +228,8 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
             OrderId = order.Id,
             EventId = order.EventId,
             CustomerId = order.CustomerId,
+            CustomerEmail = order.CustomerEmail,
+            CustomerName = order.CustomerName,
             EventTitle = order.EventTitle,
             EventStartsAt = order.EventStartsAt,
             VenueName = order.VenueName,

@@ -8,6 +8,12 @@ public class InboxMessage : BaseEntity
 {
     public string MessageId { get; set; } = string.Empty;
     public string Topic { get; set; } = string.Empty;
+
+    // Olay tipi (Kafka "type" başlığı, ör. "TicketsIssued"); worker buna göre işler.
+    public string Type { get; set; } = string.Empty;
+
+    // Kafka anahtarı (etkinlik ID'si): aynı etkinliğin olayları, iki topic'ten gelse de geldiği sırayla işlenir.
+    public string Key { get; set; } = string.Empty;
     public string Payload { get; set; } = string.Empty;
     public string? TraceParent { get; set; }
     public DateTime? ProcessedAt { get; set; }

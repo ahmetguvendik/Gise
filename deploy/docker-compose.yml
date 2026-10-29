@@ -328,6 +328,33 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  # Catalog'un olaylarını Kafka'dan okur; iptal edilen etkinliğin tamamlanmış siparişlerini iade eder.
+  order-inbox-worker:
+    image: gise/order-inbox-worker:dev
+    build:
+      context: ..
+      dockerfile: src/Workers/Gise.Order.InboxWorker/Dockerfile
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
+      # İade komutunu outbox'a yazar; RabbitMQ'ya order-saga-worker gönderir. Bağlantı, hedef adresleri doğru olsun diye.
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      # Döngü asılı kalırsa (heartbeat eskirse) ready kontrolü düşer.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
+    depends_on:
+      kafka:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      # Inbox ve sipariş tablolarını order-api'nin migration'ları kurar.
+      order-api:
+        condition: service_healthy
+
   # Satın alma saga'sı, zaman aşımları (Quartz) ve Order outbox'ından RabbitMQ'ya gönderim; order-api'den ayrı process.
   order-saga-worker:
     image: gise/order-saga-worker:dev
@@ -446,6 +473,29 @@ services:
       ticket-api:
         condition: service_healthy
 
+  # Ticket'ın outbox'ındaki olayları (TicketsIssued) Kafka'ya gönderir.
+  ticket-outbox-worker:
+    image: gise/ticket-outbox-worker:dev
+    build:
+      context: ..
+      dockerfile: src/Workers/Gise.Ticket.OutboxWorker/Dockerfile
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
+    healthcheck:
+      # Döngü asılı kalırsa (heartbeat eskirse) ready kontrolü düşer.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
+    depends_on:
+      kafka:
+        condition: service_healthy
+      # Outbox tablosunu ticket-api'nin migration'ları kurar.
+      ticket-api:
+        condition: service_healthy
+
   # Catalog'un olaylarını Kafka'dan okur; iptal edilen etkinliğin biletlerini geçersiz yapar.
   ticket-inbox-worker:
     image: gise/ticket-inbox-worker:dev
@@ -485,6 +535,32 @@ services:
       start_period: 15s
     depends_on:
       postgres:
+        condition: service_healthy
+
+  # Catalog'un ve Ticket'ın olaylarını Kafka'dan okur; bilet, iptal ve tarih değişikliği e-postalarını gönderir.
+  notification-inbox-worker:
+    image: gise/notification-inbox-worker:dev
+    build:
+      context: ..
+      dockerfile: src/Workers/Gise.Notification.InboxWorker/Dockerfile
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Notification: Host=postgres;Database=gise_notification;Username=gise;Password=${POSTGRES_PASSWORD}
+      # Gmail SMTP; Keycloak'ın kullandığı hesap (deploy/.env).
+      Smtp__Username: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+    healthcheck:
+      # Döngü asılı kalırsa (heartbeat eskirse) ready kontrolü düşer.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
+    depends_on:
+      kafka:
+        condition: service_healthy
+      # Inbox, bilet sahipleri ve gönderilen bildirim tablolarını notification-api'nin migration'ları kurar.
+      notification-api:
         condition: service_healthy
 
   search-api:

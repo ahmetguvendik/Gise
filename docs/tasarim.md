@@ -89,6 +89,9 @@ Desen bu projede **bilerek iki farklı şekilde** kullanılır:
 | Payment | `payment-command-worker` | RabbitMQ: `ProcessPayment`, `RefundPayment` (test sağlayıcısı) |
 | Ticket | `ticket-command-worker` | RabbitMQ: `IssueTickets` (bilet, PDF, QR) |
 | Ticket | `ticket-inbox-worker` | Kafka'dan okur, inbox'a yazar ve işler (iptal edilen etkinliğin biletleri) |
+| Ticket | `ticket-outbox-worker` | Kafka outbox'ını gönderir (`TicketsIssued`) |
+| Order | `order-inbox-worker` | Kafka'dan okur, inbox'a yazar ve işler (iptal edilen etkinliğin tamamlanmış siparişlerini iade eder) |
+| Notification | `notification-inbox-worker` | Kafka'dan okur (`catalog.events`, `ticket.events`), inbox'a yazar ve işler (e-postalar) |
 
 Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 
@@ -100,10 +103,10 @@ Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 |---|---|---|---|---|---|
 | **Catalog** | Etkinlik, mekân, salon/koltuk planı, fiyat kategorisi, afiş | PostgreSQL + MinIO (afişler) | REST (okuma herkese; taslak organizatöre, yayın ve iptal admin'e), gRPC (koltuk ve fiyat) | Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` | — |
 | **Reservation** | Koltuk tutma (10 dk), kesinleştirme, bırakma; çift satışı önleme | PostgreSQL + Redis | REST (koltuk durumu) | RabbitMQ: `SeatsReserved`, `SeatReservationFailed`; Kafka: `SeatStatusChanged` | RabbitMQ: `ReserveSeats`, `ConfirmSeats`, `ReleaseSeats`; Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` |
-| **Order** | Satın alma saga'sı (orkestratör) | PostgreSQL (saga durumu) | REST (sipariş oluştur/sorgula) | RabbitMQ: komutlar; Kafka: `OrderCompleted`, `OrderCancelled` | RabbitMQ: komut cevapları; Kafka: `EventCancelled`, `EventUpdated` |
+| **Order** | Satın alma saga'sı (orkestratör) | PostgreSQL (saga durumu) | REST (sipariş oluştur/sorgula, öde) | RabbitMQ: komutlar | RabbitMQ: komut cevapları; Kafka: `EventCancelled` |
 | **Payment** | Sahte ödeme sağlayıcısı; iade | PostgreSQL | — | RabbitMQ: `PaymentSucceeded`, `PaymentFailed` (iadenin cevabı beklenmez) | RabbitMQ: `ProcessPayment`, `RefundPayment` |
-| **Ticket** | QR'lı PDF bilet üretimi; kapıda okutma | PostgreSQL + MinIO | REST (biletlerim, PDF indirme, kapı okutma) | RabbitMQ: `TicketsIssued`, `TicketIssueFailed`; Kafka: `TicketsIssued`, `TicketCheckedIn` (Notification ile gelecek) | RabbitMQ: `IssueTickets`; Kafka: `EventCancelled` |
-| **Notification** | E-posta / SMS | PostgreSQL (inbox) | — | — | Kafka: `TicketsIssued`, `OrderCancelled`, `EventCancelled`, `EventUpdated` |
+| **Ticket** | QR'lı PDF bilet üretimi; kapıda okutma | PostgreSQL + MinIO | REST (biletlerim, PDF indirme, kapı okutma) | RabbitMQ: `TicketsIssued`, `TicketIssueFailed`; Kafka (`ticket.events`): `TicketsIssued` | RabbitMQ: `IssueTickets`; Kafka: `EventCancelled` |
+| **Notification** | E-posta | PostgreSQL (inbox, bilet sahipleri, gönderilenler) | — | — | Kafka: `TicketsIssued`, `EventCancelled`, `EventUpdated` |
 | **Search** | Türkçe tam metin arama, otomatik tamamlama | Elasticsearch | REST | — | Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` |
 | **SeatMap** | Koltuk haritasında anlık güncelleme | Redis (backplane) | SignalR | — | Kafka: `SeatStatusChanged` |
 
@@ -287,7 +290,23 @@ Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik 
 - **Kapıda okutma** (`POST check-in`, `gate-staff` ve `admin`): geçerli bilet tek komutta `Used` olur, okutan ve zaman yazılır; aynı anda iki kapıda okutulursa yalnızca biri geçer. Kullanılmışsa 409 `TICKET_ALREADY_USED` (ne zaman okutulduğuyla), iptal edilmişse 422 `TICKET_CANCELLED`, kod yoksa 404 `TICKET_NOT_FOUND`, biçim yanlışsa 400.
 - **Etkinlik iptali** (`EventCancelled`, `ticket-inbox-worker`; Reservation'ın inbox'ıyla aynı yapı): etkinlik `cancelled_events`'e yazılır, geçerli biletleri iptal olur; kullanılmışlara dokunulmaz. Ödemesi o sırada süren siparişin `IssueTickets`'ı bilet çıkarmaz (`TICKET_EVENT_CANCELLED`), sipariş iptal olur ve para iade edilir. İptalle aynı anda çıkan bir bilet geçerli kalmışsa kapıda yakalanır ve iptal edilir. Tamamlanmış siparişlerin iadesi Order'ın işi (bkz. 4.4).
 - **Ön yüz:** Biletlerim (`/biletlerim`): etkinlik, koltuk, kod, durum, PDF indirme. Tamamlanan sipariş sayfasında o siparişin biletleri. Kapı (`/kapi`, kapı görevlisi ve admin): QR okuyucu klavye gibi yazar; sonuç büyük ve renkli (geçerli, daha önce okutuldu, iptal, bulunamadı), alan her okutmadan sonra temizlenip odakta kalır.
-- **Henüz yok:** `TicketsIssued` ve `TicketCheckedIn` Kafka olayları (Notification ile), kapıda etkinlik ya da saat kısıtı (görevli herhangi bir etkinliğin biletini okutabilir), tarayıcı kamerasıyla QR okuma.
+- **Kafka:** biletler çıkınca `TicketsIssued` aynı transaction'da Ticket'ın outbox'ına yazılır, `ticket-outbox-worker` `ticket.events` topic'ine gönderir (Catalog'un outbox'ıyla aynı yapı; anahtar etkinliğin ID'si). Olay müşterinin e-postasını ve adını taşır; bunlar biletlerde saklanmaz.
+- **Henüz yok:** `TicketCheckedIn` olayı, kapıda etkinlik ya da saat kısıtı (görevli herhangi bir etkinliğin biletini okutabilir), tarayıcı kamerasıyla QR okuma.
+
+### 3.9 Notification: e-postalar
+
+`notification-inbox-worker` iki topic'i dinler (`catalog.events`, `ticket.events`), her biri kendi tüketicisi ve tüketici grubuyla (Telgraf'taki gibi). Olaylar önce inbox'a yazılır, sonra işlenir (Reservation'ınkiyle aynı yapı; aynı etkinliğin olayları iki topic'ten gelse de geldiği sırayla işlenir). notification-api yalnızca migration ve sağlık ucu.
+
+| Olay | Ne olur |
+|---|---|
+| `TicketsIssued` | Bilet sahibi kaydedilir (`ticket_holders`, sipariş başına bir satır); müşteriye "Biletleriniz hazır": etkinlik, tarih, mekân, koltuklar ve Biletlerim bağlantısı. PDF eklenmez, Biletlerim'den indirilir. |
+| `EventCancelled` | Etkinliğin bilet sahiplerine iptal sebebi ve iade bilgisi (müşteri başına tek e-posta). |
+| `EventUpdated` | Bilet sahiplerindeki etkinlik bilgisi güncellenir; tarih değiştiyse (`PreviousStartsAt` farklı) eski ve yeni tarih yazılır. Fiyat değişikliği bildirilmez. |
+
+- **Alıcı:** servisler kullanıcıyı Keycloak kimliğiyle tanır; e-posta adresi ve ad olaylarla taşınır. Sipariş açılırken order-api token'daki `email` ve `name` claim'lerini siparişe yazar; saga `IssueTickets` ile Ticket'a, Ticket `TicketsIssued` ile Notification'a geçirir. Token'da e-posta yoksa sipariş yine açılır, bildirim atlanır. Adres loglanmaz; loglarda alıcının kimliği (`sub`) yazılır.
+- **Gönderim:** Telgraf'taki gibi `System.Net.Mail` ile Gmail SMTP. Kullanıcı adı ve parola `deploy/.env`'deki `SMTP_USERNAME` ve `SMTP_PASSWORD` (Keycloak'ın kullandığı hesap), compose'dan ortam değişkeniyle gelir. E-postalar HTML; olaylardan gelen her değer HTML'e kodlanır. Saatler `Europe/Istanbul` ile yazılır.
+- **Tekrar:** gönderilen her e-posta hemen `sent_notifications`'a yazılır; (referans, tip, alıcı) tekil olduğu için olay yeniden işlense de aynı kişiye ikinci kez gitmez. Referans: biletlerde sipariş, iptalde etkinlik, tarih değişikliğinde olayın mesaj kimliği (her erteleme ayrı bildirim). Gönderim yarıda hata verirse gönderilenlerin kaydı korunur, mesaj kalanlar için yeniden denenir; SMTP'ye ulaşılamazsa artan beklemeyle denenir, sınır aşılınca dead-letter.
+- **Henüz yok:** sipariş iptali ya da iadesi e-postası, SMS.
 
 ---
 
@@ -385,18 +404,18 @@ Catalog `EventCancelled` ve `EventUpdated` olaylarını Kafka'ya gönderir (bkz.
 **İptal (`EventCancelled`): tam iade, otomatik.** Kullanıcının bir şey yapması gerekmez.
 
 1. **Reservation** satışı hemen durdurur: yeni `ReserveSeats` reddedilir, tutulan koltuklar bırakılır.
-2. **Order** iptal edilen etkinlikleri kendi tarafında tutar ve:
-   - tamamlanmış her sipariş için iade başlatır (`RefundPayment` → `PaymentRefunded`); sipariş "İade edildi" olur;
-   - ödemesi süren siparişi iptal eder; ödeme iptalden sonra gelirse onu da hemen iade eder;
-   - bu etkinlik için yeni sipariş açmaz.
+2. **Order** (`order-inbox-worker`, uygulandı):
+   - tamamlanmış her siparişin parasını iade eder (`RefundPayment`, order-api gibi bus outbox'a yazılır, `order-saga-worker` gönderir); sipariş `Refunded` ("İade edildi") olur. Olay ikinci kez gelirse iade edilmiş sipariş artık tamamlanmış sayılmaz, ikinci iade gitmez;
+   - ödemesi süren sipariş saga'nın kendi telafisiyle iade edilir: koltuk satışı (`ConfirmSeats`) ya da bilet adımı (`IssueTickets`) reddedilir;
+   - bu etkinlik için yeni sipariş açılmaz: Catalog'un `GetEventSummary`'si iptal edilen etkinlik için 422 döner.
 3. **Payment** kesintisiz tam iade yapar.
 4. **Ticket** biletleri geçersiz yapar; kapıda okutulunca reddedilir (uygulandı, bkz. 3.8).
-5. **Notification** her bilet sahibine iptal sebebi ve iade bilgisiyle e-posta gönderir.
+5. **Notification** her bilet sahibine iptal sebebi ve iade bilgisiyle e-posta gönderir (uygulandı, bkz. 3.9).
 
 **Tarih değişikliği (`EventUpdated`, `PreviousStartsAt` farklıysa):**
 
 - Biletler yeni tarih için geçerli kalır.
-- Notification bilet sahiplerine eski ve yeni tarihi bildirir.
+- Notification bilet sahiplerine eski ve yeni tarihi bildirir (uygulandı, bkz. 3.9).
 - Yeni tarihe gelemeyecek bilet sahibi, **yeni tarihten önce iade talep edebilir**; iade tam yapılır. Talep Order üzerinden açılır, aynı iade akışı (`RefundPayment`) çalışır.
 
 **Fiyat değişikliği:** yalnızca bundan sonraki satışları etkiler; satılmış biletlere fark iadesi ya da ek ücret yoktur.
@@ -596,6 +615,8 @@ Kodda ve konteyner adlarında ASCII **`gise`** kullanılır; klasör adındaki `
 ## 13. Açık sorular
 
 Şu an açık soru yok.
+
+**Karara bağlananlar (2026-10-29, bildirim):** E-postalar Telgraf'taki gibi Gmail SMTP ile gönderilir. Alıcının adresi olaylarla taşınır (sipariş açılırken token'dan). Bilet e-postası PDF eki içermez, Biletlerim bağlantısı verir. Etkinlik iptalinde tamamlanmış siparişlerin iadesi bu adımda yapılır.
 
 **Karara bağlananlar (2026-10-29, bilet):** Bilet üretimi saga adımıdır; çıkarılamazsa para iade edilir, satılan koltuklar geri açılır. PDF ve QR için SkiaSharp ve QRCoder (ikisi de MIT). PDF bilet çıkarken üretilip MinIO'da saklanır, indirme imzalı adresle. Etkinlik iptalinde biletler Ticket'ın kendi Kafka inbox'ıyla geçersiz yapılır.
 

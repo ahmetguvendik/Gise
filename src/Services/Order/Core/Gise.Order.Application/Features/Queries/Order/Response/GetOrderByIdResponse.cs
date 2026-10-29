@@ -9,7 +9,7 @@ public sealed class GetOrderByIdResponse
     public string VenueName { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
 
-    // Pending (koltuklar tutuluyor), AwaitingPayment, PaymentProcessing, Completed, Cancelled, Expired.
+    // Pending (koltuklar tutuluyor), AwaitingPayment, PaymentProcessing, Completed, Cancelled, Expired, Refunded.
     public string Status { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
     public DateTime ExpiresAt { get; set; }

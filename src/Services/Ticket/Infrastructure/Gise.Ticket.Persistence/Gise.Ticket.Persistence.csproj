@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Gise.Ticket.Application\Gise.Ticket.Application.csproj" />
+    <ProjectReference Include="..\..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" />

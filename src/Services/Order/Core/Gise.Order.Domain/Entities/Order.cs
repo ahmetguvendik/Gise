@@ -7,6 +7,10 @@ namespace Gise.Order.Domain.Entities;
 public class Order : BaseEntity
 {
     public string CustomerId { get; set; } = string.Empty;
+
+    // Sipariş açılırken token'dan (email, name) kopyalanır; bilet e-postası bu adrese gider. Token'da yoksa boş kalır.
+    public string CustomerEmail { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
     public Guid EventId { get; set; }
 
     // Sipariş açılırken Catalog'dan kopyalanır; Siparişlerim Catalog'a sormadan listelenir.

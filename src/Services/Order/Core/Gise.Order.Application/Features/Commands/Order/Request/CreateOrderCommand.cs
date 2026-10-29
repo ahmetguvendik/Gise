@@ -13,4 +13,10 @@ public sealed class CreateOrderCommand : IRequest<CreateOrderResponse>
     // Body'den gelmez — controller JWT'den set eder.
     [JsonIgnore]
     public string CustomerId { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public string CustomerEmail { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public string CustomerName { get; set; } = string.Empty;
 }

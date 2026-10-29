@@ -213,7 +213,8 @@ a:hover { color: var(--link-hover); }
 .badge--ticket-used { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--link); }
 .badge--ticket-cancelled { background: var(--surface-2); color: var(--muted); }
 .badge--order-cancelled,
-.badge--order-expired { background: var(--surface-2); color: var(--muted); }
+.badge--order-expired,
+.badge--order-refunded { background: var(--surface-2); color: var(--muted); }
 
 .empty { display: grid; gap: 16px; justify-items: start; padding: 40px; }
 .empty h1 { font-size: clamp(30px, 4vw, 40px); }
