@@ -8,17 +8,20 @@ namespace Gise.Reservation.Application.Features.Handlers.SeatHold.CommandHandler
 
 public sealed class ReleaseHoldCommandHandler : IRequestHandler<ReleaseHoldCommand>
 {
+    private readonly IEventStockRepository _eventStockRepository;
     private readonly ISeatHoldRepository _seatHoldRepository;
     private readonly ISeatLockService _seatLockService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TimeProvider _timeProvider;
 
     public ReleaseHoldCommandHandler(
+        IEventStockRepository eventStockRepository,
         ISeatHoldRepository seatHoldRepository,
         ISeatLockService seatLockService,
         IUnitOfWork unitOfWork,
         TimeProvider timeProvider)
     {
+        _eventStockRepository = eventStockRepository;
         _seatHoldRepository = seatHoldRepository;
         _seatLockService = seatLockService;
         _unitOfWork = unitOfWork;
@@ -44,8 +47,24 @@ public sealed class ReleaseHoldCommandHandler : IRequestHandler<ReleaseHoldComma
             return;
         }
 
-        if (hold.Status != HoldStatus.Active)
+        if (hold.Status == HoldStatus.Released)
             return;
+
+        if (hold.Status == HoldStatus.Confirmed)
+        {
+            // Koltuklar satılmıştı ama bilet çıkarılamadı; para iade ediliyor, koltuklar yeniden satışa açılır
+            // (bkz. tasarım 4.5). Redis kilitleri satışta zaten kaldırılmıştı.
+            var seats = await _eventStockRepository.GetSeatsForUpdateAsync(hold.EventId, hold.SeatIds, cancellationToken);
+            foreach (var seat in seats.Where(s => s.HoldId == hold.Id))
+            {
+                seat.Status = SeatStatus.Available;
+                seat.HoldId = null;
+            }
+
+            hold.Status = HoldStatus.Released;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return;
+        }
 
         // Süresi dolmuşsa kilit zaten kalkmıştır; yalnızca bu tutmaya ait kilitler silinir.
         await _seatLockService.ReleaseAsync(hold.EventId, hold.CustomerId, hold.SeatIds, hold.OrderId);

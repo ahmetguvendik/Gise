@@ -2,4 +2,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Gise.Ticket.Application\Gise.Ticket.Application.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="QRCoder" />
+    <PackageReference Include="SkiaSharp" />
+    <!-- Docker (Linux) için Skia'nın yerel kütüphanesi; sistem paketlerine ihtiyaç duymaz. Yazı tipi dosyadan yüklenir. -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
+  </ItemGroup>
 </Project>

@@ -184,6 +184,45 @@ export interface CreatedOrder {
   status: OrderStatus
 }
 
+/** Valid: girişte okutulabilir; Used: okutuldu; Cancelled: geçersiz (ör. etkinlik iptal edildi). */
+export type TicketStatus = 'Valid' | 'Used' | 'Cancelled'
+
+/** Etkinlik ve koltuk bilgisi bilet çıkarken siparişten kopyalanır. */
+export interface TicketItem {
+  id: string
+  orderId: string
+  eventId: string
+  eventTitle: string
+  eventStartsAt: string
+  venueName: string
+  city: string
+  sectionName: string
+  row: string
+  number: number
+  price: number
+  /** Kapıda okutulan kod, okunaklı biçimde: "ABCD-EFGH-JKMN-PQRS". */
+  code: string
+  status: TicketStatus
+  checkedInAt: string | null
+}
+
+/** PDF API'den geçmez; kısa süreli imzalı adres. */
+export interface TicketDownload {
+  url: string
+  expiresInSeconds: number
+}
+
+/** Kapıda geçerli bilet okutulunca görevliye gösterilir. */
+export interface CheckInResult {
+  ticketId: string
+  eventTitle: string
+  eventStartsAt: string
+  sectionName: string
+  row: string
+  number: number
+  checkedInAt: string
+}
+
 /** Kart yalnızca Order'da doğrulanır; Payment'a son dört hanesi gider. */
 export interface PaymentRequest {
   /** Boşluksuz 16 hane. */

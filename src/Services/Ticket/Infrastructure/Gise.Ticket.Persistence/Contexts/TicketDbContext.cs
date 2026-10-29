@@ -1,5 +1,6 @@
 using Gise.Ticket.Domain.Common;
 using Gise.Ticket.Domain.Entities;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gise.Ticket.Persistence.Contexts;
@@ -7,10 +8,19 @@ namespace Gise.Ticket.Persistence.Contexts;
 public sealed class TicketDbContext(DbContextOptions<TicketDbContext> options) : DbContext(options)
 {
     public DbSet<Domain.Entities.Ticket> Tickets => Set<Domain.Entities.Ticket>();
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<CancelledEvent> CancelledEvents => Set<CancelledEvent>();
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
-        => modelBuilder.ApplyConfigurationsFromAssembly(typeof(TicketDbContext).Assembly);
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(TicketDbContext).Assembly);
+
+        // Saga komutları (IssueTickets) MassTransit'in hazır inbox/outbox'ını kullanır (bkz. tasarım 2.2). MassTransit'in
+        // tabloları "mt_" önekiyle durur; Kafka tarafındaki kendi inbox'ımızla (inbox_messages) karışmasın.
+        modelBuilder.AddInboxStateEntity(e => e.ToTable("mt_inbox_state"));
+        modelBuilder.AddOutboxMessageEntity(e => e.ToTable("mt_outbox_message"));
+        modelBuilder.AddOutboxStateEntity(e => e.ToTable("mt_outbox_state"));
+    }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

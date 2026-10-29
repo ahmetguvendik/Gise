@@ -66,6 +66,16 @@ public static class ErrorCodes
         public const string NotPayable = "ORDER_NOT_PAYABLE";
     }
 
+    public static class Ticket
+    {
+        public const string NotFound = "TICKET_NOT_FOUND";
+        public const string NotOwner = "TICKET_NOT_OWNER";
+        public const string AlreadyUsed = "TICKET_ALREADY_USED";
+        public const string Cancelled = "TICKET_CANCELLED";
+        public const string SeatTaken = "TICKET_SEAT_TAKEN";
+        public const string EventCancelled = "TICKET_EVENT_CANCELLED";
+    }
+
     public static class Price
     {
         public const string SectionNotInVenue = "PRICE_SECTION_NOT_IN_VENUE";

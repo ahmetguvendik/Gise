@@ -7,7 +7,7 @@ public enum OrderStatus
     Pending,
     AwaitingPayment,
 
-    // Müşteri "Öde" dedi; ödemenin ve koltuk satışının sonucu bekleniyor.
+    // Müşteri "Öde" dedi; ödemenin, koltuk satışının ve biletlerin sonucu bekleniyor.
     PaymentProcessing,
     Completed,
     Cancelled,

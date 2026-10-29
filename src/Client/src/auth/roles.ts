@@ -19,3 +19,5 @@ export const hasAnyRole = (user: User | null | undefined, roles: string[]) =>
 export const isAdmin = (user: User | null | undefined) => hasAnyRole(user, ['admin'])
 
 export const canManageEvents = (user: User | null | undefined) => hasAnyRole(user, ['organizer', 'admin'])
+
+export const canCheckIn = (user: User | null | undefined) => hasAnyRole(user, ['gate-staff', 'admin'])

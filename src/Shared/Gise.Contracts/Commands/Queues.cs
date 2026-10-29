@@ -8,4 +8,5 @@ public static class Queues
     public const string ConfirmSeats = "confirm-seats";
     public const string ProcessPayment = "process-payment";
     public const string RefundPayment = "refund-payment";
+    public const string IssueTickets = "issue-tickets";
 }

@@ -18,6 +18,16 @@ public class ConflictException : AppException
         "Seçtiğiniz koltuklardan en az biri artık müsait değil.",
         "Koltuk başka biri tarafından tutuldu ya da satıldı; haritayı yenileyip yeniden seçin.");
 
+    public static ConflictException TicketAlreadyUsed(DateTime checkedInAt) => new(
+        ErrorCodes.Ticket.AlreadyUsed,
+        "Bu bilet daha önce okutuldu.",
+        $"Bilet {checkedInAt:yyyy-MM-dd HH:mm} (UTC) tarihinde kullanılmış; aynı bilet ikinci kez girişe izin vermez.");
+
+    public static ConflictException TicketSeatTaken() => new(
+        ErrorCodes.Ticket.SeatTaken,
+        "Koltuklardan birinin geçerli bir bileti zaten var.",
+        "Aynı koltuğa ikinci bir bilet çıkarılamaz.");
+
     public static ConflictException HoldAlreadyActive(Guid eventId) => new(
         ErrorCodes.Hold.AlreadyActive,
         "Bu etkinlik için ödemesi bekleyen bir siparişiniz var.",

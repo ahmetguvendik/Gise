@@ -8,8 +8,10 @@ import { Guard } from './components/Guard'
 import { Layout } from './components/Layout'
 import { EventDetailPage } from './pages/EventDetailPage'
 import { EventsPage } from './pages/EventsPage'
+import { GatePage } from './pages/GatePage'
 import { MyEventsPage } from './pages/MyEventsPage'
 import { MyOrdersPage } from './pages/MyOrdersPage'
+import { MyTicketsPage } from './pages/MyTicketsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { OrderPage } from './pages/OrderPage'
 import { PendingEventsPage } from './pages/PendingEventsPage'
@@ -42,6 +44,24 @@ createRoot(document.getElementById('root')!).render(
                 element={
                   <Guard>
                     <OrderPage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="biletlerim"
+                element={
+                  <Guard>
+                    <MyTicketsPage />
+                  </Guard>
+                }
+              />
+
+              {/* kapı görevlisi + admin */}
+              <Route
+                path="kapi"
+                element={
+                  <Guard roles={['gate-staff', 'admin']}>
+                    <GatePage />
                   </Guard>
                 }
               />

@@ -8,7 +8,7 @@ mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
 mc mb --ignore-existing "local/$MINIO_BUCKET"
 
 # Yalnızca afişler herkese açık okunur: her görüntüleme için imzalı adres üretmek tarayıcı önbelleğini işlevsiz kılardı.
-# staging/ (doğrulanmamış yüklemeler) ve ileride biletler gibi özel dosyalar açık değildir.
+# staging/ (doğrulanmamış yüklemeler) ve tickets/ (bilet PDF'leri, kısa süreli imzalı adresle indirilir) açık değildir.
 # Yazma izni yok; yükleme yalnızca catalog-api'nin ürettiği imzalı adresle yapılır.
 mc anonymous set download "local/$MINIO_BUCKET/posters"
 

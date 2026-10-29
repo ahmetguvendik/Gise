@@ -123,6 +123,16 @@ public class BusinessException : AppException
         "Koltukların tutulması sona erdiği için satış tamamlanamadı.",
         $"'{orderId}' ID'li siparişin koltukları bırakılmış (süre doldu ya da etkinlik iptal edildi).");
 
+    public static BusinessException TicketCancelled(Guid ticketId) => new(
+        ErrorCodes.Ticket.Cancelled,
+        "Bu bilet iptal edilmiş.",
+        $"'{ticketId}' ID'li bilet geçersiz (etkinlik iptal edildi ya da bilet iade edildi).");
+
+    public static BusinessException TicketEventCancelled(Guid eventId) => new(
+        ErrorCodes.Ticket.EventCancelled,
+        "Etkinlik iptal edildiği için bilet çıkarılmadı.",
+        $"'{eventId}' ID'li etkinlik ödeme sırasında iptal edildi.");
+
     public static BusinessException HoldOrderClosed(Guid orderId) => new(
         ErrorCodes.Hold.OrderClosed,
         "Sipariş kapandığı için koltuklar tutulmadı.",

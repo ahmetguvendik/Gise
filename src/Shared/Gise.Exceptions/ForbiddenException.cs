@@ -18,6 +18,11 @@ public class ForbiddenException : AppException
         "Yalnızca kendi siparişinizi görebilir ve değiştirebilirsiniz.",
         $"'{orderId}' ID'li sipariş başka bir müşteriye ait.");
 
+    public static ForbiddenException NotTicketOwner(Guid ticketId) => new(
+        ErrorCodes.Ticket.NotOwner,
+        "Bu bilet size ait değil.",
+        $"'{ticketId}' ID'li bileti yalnızca sahibi görebilir.");
+
     public static ForbiddenException PublishedEventAdminOnly(Guid eventId) => new(
         ErrorCodes.Event.AdminOnly,
         "Yayındaki etkinlikte değişikliği yalnızca admin yapabilir.",

@@ -5,6 +5,7 @@ import { ApiError, toApiError } from '../api/http'
 import { ordersApi } from '../api/orders'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { OrderStatusBadge } from '../components/OrderStatusBadge'
+import { OrderTickets } from '../components/OrderTickets'
 import { PaymentForm } from '../components/PaymentForm'
 import { formatDate, formatLongDate, formatPrice, formatTime } from '../lib/format'
 import type { OrderDetail, OrderStatus, PaymentRequest } from '../types'
@@ -188,7 +189,7 @@ export function OrderPage() {
       {processing && (
         <div className="order-status order-status--pending" role="status">
           <strong className="order-status__title">Ödemeniz işleniyor…</strong>
-          <span>Bu genelde birkaç saniye sürer; sayfa kendiliğinden güncellenir.</span>
+          <span>Ödeme alınıp biletleriniz hazırlanıyor; bu genelde birkaç saniye sürer, sayfa kendiliğinden güncellenir.</span>
           <span>
             Kalan süre {formatRemaining(remainingMs)}. Süre dolarsa sipariş kapanır, çekilen bir tutar varsa iade edilir.
           </span>
@@ -198,9 +199,11 @@ export function OrderPage() {
       {order.status === 'Completed' && (
         <div className="order-status order-status--done" role="status">
           <strong className="order-status__title">Siparişiniz tamamlandı</strong>
-          <span>Ödemeniz alındı, koltuklar sizin.</span>
+          <span>Ödemeniz alındı, biletleriniz hazır. Kapıda PDF'teki QR okutulur.</span>
         </div>
       )}
+
+      {order.status === 'Completed' && <OrderTickets orderId={order.id} />}
 
       {closed && (
         <div className="order-status order-status--closed" role="status">

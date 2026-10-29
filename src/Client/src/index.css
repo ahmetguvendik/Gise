@@ -209,6 +209,9 @@ a:hover { color: var(--link-hover); }
 .badge--order-awaitingpayment { background: var(--warning-bg); color: var(--warning-text); }
 .badge--order-paymentprocessing { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--link); }
 .badge--order-completed { background: var(--success-bg); color: var(--success-text); }
+.badge--ticket-valid { background: var(--success-bg); color: var(--success-text); }
+.badge--ticket-used { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--link); }
+.badge--ticket-cancelled { background: var(--surface-2); color: var(--muted); }
 .badge--order-cancelled,
 .badge--order-expired { background: var(--surface-2); color: var(--muted); }
 
@@ -427,3 +430,29 @@ a:hover { color: var(--link-hover); }
 .order-row__side { display: grid; gap: 4px; justify-items: end; text-align: right; }
 .order-row__total { font-family: var(--font-display); font-size: 24px; font-weight: 800; }
 .order-row__date { font-size: 13px; }
+
+/* ---- Bilet ---- */
+.section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.ticket-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.ticket-row { background: var(--surface); border: 1px solid var(--border); border-left: 6px solid var(--success-text); border-radius: var(--radius); padding: 20px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; }
+.ticket-row--used { border-left-color: var(--link); }
+.ticket-row--cancelled { border-left-color: var(--border-strong); opacity: 0.75; }
+.ticket-row__main { display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.ticket-row__main p { margin: 0; }
+.ticket-row__title { font-size: 22px; letter-spacing: -0.02em; }
+.ticket-row__title a { color: var(--text); text-decoration: none; }
+.ticket-row__title a:hover { color: var(--link); }
+.ticket-row__seat { font-size: 18px; font-weight: 700; }
+.ticket-row__code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; letter-spacing: 0.04em; overflow-wrap: anywhere; }
+.ticket-row__side { display: grid; gap: 6px; justify-items: end; text-align: right; }
+.ticket-row__note { font-size: 13px; }
+
+/* ---- Kapı ---- */
+.gate { max-width: 720px; }
+.gate__form input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 22px; letter-spacing: 0.06em; text-transform: uppercase; }
+.gate-result { display: grid; gap: 8px; justify-items: start; border-radius: var(--radius); padding: 24px 28px; }
+.gate-result__title { font-family: var(--font-display); font-size: clamp(36px, 7vw, 56px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.gate-result__seat { font-size: 22px; font-weight: 700; }
+.gate-result--valid { background: var(--success-bg); color: var(--success-text); }
+.gate-result--used { background: var(--warning-bg); color: var(--warning-text); }
+.gate-result--invalid { background: var(--danger-bg); color: var(--danger-text); }

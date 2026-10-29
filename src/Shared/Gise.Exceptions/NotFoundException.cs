@@ -23,6 +23,17 @@ public class NotFoundException : AppException
         "Sipariş bulunamadı.",
         $"'{id}' ID'li sipariş sistemde yok.");
 
+    public static NotFoundException Ticket(Guid id) => new(
+        ErrorCodes.Ticket.NotFound,
+        "Bilet bulunamadı.",
+        $"'{id}' ID'li bilet sistemde yok.");
+
+    // Kapıda okutulan kod; açıklamada kodun kendisi yer almaz.
+    public static NotFoundException TicketCode() => new(
+        ErrorCodes.Ticket.NotFound,
+        "Bilet bulunamadı.",
+        "Bu kodla çıkmış bir bilet yok; kodu kontrol edip yeniden okutun.");
+
     public static NotFoundException EventStock(Guid eventId) => new(
         ErrorCodes.Stock.NotFound,
         "Etkinliğin koltuk bilgisi bulunamadı.",

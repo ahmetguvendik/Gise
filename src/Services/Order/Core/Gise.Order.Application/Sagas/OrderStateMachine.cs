@@ -8,8 +8,8 @@ using Microsoft.Extensions.Configuration;
 
 namespace Gise.Order.Application.Sagas;
 
-// Satın alma saga'sı (bkz. tasarım 4). Order akışı yönetir; Reservation ve Payment (ileride Ticket) yalnızca kendisine
-// gelen komutu yapıp sonucu bildirir. Müşterinin gördüğü sipariş her adımda saga ile aynı transaction'da güncellenir.
+// Satın alma saga'sı (bkz. tasarım 4). Order akışı yönetir; Reservation, Payment ve Ticket yalnızca kendisine gelen
+// komutu yapıp sonucu bildirir. Müşterinin gördüğü sipariş her adımda saga ile aynı transaction'da güncellenir.
 public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
 {
     private static readonly Uri ReserveSeatsQueue = new($"queue:{Queues.ReserveSeats}");
@@ -17,11 +17,13 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
     private static readonly Uri ConfirmSeatsQueue = new($"queue:{Queues.ConfirmSeats}");
     private static readonly Uri ProcessPaymentQueue = new($"queue:{Queues.ProcessPayment}");
     private static readonly Uri RefundPaymentQueue = new($"queue:{Queues.RefundPayment}");
+    private static readonly Uri IssueTicketsQueue = new($"queue:{Queues.IssueTickets}");
 
     public State SeatsPending { get; private set; } = null!;
     public State PaymentPending { get; private set; } = null!;
     public State PaymentProcessing { get; private set; } = null!;
     public State SeatsConfirming { get; private set; } = null!;
+    public State TicketsIssuing { get; private set; } = null!;
 
     public Event<OrderSubmitted> Submitted { get; private set; } = null!;
     public Event<SeatsReserved> SeatsReserved { get; private set; } = null!;
@@ -32,6 +34,8 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
     public Event<PaymentFailed> PaymentFailed { get; private set; } = null!;
     public Event<SeatsConfirmed> SeatsConfirmed { get; private set; } = null!;
     public Event<SeatConfirmationFailed> SeatConfirmationFailed { get; private set; } = null!;
+    public Event<TicketsIssued> TicketsIssued { get; private set; } = null!;
+    public Event<TicketIssueFailed> TicketIssueFailed { get; private set; } = null!;
 
     // Ödeme süresi; Reservation ya da Payment hiç cevap vermezse bekleme sınırı da odur. Quartz ile Order veritabanında saklanır.
     public Schedule<OrderState, OrderExpired> Expiry { get; private set; } = null!;
@@ -54,6 +58,8 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
         Event(() => PaymentFailed, e => { e.CorrelateById(c => c.Message.OrderId); e.OnMissingInstance(m => m.Discard()); });
         Event(() => SeatsConfirmed, e => { e.CorrelateById(c => c.Message.OrderId); e.OnMissingInstance(m => m.Discard()); });
         Event(() => SeatConfirmationFailed, e => { e.CorrelateById(c => c.Message.OrderId); e.OnMissingInstance(m => m.Discard()); });
+        Event(() => TicketsIssued, e => { e.CorrelateById(c => c.Message.OrderId); e.OnMissingInstance(m => m.Discard()); });
+        Event(() => TicketIssueFailed, e => { e.CorrelateById(c => c.Message.OrderId); e.OnMissingInstance(m => m.Discard()); });
 
         Schedule(() => Expiry, x => x.ExpiryTokenId, s =>
         {
@@ -151,8 +157,8 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
 
         During(SeatsConfirming,
             When(SeatsConfirmed)
-                .ThenAsync(c => SetOrderStatusAsync(c, OrderStatus.Completed, null))
-                .Finalize(),
+                .SendAsync(IssueTicketsQueue, IssueTicketsForAsync)
+                .TransitionTo(TicketsIssuing),
             When(SeatConfirmationFailed)
                 // Koltuklar satılamadı (tutma bırakılmış, koltuk başka siparişe satılmış): para iade edilir.
                 .Send(RefundPaymentQueue, c => new RefundPayment { OrderId = c.Saga.CorrelationId })
@@ -164,6 +170,22 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
             Ignore(CancellationRequested),
             Ignore(PaymentRequested),
             Ignore(PaymentSucceeded));
+
+        During(TicketsIssuing,
+            When(TicketsIssued)
+                .ThenAsync(c => SetOrderStatusAsync(c, OrderStatus.Completed, null))
+                .Finalize(),
+            When(TicketIssueFailed)
+                // Bilet çıkarılamadı (etkinlik bu arada iptal edildi…): para iade edilir, satılan koltuklar geri açılır.
+                .Send(RefundPaymentQueue, c => new RefundPayment { OrderId = c.Saga.CorrelationId })
+                .Send(ReleaseSeatsQueue, c => ReleaseSeatsFor(c.Saga))
+                .ThenAsync(c => SetOrderStatusAsync(c, OrderStatus.Cancelled, $"{c.Message.Reason} Ödemeniz iade edilecek."))
+                .Finalize(),
+            Ignore(Expiry.Received),
+            Ignore(CancellationRequested),
+            Ignore(PaymentRequested),
+            Ignore(PaymentSucceeded),
+            Ignore(SeatsConfirmed));
 
         // Kapanan saga silinir; sipariş (orders) geçmiş olarak kalır.
         SetCompletedWhenFinalized();
@@ -195,6 +217,30 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
                 Price = seat.Price
             });
         }
+    }
+
+    // Bilet ve PDF Catalog'a sormadan çıksın diye etkinlik bilgisi ve koltuklar siparişten kopyalanır.
+    private static async Task<IssueTickets> IssueTicketsForAsync(BehaviorContext<OrderState, SeatsConfirmed> context)
+    {
+        var order = await GetOrderAsync(context, context.Saga.CorrelationId);
+        return new IssueTickets
+        {
+            OrderId = order.Id,
+            EventId = order.EventId,
+            CustomerId = order.CustomerId,
+            EventTitle = order.EventTitle,
+            EventStartsAt = order.EventStartsAt,
+            VenueName = order.VenueName,
+            City = order.City,
+            Seats = order.Items.Select(item => new TicketSeat
+            {
+                SeatId = item.SeatId,
+                SectionName = item.SectionName,
+                Row = item.Row,
+                Number = item.Number,
+                Price = item.Price
+            }).ToList()
+        };
     }
 
     private static async Task MarkPaymentProcessingAsync(BehaviorContext<OrderState, OrderPaymentRequested> context)
