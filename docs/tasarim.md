@@ -246,6 +246,7 @@ sequenceDiagram
 - MinIO'nun API portu (9000) yalnızca `127.0.0.1`'e açık; CORS yalnızca `http://localhost:8000`'e izin verir.
 - Etkinlik yalnızca anahtarı tutar (`PosterKey`); yanıtlar `posterUrl` (800'lük boy) ve `posterSrcset` döndürür, tarayıcı ekrana uyan boyu seçer. Afiş yoksa ön yüz renkli yer tutucuyu çizer.
 - Afiş bilgi ve fiyatla aynı yetki kurallarına tabidir (bkz. 3.4).
+- **Kod:** diğer uçlar gibi MediatR üzerinden: `CreateUploadUrlCommand`, `CommitUploadCommand`, `GetMediaPolicyQuery`. Beyan edilen tür ve boyut ile anahtarın biçimi (`staging/<32 hane>.<uzantı>`) validator'da (400 `VALIDATION_FAILED`); depodaki gerçek dosyanın kontrolü (tür, boyut, ilk baytlar, çözünürlük) `S3StorageService.CommitAsync`'te (422 `MEDIA_*`). Telgraf'tan farkı: orada `MediaController` depolama servisini doğrudan çağırıyordu.
 - **Henüz yok:**
   - Değiştirilen ya da kaldırılan afişin eski dosyaları silinmiyor.
   - Olaylar (`EventPublished`, `EventUpdated`) afiş taşımıyor; Search yazılırken eklenecek.

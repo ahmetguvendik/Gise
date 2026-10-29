@@ -57,14 +57,8 @@ public sealed class S3StorageService : IStorageService, IDisposable
             AuthenticationRegion = "us-east-1",
         });
 
-    public PresignedUpload CreateUploadUrl(string contentType, long sizeBytes)
+    public PresignedUpload CreateUploadUrl(string contentType)
     {
-        if (!MediaPolicy.IsAllowed(contentType))
-            throw BusinessException.MediaTypeNotAllowed(MediaPolicy.AllowedContentTypes);
-
-        if (sizeBytes <= 0 || sizeBytes > MaxUploadSizeBytes)
-            throw BusinessException.MediaTooLarge(MaxUploadSizeBytes);
-
         var key = $"{StagingPrefix}{Guid.NewGuid():N}{MediaPolicy.ExtensionFor(contentType)}";
 
         // ContentType imzaya dahil: tarayıcı PUT'ta aynı başlığı göndermezse MinIO imzayı reddeder.
@@ -82,11 +76,9 @@ public sealed class S3StorageService : IStorageService, IDisposable
 
     public async Task<string> CommitAsync(string stagingKey, CancellationToken cancellationToken)
     {
-        // Anahtar istemciden geliyor: staging dışındaki bir nesnenin taşınması engellenir.
-        if (string.IsNullOrWhiteSpace(stagingKey)
-            || !stagingKey.StartsWith(StagingPrefix, StringComparison.Ordinal)
-            || stagingKey.Contains("..", StringComparison.Ordinal))
-            throw BusinessException.MediaInvalidKey();
+        // Biçimi validator doğruladı; bu kontrol, doğrulanmamış bir anahtarla staging dışına çıkılmasın diye son güvence.
+        if (!stagingKey.StartsWith(StagingPrefix, StringComparison.Ordinal) || stagingKey.Contains("..", StringComparison.Ordinal))
+            throw new ArgumentException("Anahtar staging altında olmalı.", nameof(stagingKey));
 
         GetObjectMetadataResponse head;
         try

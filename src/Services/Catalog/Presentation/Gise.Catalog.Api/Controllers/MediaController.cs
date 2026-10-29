@@ -1,6 +1,9 @@
 using Gise.Catalog.Api.Authentication;
-using Gise.Catalog.Application.Interfaces;
-using Gise.Catalog.Application.Media;
+using Gise.Catalog.Application.Features.Commands.Media.Request;
+using Gise.Catalog.Application.Features.Commands.Media.Response;
+using Gise.Catalog.Application.Features.Queries.Media.Request;
+using Gise.Catalog.Application.Features.Queries.Media.Response;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,59 +16,23 @@ namespace Gise.Catalog.Api.Controllers;
 [Route("api/media")]
 public sealed class MediaController : ControllerBase
 {
-    private readonly IStorageService _storageService;
+    private readonly IMediator _mediator;
 
-    public MediaController(IStorageService storageService)
+    public MediaController(IMediator mediator)
     {
-        _storageService = storageService;
+        _mediator = mediator;
     }
 
     [HttpPost("upload-url")]
-    public ActionResult<PresignedUpload> CreateUploadUrl([FromBody] UploadUrlRequest request)
-        => Ok(_storageService.CreateUploadUrl(request.ContentType, request.SizeBytes));
+    public async Task<ActionResult<CreateUploadUrlResponse>> CreateUploadUrl([FromBody] CreateUploadUrlCommand command, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(command, cancellationToken));
 
     [HttpPost("commit")]
-    public async Task<ActionResult<CommitUploadResponse>> Commit([FromBody] CommitUploadRequest request, CancellationToken cancellationToken)
-    {
-        var key = await _storageService.CommitAsync(request.Key, cancellationToken);
+    public async Task<ActionResult<CommitUploadResponse>> Commit([FromBody] CommitUploadCommand command, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(command, cancellationToken));
 
-        return Ok(new CommitUploadResponse
-        {
-            Key = key,
-            Url = _storageService.ResolvePublicUrl(key)
-        });
-    }
-
-    // Ön yüz dosyayı seçerken tür ve boyutu önceden kontrol eder.
     [AllowAnonymous]
     [HttpGet("policy")]
-    public ActionResult<MediaPolicyResponse> GetPolicy() => Ok(new MediaPolicyResponse
-    {
-        MaxSizeBytes = _storageService.MaxUploadSizeBytes,
-        AllowedContentTypes = [.. MediaPolicy.AllowedContentTypes]
-    });
-}
-
-public sealed class UploadUrlRequest
-{
-    public string ContentType { get; set; } = string.Empty;
-    public long SizeBytes { get; set; }
-}
-
-public sealed class CommitUploadRequest
-{
-    public string Key { get; set; } = string.Empty;
-}
-
-public sealed class CommitUploadResponse
-{
-    // Etkinliğin afiş alanına yazılacak değer; Url yalnızca önizleme için.
-    public string Key { get; set; } = string.Empty;
-    public string? Url { get; set; }
-}
-
-public sealed class MediaPolicyResponse
-{
-    public long MaxSizeBytes { get; set; }
-    public List<string> AllowedContentTypes { get; set; } = [];
+    public async Task<ActionResult<GetMediaPolicyResponse>> GetPolicy(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetMediaPolicyQuery(), cancellationToken));
 }

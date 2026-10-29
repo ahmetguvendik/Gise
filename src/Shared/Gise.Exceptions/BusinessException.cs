@@ -88,11 +88,6 @@ public class BusinessException : AppException
         "Görselin çözünürlüğü çok yüksek.",
         $"En fazla {maxMegapixels} megapiksel olabilir.");
 
-    public static BusinessException MediaInvalidKey() => new(
-        ErrorCodes.Media.InvalidKey,
-        "Geçersiz yükleme anahtarı.",
-        "Anahtar, yükleme adresiyle birlikte verilen geçici anahtar olmalı.");
-
     public static BusinessException MediaNotFound() => new(
         ErrorCodes.Media.NotFound,
         "Yüklenen dosya bulunamadı.",
