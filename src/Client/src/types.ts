@@ -134,10 +134,11 @@ export interface SeatMapSeat {
 }
 
 /**
- * Pending: koltuklar tutuluyor; AwaitingPayment: koltuklar ayrıldı, ödeme bekleniyor;
+ * Pending: koltuklar tutuluyor; AwaitingPayment: koltuklar ayrıldı, ödeme bekleniyor (son deneme reddedildiyse sebep
+ * failureReason'da); PaymentProcessing: ödeme ve koltuk satışı sürüyor; Completed: ödendi, koltuklar satıldı;
  * Cancelled ve Expired kapanmış siparişlerdir (sebep failureReason'da).
  */
-export type OrderStatus = 'Pending' | 'AwaitingPayment' | 'Completed' | 'Cancelled' | 'Expired'
+export type OrderStatus = 'Pending' | 'AwaitingPayment' | 'PaymentProcessing' | 'Completed' | 'Cancelled' | 'Expired'
 
 export interface OrderItem {
   seatId: string
@@ -163,6 +164,8 @@ export interface OrderDetail extends OrderEvent {
   /** Ödeme bu zamana kadar gelmezse sipariş düşer. */
   expiresAt: string
   failureReason: string | null
+  /** Son ödeme denemesi: "Öde"nin sonucu bununla tanınır. */
+  lastPaymentId: string | null
   createdAt: string
   items: OrderItem[]
 }
@@ -179,6 +182,20 @@ export interface OrderSummary extends OrderEvent {
 export interface CreatedOrder {
   orderId: string
   status: OrderStatus
+}
+
+/** Kart yalnızca Order'da doğrulanır; Payment'a son dört hanesi gider. */
+export interface PaymentRequest {
+  /** Boşluksuz 16 hane. */
+  cardNumber: string
+  expiryMonth: number
+  /** Dört haneli yıl. */
+  expiryYear: number
+  cvc: string
+}
+
+export interface PaymentAccepted {
+  paymentId: string
 }
 
 /** Yükleme izni: dosya bu adrese doğrudan PUT edilir. */

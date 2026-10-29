@@ -118,6 +118,16 @@ public class BusinessException : AppException
         "Bu siparişten şu an vazgeçilemez.",
         $"'{orderId}' ID'li siparişin koltukları henüz tutulmadı ya da sipariş kapandı.");
 
+    public static BusinessException OrderNotPayable(Guid orderId) => new(
+        ErrorCodes.Order.NotPayable,
+        "Bu sipariş şu an ödenemez.",
+        $"'{orderId}' ID'li siparişin koltukları henüz tutulmadı, ödemesi sürüyor ya da sipariş kapandı.");
+
+    public static BusinessException HoldNotActive(Guid orderId) => new(
+        ErrorCodes.Hold.NotActive,
+        "Koltukların tutulması sona erdiği için satış tamamlanamadı.",
+        $"'{orderId}' ID'li siparişin koltukları bırakılmış (süre doldu ya da etkinlik iptal edildi).");
+
     public static BusinessException HoldOrderClosed(Guid orderId) => new(
         ErrorCodes.Hold.OrderClosed,
         "Sipariş kapandığı için koltuklar tutulmadı.",

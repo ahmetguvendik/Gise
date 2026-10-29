@@ -21,8 +21,11 @@ public class Order : BaseEntity
     // Ödeme bu zamana kadar gelmezse sipariş düşer; koltuklar tutulunca tutmanın bitişine eşitlenir.
     public DateTime ExpiresAt { get; set; }
 
-    // İptal ya da zaman aşımında müşteriye gösterilen sebep.
+    // İptal ya da zaman aşımında müşteriye gösterilen sebep; ödeme beklenirken son denemenin reddedilme sebebi.
     public string? FailureReason { get; set; }
+
+    // Son ödeme denemesi; ön yüz "Öde"nin sonucunu (reddedildi mi) bununla tanır.
+    public Guid? LastPaymentId { get; set; }
 
     public ICollection<OrderItem> Items { get; set; } = [];
 }

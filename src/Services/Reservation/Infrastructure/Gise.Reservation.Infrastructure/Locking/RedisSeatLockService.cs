@@ -22,6 +22,17 @@ public sealed class RedisSeatLockService : ISeatLockService
         end
         return 0";
 
+    // Satıştan önce: yalnızca koltuk anahtarlarına bakılır. Boş ya da bu siparişte olanlar yeniden bu sipariş adına yazılır.
+    private const string ClaimScript = @"
+        for i = 1, #KEYS do
+            local holder = redis.call('GET', KEYS[i])
+            if holder and holder ~= ARGV[1] then return 1 end
+        end
+        for i = 1, #KEYS do
+            redis.call('SET', KEYS[i], ARGV[1], 'PX', ARGV[2])
+        end
+        return 0";
+
     // Yalnızca değeri bu siparişin ID'si olan anahtarlar silinir: süre dolup başkası tutmuşsa onun kilidi kalır.
     private const string ReleaseScript = @"
         for i = 1, #KEYS do
@@ -50,6 +61,12 @@ public sealed class RedisSeatLockService : ISeatLockService
             _ => SeatLockResult.SeatTaken
         };
     }
+
+    public async Task<bool> TryClaimAsync(Guid eventId, IReadOnlyCollection<Guid> seatIds, Guid orderId, TimeSpan duration)
+        => (int)await _redis.GetDatabase().ScriptEvaluateAsync(
+            ClaimScript,
+            seatIds.Select(seatId => SeatKey(eventId, seatId)).ToArray(),
+            [orderId.ToString(), (long)duration.TotalMilliseconds]) == 0;
 
     public Task ReleaseAsync(Guid eventId, string customerId, IReadOnlyCollection<Guid> seatIds, Guid orderId)
         => _redis.GetDatabase().ScriptEvaluateAsync(

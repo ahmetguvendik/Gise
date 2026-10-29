@@ -28,6 +28,11 @@ namespace Gise.Order.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("correlation_id");
 
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("amount");
+
                     b.Property<string>("CurrentState")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -47,6 +52,10 @@ namespace Gise.Order.Persistence.Migrations
                     b.Property<Guid?>("ExpiryTokenId")
                         .HasColumnType("uuid")
                         .HasColumnName("expiry_token_id");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
 
                     b.HasKey("CorrelationId")
                         .HasName("pk_order_sagas");
@@ -98,6 +107,10 @@ namespace Gise.Order.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("failure_reason");
+
+                    b.Property<Guid?>("LastPaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_payment_id");
 
                     b.Property<string>("Status")
                         .IsRequired()

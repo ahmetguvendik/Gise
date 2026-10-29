@@ -49,6 +49,18 @@ public sealed class OrdersController : ControllerBase
             IsAdmin = User.IsInRole(Roles.Admin)
         }, cancellationToken));
 
+    // 202: ödeme isteği alındı; ödeme arkada yapılır, sonucu GET {id} gösterir.
+    [HttpPost("{id:guid}/pay")]
+    public async Task<ActionResult<PayOrderResponse>> Pay(Guid id, [FromBody] PayOrderCommand command, CancellationToken cancellationToken)
+    {
+        command.OrderId = id;
+        command.CustomerId = User.FindFirst("sub")?.Value
+            ?? throw UnauthorizedException.MissingClaim("sub");
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return AcceptedAtAction(nameof(GetById), new { id }, result);
+    }
+
     // 202: vazgeçme isteği alındı; koltuklar arkada bırakılır, sipariş iptal olur.
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)

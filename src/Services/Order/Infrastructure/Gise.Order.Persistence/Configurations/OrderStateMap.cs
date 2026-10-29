@@ -13,5 +13,6 @@ public sealed class OrderStateMap : SagaClassMap<OrderState>
         entity.ToTable("order_sagas");
         entity.Property(x => x.CurrentState).HasMaxLength(64).IsRequired();
         entity.Property(x => x.CustomerId).HasMaxLength(64).IsRequired();
+        entity.Property(x => x.Amount).HasPrecision(10, 2);
     }
 }

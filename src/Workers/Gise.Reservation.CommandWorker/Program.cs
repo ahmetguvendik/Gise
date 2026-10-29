@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Tüketiciler MediatR komutlarını (HoldSeatsCommand, ReleaseHoldCommand) çağırır. Tabloları reservation-api'nin
+// Tüketiciler MediatR komutlarını (HoldSeatsCommand, ReleaseHoldCommand, ConfirmHoldCommand) çağırır. Tabloları reservation-api'nin
 // migration'ları kurar; worker migration çalıştırmaz.
 builder.Services.AddApplicationServices();
 builder.Services.AddPersistenceServices(builder.Configuration);
@@ -25,6 +25,7 @@ builder.Services.AddMassTransit(x =>
 
     x.AddConsumer<ReserveSeatsConsumer>().Endpoint(e => e.Name = Queues.ReserveSeats);
     x.AddConsumer<ReleaseSeatsConsumer>().Endpoint(e => e.Name = Queues.ReleaseSeats);
+    x.AddConsumer<ConfirmSeatsConsumer>().Endpoint(e => e.Name = Queues.ConfirmSeats);
 
     x.AddConfigureEndpointsCallback((context, _, endpoint) =>
     {

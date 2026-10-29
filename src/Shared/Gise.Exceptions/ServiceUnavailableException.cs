@@ -12,4 +12,9 @@ public class ServiceUnavailableException : AppException
         ErrorCodes.General.ServiceUnavailable,
         "Şu an sipariş alınamıyor; biraz sonra tekrar deneyin.",
         "Etkinlik bilgisi Catalog'dan alınamadı.");
+
+    public static ServiceUnavailableException PaymentProvider() => new(
+        ErrorCodes.General.ServiceUnavailable,
+        "Ödeme sağlayıcısına şu an ulaşılamıyor.",
+        "Sağlayıcı geçici bir hata verdi; ödeme yeniden denenecek.");
 }

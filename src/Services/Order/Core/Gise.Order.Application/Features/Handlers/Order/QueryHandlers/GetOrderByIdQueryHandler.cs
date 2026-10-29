@@ -35,6 +35,7 @@ public sealed class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery
             TotalAmount = order.TotalAmount,
             ExpiresAt = order.ExpiresAt,
             FailureReason = order.FailureReason,
+            LastPaymentId = order.LastPaymentId,
             CreatedAt = order.CreatedAt,
             Items = order.Items
                 .OrderBy(i => i.SectionName)

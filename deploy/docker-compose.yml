@@ -370,6 +370,30 @@ services:
       postgres:
         condition: service_healthy
 
+  # Saga'nın ödeme komutları (ProcessPayment, RefundPayment); test sağlayıcısıyla para çeker ve iade eder.
+  payment-command-worker:
+    image: gise/payment-command-worker:dev
+    build:
+      context: ..
+      dockerfile: src/Workers/Gise.Payment.CommandWorker/Dockerfile
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Payment: Host=postgres;Database=gise_payment;Username=gise;Password=${POSTGRES_PASSWORD}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      # RabbitMQ bağlantısı kopuksa ready kontrolü düşer.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      # Ödeme ve MassTransit tablolarını payment-api'nin migration'ları kurar.
+      payment-api:
+        condition: service_healthy
+
   ticket-api:
     image: gise/ticket-api:dev
     build:

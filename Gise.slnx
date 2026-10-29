@@ -8,6 +8,7 @@
   <Folder Name="/src/Workers/">
     <Project Path="src/Workers/Gise.Catalog.OutboxWorker/Gise.Catalog.OutboxWorker.csproj" />
     <Project Path="src/Workers/Gise.Order.SagaWorker/Gise.Order.SagaWorker.csproj" />
+    <Project Path="src/Workers/Gise.Payment.CommandWorker/Gise.Payment.CommandWorker.csproj" />
     <Project Path="src/Workers/Gise.Reservation.CommandWorker/Gise.Reservation.CommandWorker.csproj" />
     <Project Path="src/Workers/Gise.Reservation.InboxWorker/Gise.Reservation.InboxWorker.csproj" />
   </Folder>

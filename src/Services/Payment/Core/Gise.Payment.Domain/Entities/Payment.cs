@@ -3,9 +3,11 @@ using Gise.Payment.Domain.Enums;
 
 namespace Gise.Payment.Domain.Entities;
 
+// Bir ödeme denemesi. Id, Order'ın denemeye verdiği kimlik (ProcessPayment.PaymentId): aynı komut iki kez gelse de para
+// bir kez çekilir. Kart reddedilirse müşteri süre dolana kadar yeniden dener; sipariş başına birden çok deneme olur,
+// parası çekilen en fazla bir tane (tekil indeks).
 public class Payment : BaseEntity
 {
-    // Sipariş başına tek ödeme (tekil indeks): ProcessPayment iki kez gelse de para iki kez çekilmez.
     public Guid OrderId { get; set; }
     public decimal Amount { get; set; }
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;

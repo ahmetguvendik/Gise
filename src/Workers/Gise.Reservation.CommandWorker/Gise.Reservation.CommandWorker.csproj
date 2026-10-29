@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-  <!-- Ayrı process: Order saga'sının RabbitMQ komutları (ReserveSeats, ReleaseSeats). Koltukları Redis'te tutar ve bırakır,
-       cevabı outbox'tan gönderir. Web host yalnızca sağlık ucu için. -->
+  <!-- Ayrı process: Order saga'sının RabbitMQ komutları (ReserveSeats, ReleaseSeats, ConfirmSeats). Koltukları Redis'te
+       tutar, bırakır ve satar; cevabı outbox'tan gönderir. Web host yalnızca sağlık ucu için. -->
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
     <ProjectReference Include="..\..\Services\Reservation\Core\Gise.Reservation.Application\Gise.Reservation.Application.csproj" />

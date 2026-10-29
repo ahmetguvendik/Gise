@@ -5,11 +5,19 @@ import { ApiError, toApiError } from '../api/http'
 import { ordersApi } from '../api/orders'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { OrderStatusBadge } from '../components/OrderStatusBadge'
+import { PaymentForm } from '../components/PaymentForm'
 import { formatDate, formatLongDate, formatPrice, formatTime } from '../lib/format'
-import type { OrderDetail } from '../types'
+import type { OrderDetail, OrderStatus, PaymentRequest } from '../types'
 
 // Koltuklar genelde 1–2 saniyede tutulur; o sırada sipariş sık yoklanır.
 const PENDING_POLL_MS = 1000
+// Ödeme genelde birkaç saniyede sonuçlanır; sağlayıcı cevap vermezse süre dolana kadar sürer.
+const PAYMENT_POLL_MS = 2000
+
+// Saga denemeyi bu sürede işlemezse (ör. iki sekmeden aynı anda ödendi, ikincisi yok sayıldı) bekleme bırakılır.
+const SAGA_WAIT_MS = 20000
+
+const CLOSED: OrderStatus[] = ['Completed', 'Cancelled', 'Expired']
 
 function formatRemaining(ms: number) {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
@@ -29,6 +37,8 @@ export function OrderPage() {
   const [now, setNow] = useState(() => Date.now())
   const [cancelling, setCancelling] = useState(false)
   const [actionError, setActionError] = useState<ApiError | null>(null)
+  // Gönderilen ödeme denemesi; saga onu işleyene kadar sipariş "ödeme işleniyor" gösterilir.
+  const [paying, setPaying] = useState<{ paymentId: string; since: number } | null>(null)
 
   useEffect(() => {
     let ignore = false
@@ -49,16 +59,31 @@ export function OrderPage() {
 
   const status = order?.status
 
-  // Koltuklar tutulurken ya da vazgeçme işlenirken sonucu beklemek için yoklanır.
+  // Gönderilen deneme saga'ya henüz ulaşmadı: sipariş başka bir denemeyi (ya da hiçbirini) gösteriyor ve açık.
+  // Sonuçlanınca (reddedildiyse sipariş yeniden "ödeme bekleniyor", sipariş bu denemeyi gösterir) bekleme biter.
+  const awaitingSaga =
+    paying !== null &&
+    order !== null &&
+    order.lastPaymentId !== paying.paymentId &&
+    !CLOSED.includes(order.status) &&
+    now - paying.since < SAGA_WAIT_MS
+  const processing = status === 'PaymentProcessing' || awaitingSaga
+
+  // Koltuklar tutulurken, ödeme ya da vazgeçme işlenirken sonucu beklemek için yoklanır.
   useEffect(() => {
-    if (status !== 'Pending' && !cancelling) return
-    const timer = window.setTimeout(() => setVersion((v) => v + 1), PENDING_POLL_MS)
+    const delay = status === 'Pending' || cancelling || awaitingSaga
+      ? PENDING_POLL_MS
+      : status === 'PaymentProcessing'
+        ? PAYMENT_POLL_MS
+        : null
+    if (delay === null) return
+    const timer = window.setTimeout(() => setVersion((v) => v + 1), delay)
     return () => window.clearTimeout(timer)
-  }, [status, cancelling, version])
+  }, [status, cancelling, awaitingSaga, version])
 
   // Geri sayım; süre dolunca sipariş yeniden okunur (saga onu "Süresi doldu" yapar).
   useEffect(() => {
-    if (status !== 'AwaitingPayment') return
+    if (status !== 'AwaitingPayment' && status !== 'PaymentProcessing') return
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [status])
@@ -107,6 +132,14 @@ export function OrderPage() {
     }
   }
 
+  const pay = async (card: PaymentRequest) => {
+    const accepted = await ordersApi.pay(order.id, card, token)
+    setActionError(null)
+    setPaying({ paymentId: accepted.paymentId, since: Date.now() })
+    setVersion((v) => v + 1)
+  }
+
+  const awaiting = order.status === 'AwaitingPayment' && !processing
   const closed = order.status === 'Cancelled' || order.status === 'Expired'
 
   return (
@@ -134,7 +167,14 @@ export function OrderPage() {
         </div>
       )}
 
-      {order.status === 'AwaitingPayment' && (
+      {awaiting && order.failureReason && (
+        <div className="alert" role="alert">
+          <strong>Ödeme alınamadı</strong>
+          <div>{order.failureReason} Süre dolmadan başka bir kartla yeniden deneyebilirsiniz.</div>
+        </div>
+      )}
+
+      {awaiting && (
         <div className="order-status order-status--awaiting" role="status">
           <strong className="order-status__title">Koltuklarınız sizin için ayrıldı</strong>
           <span>Ödeme için kalan süre</span>
@@ -142,6 +182,23 @@ export function OrderPage() {
             {formatRemaining(remainingMs)}
           </span>
           <span>Süre dolarsa koltuklar başkalarına açılır.</span>
+        </div>
+      )}
+
+      {processing && (
+        <div className="order-status order-status--pending" role="status">
+          <strong className="order-status__title">Ödemeniz işleniyor…</strong>
+          <span>Bu genelde birkaç saniye sürer; sayfa kendiliğinden güncellenir.</span>
+          <span>
+            Kalan süre {formatRemaining(remainingMs)}. Süre dolarsa sipariş kapanır, çekilen bir tutar varsa iade edilir.
+          </span>
+        </div>
+      )}
+
+      {order.status === 'Completed' && (
+        <div className="order-status order-status--done" role="status">
+          <strong className="order-status__title">Siparişiniz tamamlandı</strong>
+          <span>Ödemeniz alındı, koltuklar sizin.</span>
         </div>
       )}
 
@@ -179,17 +236,17 @@ export function OrderPage() {
         </section>
       )}
 
-      {order.status === 'AwaitingPayment' && (
-        <div className="order-actions">
-          {/* Payment yazılınca etkinleşir. */}
-          <button type="button" className="button button--lg" disabled title="Ödeme adımı yakında eklenecek">
-            Öde
-          </button>
-          <button type="button" className="button button--danger-outline" onClick={() => void cancel()} disabled={cancelling}>
-            {cancelling ? 'Vazgeçiliyor…' : 'Siparişten vazgeç'}
-          </button>
-          <span className="muted">Ödeme adımı yakında eklenecek.</span>
-        </div>
+      {awaiting && (
+        <>
+          <section className="card">
+            <PaymentForm amount={order.totalAmount} onSubmit={pay} />
+          </section>
+          <div className="order-actions">
+            <button type="button" className="button button--danger-outline" onClick={() => void cancel()} disabled={cancelling}>
+              {cancelling ? 'Vazgeçiliyor…' : 'Siparişten vazgeç'}
+            </button>
+          </div>
+        </>
       )}
 
       <p className="muted">Sipariş tarihi: {formatDate(order.createdAt)}</p>

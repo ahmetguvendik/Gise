@@ -23,6 +23,11 @@ public sealed class EventStockRepository : IEventStockRepository
             .Where(s => s.EventId == eventId && seatIds.Contains(s.SeatId))
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<EventSeat>> GetSeatsForUpdateAsync(Guid eventId, IReadOnlyCollection<Guid> seatIds, CancellationToken cancellationToken)
+        => await _context.EventSeats
+            .Where(s => s.EventId == eventId && seatIds.Contains(s.SeatId))
+            .ToListAsync(cancellationToken);
+
     public Task<EventStock?> GetWithSeatsAsync(Guid eventId, CancellationToken cancellationToken)
         => _context.EventStocks
             .AsNoTracking()

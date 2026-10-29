@@ -10,6 +10,9 @@ public interface IEventStockRepository
     // Etkinliğin istenen koltukları; etkinlikte olmayan ID'ler sonuçta yer almaz.
     Task<IReadOnlyList<EventSeat>> GetSeatsAsync(Guid eventId, IReadOnlyCollection<Guid> seatIds, CancellationToken cancellationToken);
 
+    // GetSeatsAsync gibi; değişiklikler izlenir.
+    Task<IReadOnlyList<EventSeat>> GetSeatsForUpdateAsync(Guid eventId, IReadOnlyCollection<Guid> seatIds, CancellationToken cancellationToken);
+
     // Koltuklarıyla birlikte, salt okunur.
     Task<EventStock?> GetWithSeatsAsync(Guid eventId, CancellationToken cancellationToken);
 }

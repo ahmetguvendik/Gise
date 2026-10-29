@@ -14,6 +14,12 @@ public sealed class OrderState : SagaStateMachineInstance
     public Guid EventId { get; set; }
     public string CustomerId { get; set; } = string.Empty;
 
+    // Koltuklar tutulunca Reservation'ın bildirdiği toplam; Payment'a bu tutar gider.
+    public decimal Amount { get; set; }
+
+    // Süren ödeme denemesi.
+    public Guid? PaymentId { get; set; }
+
     // Planlanan zaman aşımı mesajı; yeniden planlanınca ya da sipariş kapanınca iptal edilir.
     public Guid? ExpiryTokenId { get; set; }
 }

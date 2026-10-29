@@ -9,11 +9,12 @@ public sealed class GetOrderByIdResponse
     public string VenueName { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
 
-    // Pending (koltuklar tutuluyor), AwaitingPayment, Completed, Cancelled, Expired.
+    // Pending (koltuklar tutuluyor), AwaitingPayment, PaymentProcessing, Completed, Cancelled, Expired.
     public string Status { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
     public DateTime ExpiresAt { get; set; }
     public string? FailureReason { get; set; }
+    public Guid? LastPaymentId { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<OrderItemResponse> Items { get; set; } = [];
 }

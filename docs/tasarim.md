@@ -84,8 +84,9 @@ Desen bu projede **bilerek iki farklı şekilde** kullanılır:
 |---|---|---|
 | Catalog | `catalog-outbox-worker` | Kafka outbox'ını gönderir |
 | Reservation | `reservation-inbox-worker` | Kafka'dan okur, inbox'a yazar ve işler (koltuk stoğu) |
-| Reservation | `reservation-command-worker` | RabbitMQ: `ReserveSeats`, `ReleaseSeats` |
+| Reservation | `reservation-command-worker` | RabbitMQ: `ReserveSeats`, `ReleaseSeats`, `ConfirmSeats` |
 | Order | `order-saga-worker` | Satın alma saga'sı, zaman aşımları (Quartz), Order outbox'ının gönderimi |
+| Payment | `payment-command-worker` | RabbitMQ: `ProcessPayment`, `RefundPayment` (test sağlayıcısı) |
 
 Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 
@@ -98,7 +99,7 @@ Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 | **Catalog** | Etkinlik, mekân, salon/koltuk planı, fiyat kategorisi, afiş | PostgreSQL + MinIO (afişler) | REST (okuma herkese; taslak organizatöre, yayın ve iptal admin'e), gRPC (koltuk ve fiyat) | Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` | — |
 | **Reservation** | Koltuk tutma (10 dk), kesinleştirme, bırakma; çift satışı önleme | PostgreSQL + Redis | REST (koltuk durumu) | RabbitMQ: `SeatsReserved`, `SeatReservationFailed`; Kafka: `SeatStatusChanged` | RabbitMQ: `ReserveSeats`, `ConfirmSeats`, `ReleaseSeats`; Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` |
 | **Order** | Satın alma saga'sı (orkestratör) | PostgreSQL (saga durumu) | REST (sipariş oluştur/sorgula) | RabbitMQ: komutlar; Kafka: `OrderCompleted`, `OrderCancelled` | RabbitMQ: komut cevapları; Kafka: `EventCancelled`, `EventUpdated` |
-| **Payment** | Sahte ödeme sağlayıcısı; iade | PostgreSQL | — | RabbitMQ: `PaymentSucceeded`, `PaymentFailed`, `PaymentRefunded` | RabbitMQ: `ProcessPayment`, `RefundPayment` |
+| **Payment** | Sahte ödeme sağlayıcısı; iade | PostgreSQL | — | RabbitMQ: `PaymentSucceeded`, `PaymentFailed` (iadenin cevabı beklenmez) | RabbitMQ: `ProcessPayment`, `RefundPayment` |
 | **Ticket** | QR'lı PDF bilet üretimi; kapıda okutma | PostgreSQL + MinIO | REST (biletlerim, kapı okutma) | RabbitMQ: `TicketsIssued`, `TicketIssueFailed`; Kafka: `TicketsIssued`, `TicketCheckedIn` | RabbitMQ: `IssueTickets`; Kafka: `EventCancelled` |
 | **Notification** | E-posta / SMS | PostgreSQL (inbox) | — | — | Kafka: `TicketsIssued`, `OrderCancelled`, `EventCancelled`, `EventUpdated` |
 | **Search** | Türkçe tam metin arama, otomatik tamamlama | Elasticsearch | REST | — | Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` |
@@ -142,7 +143,9 @@ Payment servisi gerçek bir sağlayıcıya bağlanmaz. Sonuç, kart numarasını
 | `0005` | Zaman aşımı: yanıt hiç gelmez, saga'nın zaman aşımı devreye girer |
 | `0009` | İlk deneme hata verir, yeniden denemede başarılı olur |
 
-İade (`RefundPayment`) her zaman başarılıdır; telafi yolunun kendisini test etmek için ayrıca bir "iade başarısız" kartı eklenebilir.
+Diğer sonlar başarılı sayılır. İade (`RefundPayment`) her zaman başarılıdır; telafi yolunun kendisini test etmek için ayrıca bir "iade başarısız" kartı eklenebilir.
+
+`0009`'un "ilk deneme" bilgisi worker'ın belleğinde tutulur; yeniden deneme aynı process'te yapıldığı için (MassTransit retry, 1 sn sonra) yeterli.
 
 ### 3.3 Catalog: fiyatlar
 
@@ -290,7 +293,7 @@ sequenceDiagram
     U->>O: Sipariş oluştur (etkinlik, koltuklar)
     O->>R: ReserveSeats
     R-->>O: SeatsReserved (10 dk geçerli)
-    O->>P: ProcessPayment (idempotency key = OrderId)
+    O->>P: ProcessPayment (idempotency key = PaymentId, her deneme ayrı)
     P-->>O: PaymentSucceeded
     O->>R: ConfirmSeats
     O->>T: IssueTickets
@@ -331,7 +334,7 @@ stateDiagram-v2
 
 ### 4.3 Uygulama (Order + Reservation)
 
-Saga'nın koltuk tutma kısmı yazıldı; ödeme (Payment) ve bilet (Ticket) adımları sonra eklenecek.
+Saga'nın koltuk tutma kısmı. Ödeme adımı 4.5'te; bilet (Ticket) adımı sonra eklenecek.
 
 - **MassTransit 8.5.x** (Apache-2.0). Saga durum makinesi `OrderStateMachine` (`Gise.Order.Application/Sagas`), `order-saga-worker`'da çalışır; durumu `order_sagas` tablosunda (sonraki adımların ihtiyaç duyduğu etkinlik ve müşteri bilgisiyle). order-api yalnızca sipariş açıp outbox'a yazar. Müşterinin gördüğü sipariş (`orders`) her adımda saga ile aynı transaction'da güncellenir.
 - **Uçlar** (giriş yapmış müşteri; gateway'de `/api/orders`):
@@ -354,7 +357,7 @@ Saga'nın koltuk tutma kısmı yazıldı; ödeme (Payment) ve bilet (Ticket) ad�
 - **Ayarlar:** `OrderRules` (ödeme süresi 10 dk, siparişte en fazla 10 koltuk), `RabbitMq`, `Catalog` (gRPC adresi).
 - **Ön yüz:**
   - Yayındaki etkinliğin sayfasında koltuk haritası: bölüm ve sıralar, boş, seçili ve dolu koltuklar. En fazla 10 koltuk seçilir; seçim yapıldıkça altta toplam ve "Satın al" görünür. Giriş yapılmamışsa önce girişe gider.
-  - Sipariş sayfası (`/siparis/:id`): koltuklar tutulurken saniyede bir yoklar; "ödeme bekleniyor"da geri sayım, koltuklar ve toplam, "Siparişten vazgeç". Kapanan siparişte sebebi ve koltuk seçimine dönüş. "Öde" Payment ile gelecek.
+  - Sipariş sayfası (`/siparis/:id`): koltuklar tutulurken saniyede bir yoklar; "ödeme bekleniyor"da geri sayım, koltuklar ve toplam, kart formu (4.5), "Siparişten vazgeç". Kapanan siparişte sebebi ve koltuk seçimine dönüş.
   - Siparişlerim (`/siparislerim`): en yenisi önce, etkinlik, durum, toplam.
 - **Denendi:** başarılı sipariş, dolu koltuk, aynı etkinlikte ikinci sipariş, yetki, vazgeçme, ödeme süresinin dolması ve Reservation kapalıyken siparişin askıda kalmaması (süreler test için 1 dakikaya indirilerek).
 
@@ -381,6 +384,35 @@ Catalog `EventCancelled` ve `EventUpdated` olaylarını Kafka'ya gönderir (bkz.
 
 **Fiyat değişikliği:** yalnızca bundan sonraki satışları etkiler; satılmış biletlere fark iadesi ya da ek ücret yoktur.
 
+### 4.5 Ödeme adımı (Order + Payment + Reservation)
+
+```mermaid
+stateDiagram-v2
+    [*] --> SeatsPending: OrderSubmitted
+    SeatsPending --> PaymentPending: SeatsReserved
+    PaymentPending --> PaymentProcessing: Öde / ProcessPayment
+    PaymentProcessing --> PaymentPending: PaymentFailed (kart reddedildi)
+    PaymentProcessing --> SeatsConfirming: PaymentSucceeded / ConfirmSeats
+    PaymentProcessing --> Expired: süre doldu / RefundPayment + ReleaseSeats
+    SeatsConfirming --> Completed: SeatsConfirmed
+    SeatsConfirming --> Cancelled: SeatConfirmationFailed / RefundPayment + ReleaseSeats
+```
+
+- **Uç:** `POST /api/orders/{id}/pay` (yalnızca siparişin sahibi) → 202 ve denemenin kimliği (`paymentId`). Gövde: kart numarası (16 hane), son kullanma ayı ve yılı, güvenlik kodu (3 hane). Kart order-api'de yalnızca doğrulanır, hiçbir yere yazılmaz; saga'ya ve Payment'a **son dört hanesi** gider. Sipariş `AwaitingPayment` değilse ya da süresi geçtiyse 422 `ORDER_NOT_PAYABLE`.
+- **Akış:**
+  - order-api `OrderPaymentRequested` mesajını outbox'a yazar; saga siparişi `PaymentProcessing` yapar, denemeyi siparişe (`last_payment_id`) ve saga'ya yazar, `ProcessPayment` komutunu (`PaymentId`, tutar, son dört hane) `process-payment` kuyruğuna gönderir. Tutar, koltuklar tutulurken Reservation'ın bildirdiği toplamdır (saga'da `amount`).
+  - **Reddedilirse** (`PaymentFailed`) sipariş sebebiyle yeniden `AwaitingPayment` olur; müşteri süre dolana kadar başka kartla dener. Ödeme sürerken vazgeçme ve ikinci "Öde" yok sayılır.
+  - **Para alınırsa** (`PaymentSucceeded`) zaman aşımı iptal edilir, `ConfirmSeats` gönderilir. Reservation koltukları satar (`Sold`), tutmayı `Confirmed` yapar ve Redis kilitlerini kaldırır; `SeatsConfirmed` gelince sipariş `Completed`.
+  - **Koltuklar satılamazsa** (`SeatConfirmationFailed`: tutma bırakılmış, koltuk başka siparişe satılmış) para iade edilir, koltuklar bırakılır, sipariş sebebiyle `Cancelled`.
+  - **Süre ödeme sürerken dolarsa** (sağlayıcı cevap vermedi, test kartı `0005`, ya da Payment kapalı) sipariş `Expired` olur; `RefundPayment` ve `ReleaseSeats` gönderilir.
+- **Payment:**
+  - `payments` her denemenin satırıdır; `id` = `PaymentId`. Aynı komut iki kez gelirse sağlayıcıya yeniden gidilmez, ilk sonuç döner. Bir siparişin parası en fazla bir kez çekilir: `order_id` üzerinde, yalnızca `Succeeded` ve `Refunded` satırları kapsayan tekil indeks.
+  - `order_payments` sipariş başına tek satırdır (`id` = siparişin ID'si): hangi denemeyle ödendiği (`paid_payment_id`) ve siparişin kapanıp kapanmadığı (`closed_at`). Para çekilince ve `RefundPayment` gelince bu satır yazılır; ikisi aynı anda işlenirse biri çakışma alıp yeniden denenir, diğerinin sonucunu görür. Böylece sipariş kapandıktan sonra para çekilmez (deneme `Cancelled`), çekilen para da iadesiz kalmaz.
+  - `RefundPayment`: siparişi kapatır, çekilmiş parayı iade eder (`Refunded`), cevabı gelmemiş denemeyi iptal eder. Cevap gönderilmez. Saga kapandıktan sonra gelen `PaymentSucceeded` yok sayılır; o paranın iadesini kapanış kaydı sağlar.
+  - Test sağlayıcısı gerçek bir dış çağrı yapmadığı için "para çekildi" bilgisi veritabanı kaydıyla aynı transaction'dadır. Gerçek sağlayıcıda deneme önce kaydedilir, sonra sağlayıcıya `PaymentId` idempotency anahtarıyla gidilir ve cevapsız kalan deneme sağlayıcıya sorulur.
+- **Reservation (`ConfirmSeats`):** tutma `Active` olmalı (değilse `HOLD_NOT_ACTIVE`) ve koltuklar satılmamış olmalı. Ödeme süre dolmadan alınmış ama komut süre dolduktan sonra gelmiş olabilir: kilit bu siparişteyse ya da süresi dolup kimse almadıysa satılır, koltuğu bu arada başka bir sipariş tuttuysa o kazanır (`HOLD_SEATS_UNAVAILABLE`). Aynı koltuğu aynı anda satan ikinci işlem koltuğun sürümünde (xmin) çakışma alır.
+- **Ön yüz:** "ödeme bekleniyor"da kart formu ve test kartları (son dört hane `0000`, `0002`, `0005`, `0009`), formda "gerçek kart girmeyin" uyarısı. "Öde"den sonra "ödeme işleniyor" gösterilir; sayfa sipariş bu denemeyi (`lastPaymentId`) gösterene ya da sipariş kapanana kadar yoklar. Reddedilirse sebep ve form yeniden görünür. Tamamlanan siparişte "Siparişiniz tamamlandı".
+
 ---
 
 ## 5. Koltuk tutma ve çift satışı önleme
@@ -395,7 +427,7 @@ Catalog `EventCancelled` ve `EventUpdated` olaylarını Kafka'ya gönderir (bkz.
 
 ### 5.1 Uygulama
 
-- Koltukları müşteri doğrudan tutmaz; sipariş tutar (bkz. 4.3). Reservation'ın RabbitMQ tüketicileri (`ReserveSeatsConsumer`, `ReleaseSeatsConsumer`, `reservation-command-worker`'da) MediatR komutlarını (`HoldSeatsCommand`, `ReleaseHoldCommand`) çağırır. Her tutma bir siparişe aittir (`order_id` zorunlu ve benzersiz); müşteri `customer_id`. Koltuklar tutulmadan "bırak" gelirse koltuksuz bir `Released` kaydı, siparişin etkinliği ve müşterisiyle yazılır.
+- Koltukları müşteri doğrudan tutmaz; sipariş tutar (bkz. 4.3). Reservation'ın RabbitMQ tüketicileri (`ReserveSeatsConsumer`, `ReleaseSeatsConsumer`, `ConfirmSeatsConsumer`, `reservation-command-worker`'da) MediatR komutlarını (`HoldSeatsCommand`, `ReleaseHoldCommand`, `ConfirmHoldCommand`) çağırır. Ödeme alınınca koltuklar satılır (bkz. 4.5). Her tutma bir siparişe aittir (`order_id` zorunlu ve benzersiz); müşteri `customer_id`. Koltuklar tutulmadan "bırak" gelirse koltuksuz bir `Released` kaydı, siparişin etkinliği ve müşterisiyle yazılır.
 - **Kurallar** (`ReservationRules`, appsettings): tutma 10 dakika; bir seferde en fazla 10 koltuk; aynı koltuk iki kez seçilemez.
   - Etkinlik satışta olmalı (iptal edilmemiş, başlamamış): değilse `STOCK_NOT_ON_SALE`.
   - Koltuklar o etkinliğe ait olmalı: değilse `HOLD_SEAT_NOT_IN_EVENT`.
@@ -543,6 +575,8 @@ Kodda ve konteyner adlarında ASCII **`gise`** kullanılır; klasör adındaki `
 ## 13. Açık sorular
 
 Şu an açık soru yok.
+
+**Karara bağlananlar (2026-10-29):** Kart Order'ın "Öde" ucundan girer, yalnızca son dört hanesi yol alır. Kart reddedilirse sipariş süre dolana kadar yeniden denenebilir. Payment, payment-api (migration, sağlık) ve payment-command-worker (komutlar) olarak ayrılır. Ödeme sürerken süre dolarsa sipariş düşer, çekilen para iade edilir.
 
 **Karara bağlananlar (2026-10-28):** MassTransit 8.5.x (Apache-2.0) kullanılır; 9.x ticari lisanslı. Saga zaman aşımları için RabbitMQ'nun gecikmeli mesaj eklentisi yerine Quartz (Order veritabanında) kullanılır.
 
