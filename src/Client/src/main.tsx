@@ -9,7 +9,9 @@ import { Layout } from './components/Layout'
 import { EventDetailPage } from './pages/EventDetailPage'
 import { EventsPage } from './pages/EventsPage'
 import { MyEventsPage } from './pages/MyEventsPage'
+import { MyOrdersPage } from './pages/MyOrdersPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { OrderPage } from './pages/OrderPage'
 import { PendingEventsPage } from './pages/PendingEventsPage'
 import { VenueEditorPage } from './pages/VenueEditorPage'
 import { VenuesPage } from './pages/VenuesPage'
@@ -25,6 +27,24 @@ createRoot(document.getElementById('root')!).render(
               {/* Herkese açık; taslak detayını backend yalnızca sahibine ve admin'e verir. */}
               <Route index element={<EventsPage />} />
               <Route path="etkinlik/:id" element={<EventDetailPage />} />
+
+              {/* giriş yapmış her kullanıcı */}
+              <Route
+                path="siparislerim"
+                element={
+                  <Guard>
+                    <MyOrdersPage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="siparis/:id"
+                element={
+                  <Guard>
+                    <OrderPage />
+                  </Guard>
+                }
+              />
 
               {/* organizatör + admin */}
               <Route

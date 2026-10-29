@@ -33,6 +33,11 @@ export function Layout() {
             <NavLink to="/" end className={navClass}>
               Etkinlikler
             </NavLink>
+            {sessionReady && auth.isAuthenticated && (
+              <NavLink to="/siparislerim" className={navClass}>
+                Siparişlerim
+              </NavLink>
+            )}
             {canManageEvents(auth.user) && (
               <NavLink to="/etkinliklerim" className={navClass}>
                 Etkinliklerim

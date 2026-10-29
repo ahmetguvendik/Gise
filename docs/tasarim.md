@@ -336,6 +336,7 @@ Saga'nın koltuk tutma kısmı yazıldı; ödeme (Payment) ve bilet (Ticket) ad�
 - **MassTransit 8.5.x** (Apache-2.0). Saga durum makinesi `OrderStateMachine` (`Gise.Order.Application/Sagas`), `order-saga-worker`'da çalışır; durumu `order_sagas` tablosunda (sonraki adımların ihtiyaç duyduğu etkinlik ve müşteri bilgisiyle). order-api yalnızca sipariş açıp outbox'a yazar. Müşterinin gördüğü sipariş (`orders`) her adımda saga ile aynı transaction'da güncellenir.
 - **Uçlar** (giriş yapmış müşteri; gateway'de `/api/orders`):
   - `POST` (etkinlik, koltuklar) → 202 ve siparişin ID'si; durum `Pending`. Koltuklar arkada tutulur, sonucu `GET {id}` gösterir.
+  - Sipariş açılırken order-api etkinliğin özetini Catalog'a gRPC ile sorar (`GetEventSummary`); ad, tarih ve mekân siparişe kopyalanır, Siparişlerim Catalog'a sormadan listelenir. Etkinlik yoksa 404, yayında değilse, iptal edilmişse ya da başlamışsa 422 `STOCK_NOT_ON_SALE`; sipariş hiç açılmaz. Catalog'a ulaşılamazsa 503 `SERVICE_UNAVAILABLE`.
   - `GET {id}` (sahibi ve admin), `GET mine`.
   - `POST {id}/cancel`: yalnızca `AwaitingPayment` iken (değilse 422 `ORDER_NOT_CANCELLABLE`).
 - **Akış:**
@@ -350,7 +351,11 @@ Saga'nın koltuk tutma kısmı yazıldı; ödeme (Payment) ve bilet (Ticket) ad�
 - **Tekrar ve sıra:**
   - Redis kilidinin değeri siparişin ID'sidir: `ReserveSeats` yeniden gelirse Lua betiği kendi kilidini tanır, siparişin var olan tutması döner (`seat_holds.order_id` benzersiz).
   - `ReserveSeats` ve `ReleaseSeats` ayrı kuyruklarda olduğu için sıraları garanti değildir. "Bırak" önce gelirse sipariş için "bırakıldı" kaydı yazılır; sonradan gelen "tut" koltuk tutmaz (`HOLD_ORDER_CLOSED`).
-- **Ayarlar:** `OrderRules` (ödeme süresi 10 dk, siparişte en fazla 10 koltuk), `RabbitMq`.
+- **Ayarlar:** `OrderRules` (ödeme süresi 10 dk, siparişte en fazla 10 koltuk), `RabbitMq`, `Catalog` (gRPC adresi).
+- **Ön yüz:**
+  - Yayındaki etkinliğin sayfasında koltuk haritası: bölüm ve sıralar, boş, seçili ve dolu koltuklar. En fazla 10 koltuk seçilir; seçim yapıldıkça altta toplam ve "Satın al" görünür. Giriş yapılmamışsa önce girişe gider.
+  - Sipariş sayfası (`/siparis/:id`): koltuklar tutulurken saniyede bir yoklar; "ödeme bekleniyor"da geri sayım, koltuklar ve toplam, "Siparişten vazgeç". Kapanan siparişte sebebi ve koltuk seçimine dönüş. "Öde" Payment ile gelecek.
+  - Siparişlerim (`/siparislerim`): en yenisi önce, etkinlik, durum, toplam.
 - **Denendi:** başarılı sipariş, dolu koltuk, aynı etkinlikte ikinci sipariş, yetki, vazgeçme, ödeme süresinin dolması ve Reservation kapalıyken siparişin askıda kalmaması (süreler test için 1 dakikaya indirilerek).
 
 ### 4.4 Etkinlik iptal edilince ve tarihi değişince

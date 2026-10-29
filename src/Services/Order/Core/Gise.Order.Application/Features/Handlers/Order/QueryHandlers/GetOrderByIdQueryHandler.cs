@@ -27,6 +27,10 @@ public sealed class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery
         {
             Id = order.Id,
             EventId = order.EventId,
+            EventTitle = order.EventTitle,
+            EventStartsAt = order.EventStartsAt,
+            VenueName = order.VenueName,
+            City = order.City,
             Status = order.Status.ToString(),
             TotalAmount = order.TotalAmount,
             ExpiresAt = order.ExpiresAt,

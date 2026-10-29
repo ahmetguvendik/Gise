@@ -13,6 +13,7 @@ namespace Gise.Order.Application.Features.Handlers.Order.CommandHandlers;
 public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, CreateOrderResponse>
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly ICatalogClient _catalogClient;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TimeProvider _timeProvider;
@@ -20,12 +21,14 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
 
     public CreateOrderCommandHandler(
         IOrderRepository orderRepository,
+        ICatalogClient catalogClient,
         IPublishEndpoint publishEndpoint,
         IUnitOfWork unitOfWork,
         TimeProvider timeProvider,
         IConfiguration configuration)
     {
         _orderRepository = orderRepository;
+        _catalogClient = catalogClient;
         _publishEndpoint = publishEndpoint;
         _unitOfWork = unitOfWork;
         _timeProvider = timeProvider;
@@ -34,10 +37,17 @@ public sealed class CreateOrderCommandHandler : IRequestHandler<CreateOrderComma
 
     public async Task<CreateOrderResponse> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
+        // Etkinlik satışta değilse sipariş hiç açılmaz; müşteri hatayı hemen görür.
+        var summary = await _catalogClient.GetEventSummaryAsync(request.EventId, cancellationToken);
+
         var order = new Domain.Entities.Order
         {
             CustomerId = request.CustomerId,
             EventId = request.EventId,
+            EventTitle = summary.Title,
+            EventStartsAt = summary.StartsAt,
+            VenueName = summary.VenueName,
+            City = summary.City,
             Status = OrderStatus.Pending,
             // Koltuklar tutulunca tutmanın bitişine eşitlenir.
             ExpiresAt = _timeProvider.GetUtcNow().UtcDateTime.Add(_paymentWindow)

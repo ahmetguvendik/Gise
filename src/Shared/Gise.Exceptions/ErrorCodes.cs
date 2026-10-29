@@ -6,6 +6,7 @@ public static class ErrorCodes
     {
         public const string ValidationFailed = "VALIDATION_FAILED";
         public const string InternalError = "INTERNAL_SERVER_ERROR";
+        public const string ServiceUnavailable = "SERVICE_UNAVAILABLE";
     }
 
     public static class Auth

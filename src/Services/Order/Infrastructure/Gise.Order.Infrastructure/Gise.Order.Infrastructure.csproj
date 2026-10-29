@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
     <ProjectReference Include="..\..\Core\Gise.Order.Application\Gise.Order.Application.csproj" />
     <!-- MassTransit'in outbox'ı Order veritabanında (OrderDbContext). -->
     <ProjectReference Include="..\Gise.Order.Persistence\Gise.Order.Persistence.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
     <PackageReference Include="MassTransit.RabbitMQ" />
     <!-- MassTransit.EntityFrameworkCore eski Relational sürümünü getiriyor; projenin kalanıyla aynı sürüme sabitlenir. -->

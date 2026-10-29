@@ -108,6 +108,79 @@ export interface VenueSectionInput {
   rows: VenueRow[]
 }
 
+/** Koltuk haritası (Reservation): hangi koltuk boş, bölüm fiyatları. */
+export interface SeatMap {
+  eventId: string
+  startsAt: string
+  /** İptal edilmemiş ve başlamamışsa satışta. */
+  isOnSale: boolean
+  sections: SeatMapSection[]
+}
+
+export interface SeatMapSection {
+  sectionId: string
+  sectionName: string
+  price: number
+  availableCount: number
+  seats: SeatMapSeat[]
+}
+
+export interface SeatMapSeat {
+  seatId: string
+  row: string
+  number: number
+  /** Tutulmuş ya da satılmış koltuk ayrımı dışarıya verilmez. */
+  isAvailable: boolean
+}
+
+/**
+ * Pending: koltuklar tutuluyor; AwaitingPayment: koltuklar ayrıldı, ödeme bekleniyor;
+ * Cancelled ve Expired kapanmış siparişlerdir (sebep failureReason'da).
+ */
+export type OrderStatus = 'Pending' | 'AwaitingPayment' | 'Completed' | 'Cancelled' | 'Expired'
+
+export interface OrderItem {
+  seatId: string
+  sectionName: string
+  row: string
+  number: number
+  price: number
+}
+
+/** Etkinlik bilgisi sipariş açılırken Catalog'dan kopyalanır. */
+interface OrderEvent {
+  eventId: string
+  eventTitle: string
+  eventStartsAt: string
+  venueName: string
+  city: string
+}
+
+export interface OrderDetail extends OrderEvent {
+  id: string
+  status: OrderStatus
+  totalAmount: number
+  /** Ödeme bu zamana kadar gelmezse sipariş düşer. */
+  expiresAt: string
+  failureReason: string | null
+  createdAt: string
+  items: OrderItem[]
+}
+
+export interface OrderSummary extends OrderEvent {
+  id: string
+  status: OrderStatus
+  totalAmount: number
+  seatCount: number
+  expiresAt: string
+  createdAt: string
+}
+
+export interface CreatedOrder {
+  orderId: string
+  status: OrderStatus
+}
+
 /** Yükleme izni: dosya bu adrese doğrudan PUT edilir. */
 export interface PresignedUpload {
   uploadUrl: string

@@ -8,6 +8,13 @@ public class Order : BaseEntity
 {
     public string CustomerId { get; set; } = string.Empty;
     public Guid EventId { get; set; }
+
+    // Sipariş açılırken Catalog'dan kopyalanır; Siparişlerim Catalog'a sormadan listelenir.
+    public string EventTitle { get; set; } = string.Empty;
+    public DateTime EventStartsAt { get; set; }
+    public string VenueName { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public decimal TotalAmount { get; set; }
 

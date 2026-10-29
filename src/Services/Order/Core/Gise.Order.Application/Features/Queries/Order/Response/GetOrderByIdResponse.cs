@@ -4,6 +4,10 @@ public sealed class GetOrderByIdResponse
 {
     public Guid Id { get; set; }
     public Guid EventId { get; set; }
+    public string EventTitle { get; set; } = string.Empty;
+    public DateTime EventStartsAt { get; set; }
+    public string VenueName { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
 
     // Pending (koltuklar tutuluyor), AwaitingPayment, Completed, Cancelled, Expired.
     public string Status { get; set; } = string.Empty;

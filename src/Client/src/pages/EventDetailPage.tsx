@@ -9,6 +9,7 @@ import { useSessionReady } from '../auth/SilentSignin'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { EventManage } from '../components/EventManage'
 import { Poster } from '../components/Poster'
+import { SeatPicker } from '../components/SeatPicker'
 import { StatusBadge } from '../components/StatusBadge'
 import { formatDate, formatLongDate, formatPrice, formatTime } from '../lib/format'
 import type { EventDetail, VenueDetail } from '../types'
@@ -152,7 +153,17 @@ export function EventDetailPage() {
         </div>
       </section>
 
-      {!cancelled && (
+      {event.status === 'Published' && (
+        <section className="stack" aria-labelledby="koltuk-sec">
+          <h2 id="koltuk-sec" className="section-title">
+            Koltuk seç
+          </h2>
+          <SeatPicker eventId={event.id} />
+        </section>
+      )}
+
+      {/* Yayına çıkmamış etkinlikte (taslak, onay bekliyor) yöneten kişi bölümleri ve fiyatları görür. */}
+      {!cancelled && event.status !== 'Published' && (
         <section className="stack" aria-labelledby="bolumler">
           <h2 id="bolumler" className="section-title">
             Bölümler ve fiyatlar
