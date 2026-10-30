@@ -563,6 +563,7 @@ services:
       notification-api:
         condition: service_healthy
 
+  # Veritabanı yok; arama kayıtları Elasticsearch'te.
   search-api:
     image: gise/search-api:dev
     build:
@@ -570,7 +571,6 @@ services:
       dockerfile: src/Services/Search/Presentation/Gise.Search.Api/Dockerfile
     restart: unless-stopped
     environment:
-      ConnectionStrings__Search: Host=postgres;Database=gise_search;Username=gise;Password=${POSTGRES_PASSWORD}
       Elasticsearch__Password: ${ELASTIC_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
@@ -579,38 +579,29 @@ services:
       retries: 5
       start_period: 15s
     depends_on:
-      postgres:
-        condition: service_healthy
       elasticsearch:
         condition: service_healthy
 
-  # Catalog'un olaylarını Kafka'dan okur, arama dizinine (Elasticsearch) işler. Dizin boşsa Catalog'dan gRPC ile kurar.
-  search-inbox-worker:
-    image: gise/search-inbox-worker:dev
+  # Arama dizinini Catalog'dan gRPC ile 5 dakikada bir baştan kurar (Sync:IntervalSeconds).
+  search-sync-worker:
+    image: gise/search-sync-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Search.InboxWorker/Dockerfile
+      dockerfile: src/Workers/Gise.Search.SyncWorker/Dockerfile
     restart: unless-stopped
     environment:
-      ConnectionStrings__Search: Host=postgres;Database=gise_search;Username=gise;Password=${POSTGRES_PASSWORD}
       Elasticsearch__Password: ${ELASTIC_PASSWORD}
     healthcheck:
-      # Döngü asılı kalırsa (heartbeat eskirse) ready kontrolü düşer.
+      # Döngü asılı kalırsa (heartbeat eskirse) ya da Elasticsearch'e ulaşılamazsa ready kontrolü düşer.
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
       interval: 15s
       timeout: 3s
       retries: 4
       start_period: 40s
     depends_on:
-      kafka:
-        condition: service_healthy
       elasticsearch:
         condition: service_healthy
-      # İlk dizin Catalog'un gRPC ucundan kurulur.
       catalog-api:
-        condition: service_healthy
-      # Inbox tablosunu search-api'nin migration'ları kurar.
-      search-api:
         condition: service_healthy
 
   # Kalıcı verisi yok (yalnızca Redis); migration adımı da yok.

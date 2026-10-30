@@ -1,7 +1,7 @@
 namespace Gise.Search.Domain.Documents;
 
-// Elasticsearch'teki arama kaydı; EF entity'si değil. Catalog'un olaylarından (inbox üzerinden) beslenir, ilk dizin
-// Catalog'dan gRPC ile kurulur. Yalnızca yayındaki etkinlikler bulunur; iptal edilen silinir.
+// Elasticsearch'teki arama kaydı. search-sync-worker Catalog'dan gRPC ile düzenli olarak baştan kurar; yalnızca yayındaki,
+// henüz başlamamış etkinlikler bulunur.
 public sealed class EventDocument
 {
     // Catalog'daki etkinliğin ID'si; Elasticsearch'te de kaydın kimliği.

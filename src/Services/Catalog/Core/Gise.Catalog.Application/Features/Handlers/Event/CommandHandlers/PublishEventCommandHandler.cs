@@ -69,8 +69,7 @@ public sealed class PublishEventCommandHandler : IRequestHandler<PublishEventCom
             StartsAt = entity.StartsAt,
             VenueName = venue.Name,
             City = venue.City,
-            MinPrice = entity.PriceCategories.Min(p => p.Price),
-            PosterKey = entity.PosterKey
+            MinPrice = entity.PriceCategories.Min(p => p.Price)
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);

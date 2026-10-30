@@ -2,21 +2,13 @@ using Gise.Search.Domain.Documents;
 
 namespace Gise.Search.Application.Interfaces;
 
-// Elasticsearch'teki etkinlik dizini: Catalog'un okumaya özel kopyası. search-inbox-worker yazar, search-api okur.
+// Elasticsearch'teki etkinlik dizini: Catalog'un okumaya özel kopyası. search-sync-worker düzenli olarak baştan kurar,
+// search-api okur.
 public interface IEventIndex
 {
-    // Dizin yoksa eşlemesi ve Türkçe çözümleyicileriyle oluşturur.
-    Task EnsureCreatedAsync(CancellationToken cancellationToken);
-
-    Task<long> CountAsync(CancellationToken cancellationToken);
-
-    // Kayıt varsa üzerine yazar; olay ikinci kez işlense de sonuç aynı.
-    Task UpsertAsync(EventDocument document, CancellationToken cancellationToken);
-
-    Task UpsertManyAsync(IReadOnlyCollection<EventDocument> documents, CancellationToken cancellationToken);
-
-    // Kayıt yoksa zararsız.
-    Task DeleteAsync(Guid eventId, CancellationToken cancellationToken);
+    // Kayıtlarla yeni bir dizin kurar; arama tek adımda ona geçer, eski dizin silinir. Yarıda kalırsa arama eski dizinle
+    // devam eder. Yazılan kayıt sayısını döndürür.
+    Task<int> ReplaceAllAsync(IAsyncEnumerable<EventDocument> documents, CancellationToken cancellationToken);
 
     Task<EventSearchResult> SearchAsync(EventSearchCriteria criteria, CancellationToken cancellationToken);
 

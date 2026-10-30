@@ -86,7 +86,6 @@ public sealed class UpdateEventCommandHandler : IRequestHandler<UpdateEventComma
                 VenueName = venue.Name,
                 City = venue.City,
                 MinPrice = entity.PriceCategories.Min(p => p.Price),
-                PosterKey = entity.PosterKey,
                 PreviousStartsAt = previousStartsAt
             }, cancellationToken);
         }

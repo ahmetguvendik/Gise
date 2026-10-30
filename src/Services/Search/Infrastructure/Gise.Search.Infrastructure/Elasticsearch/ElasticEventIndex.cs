@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.Aggregations;
 using Elastic.Clients.Elasticsearch.Core.Bulk;
@@ -10,12 +11,14 @@ using Gise.Search.Domain.Documents;
 
 namespace Gise.Search.Infrastructure.Elasticsearch;
 
-// Dizin "events-v1" adıyla kurulur, herkes "events" takma adıyla kullanır: eşleme değişince yeni dizin kurulup takma ad
-// ona çevrilir, okuyanlar etkilenmez. Eşleme ve Türkçe çözümleyiciler events-index.json'da.
+// Her yenilemede yeni bir dizin kurulur ("events-<zaman>"); okuyanlar "events" takma adını kullanır, takma ad yenileme
+// bitince yeni dizine geçer. Eşleme değişikliği de böylece bir sonraki yenilemede kendiliğinden gelir. Eşleme ve Türkçe
+// çözümleyiciler events-index.json'da.
 public sealed class ElasticEventIndex : IEventIndex
 {
     private const string Alias = "events";
-    private const string IndexName = "events-v1";
+    private const string IndexPrefix = "events-";
+    private const int BulkSize = 500;
 
     // Başlık en güçlü eşleşme, sonra mekân, sonra şehir.
     private static readonly string[] TextFields = ["title^3", "venueName^2", "city"];
@@ -30,44 +33,62 @@ public sealed class ElasticEventIndex : IEventIndex
         _client = client;
     }
 
-    public async Task EnsureCreatedAsync(CancellationToken cancellationToken)
+    public async Task<int> ReplaceAllAsync(IAsyncEnumerable<EventDocument> documents, CancellationToken cancellationToken)
     {
-        var exists = await _client.Indices.ExistsAsync(Alias, cancellationToken);
-        if (exists.Exists)
-            return;
+        // Milisaniyesiyle: art arda iki yenileme aynı adı almasın.
+        var indexName = $"{IndexPrefix}{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}";
+        await CreateIndexAsync(indexName, cancellationToken);
 
+        try
+        {
+            var count = 0;
+            var batch = new List<EventDocument>(BulkSize);
+            await foreach (var document in documents.WithCancellation(cancellationToken))
+            {
+                batch.Add(document);
+                if (batch.Count < BulkSize)
+                    continue;
+
+                await BulkIndexAsync(indexName, batch, cancellationToken);
+                count += batch.Count;
+                batch.Clear();
+            }
+
+            await BulkIndexAsync(indexName, batch, cancellationToken);
+            count += batch.Count;
+
+            // Takma ad taşınınca kayıtlar hemen aranabilsin; Elasticsearch kendiliğinden saniyede bir yeniler.
+            EnsureValid(await _client.Indices.RefreshAsync(indexName, cancellationToken), "yenilenemedi");
+            await SwitchAliasAsync(indexName, cancellationToken);
+            return count;
+        }
+        catch
+        {
+            // Yarım dizin kalmasın; silinemezse bir sonraki başarılı yenileme siler.
+            await _client.Indices.DeleteAsync(indexName, CancellationToken.None);
+            throw;
+        }
+    }
+
+    private async Task CreateIndexAsync(string indexName, CancellationToken cancellationToken)
+    {
         await using var stream = typeof(ElasticEventIndex).Assembly.GetManifestResourceStream("events-index.json")
             ?? throw new InvalidOperationException("events-index.json bulunamadı.");
         using var reader = new StreamReader(stream);
         var body = await reader.ReadToEndAsync(cancellationToken);
 
         var response = await _client.Transport.RequestAsync<StringResponse>(
-            Elastic.Transport.HttpMethod.PUT, $"/{IndexName}", PostData.String(body), cancellationToken);
-
-        // Aynı anda açılan başka bir kopya oluşturduysa sorun yok.
-        if (!response.ApiCallDetails.HasSuccessfulStatusCode && !response.Body.Contains("resource_already_exists_exception"))
+            Elastic.Transport.HttpMethod.PUT, $"/{indexName}", PostData.String(body), cancellationToken);
+        if (!response.ApiCallDetails.HasSuccessfulStatusCode)
             throw new InvalidOperationException($"Arama dizini oluşturulamadı: {response.Body}");
     }
 
-    public async Task<long> CountAsync(CancellationToken cancellationToken)
-    {
-        var response = await _client.CountAsync(new CountRequest(Alias), cancellationToken);
-        EnsureValid(response, "sayılamadı");
-        return response.Count;
-    }
-
-    public async Task UpsertAsync(EventDocument document, CancellationToken cancellationToken)
-    {
-        var response = await _client.IndexAsync(new IndexRequest<EventDocument>(document, Alias, document.Id.ToString()), cancellationToken);
-        EnsureValid(response, "yazılamadı");
-    }
-
-    public async Task UpsertManyAsync(IReadOnlyCollection<EventDocument> documents, CancellationToken cancellationToken)
+    private async Task BulkIndexAsync(string indexName, IReadOnlyCollection<EventDocument> documents, CancellationToken cancellationToken)
     {
         if (documents.Count == 0)
             return;
 
-        var request = new BulkRequest(Alias)
+        var request = new BulkRequest(indexName)
         {
             Operations = [.. documents.Select(d => new BulkIndexOperation<EventDocument>(d) { Id = d.Id.ToString() })]
         };
@@ -77,15 +98,31 @@ public sealed class ElasticEventIndex : IEventIndex
             throw new InvalidOperationException($"Arama dizinine toplu yazmada hata: {response.ItemsWithErrors.First().Error?.Reason}");
     }
 
-    public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken)
+    // Takma ad tek istekte yeni dizine geçer: arama hiçbir an boş ya da iki dizinden birden okumaz. Sonra eski dizinler
+    // (yarıda kalmış yenilemelerinki dahil) silinir.
+    private async Task SwitchAliasAsync(string indexName, CancellationToken cancellationToken)
     {
-        var response = await _client.DeleteAsync(new DeleteRequest(Alias, eventId.ToString()), cancellationToken);
+        // Her dizin ve üzerindeki takma adlar: {"events-...": {"aliases": {"events": {}}}, ...}
+        var current = await _client.Transport.RequestAsync<StringResponse>(
+            Elastic.Transport.HttpMethod.GET, $"/{IndexPrefix}*/_alias", null, cancellationToken);
+        if (!current.ApiCallDetails.HasSuccessfulStatusCode)
+            throw new InvalidOperationException($"Arama dizinleri okunamadı: {current.Body}");
 
-        // Kayıt hiç dizinlenmemişse (ör. yayınlanmadan iptal) zararsız.
-        if (response.Result == Result.NotFound)
-            return;
+        using var indices = JsonDocument.Parse(current.Body);
+        var oldIndices = indices.RootElement.EnumerateObject().Where(index => index.Name != indexName).ToList();
 
-        EnsureValid(response, "silinemedi");
+        var actions = new List<object> { new { add = new { index = indexName, alias = Alias } } };
+        actions.AddRange(oldIndices
+            .Where(index => index.Value.GetProperty("aliases").TryGetProperty(Alias, out _))
+            .Select(index => new { remove = new { index = index.Name, alias = Alias } }));
+
+        var switched = await _client.Transport.RequestAsync<StringResponse>(
+            Elastic.Transport.HttpMethod.POST, "/_aliases", PostData.String(JsonSerializer.Serialize(new { actions })), cancellationToken);
+        if (!switched.ApiCallDetails.HasSuccessfulStatusCode)
+            throw new InvalidOperationException($"Arama yeni dizine geçirilemedi: {switched.Body}");
+
+        if (oldIndices.Count > 0)
+            EnsureValid(await _client.Indices.DeleteAsync(string.Join(',', oldIndices.Select(index => index.Name)), cancellationToken), "silinemedi");
     }
 
     public async Task<EventSearchResult> SearchAsync(EventSearchCriteria criteria, CancellationToken cancellationToken)

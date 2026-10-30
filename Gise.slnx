@@ -14,7 +14,7 @@
     <Project Path="src/Workers/Gise.Payment.CommandWorker/Gise.Payment.CommandWorker.csproj" />
     <Project Path="src/Workers/Gise.Reservation.CommandWorker/Gise.Reservation.CommandWorker.csproj" />
     <Project Path="src/Workers/Gise.Reservation.InboxWorker/Gise.Reservation.InboxWorker.csproj" />
-    <Project Path="src/Workers/Gise.Search.InboxWorker/Gise.Search.InboxWorker.csproj" />
+    <Project Path="src/Workers/Gise.Search.SyncWorker/Gise.Search.SyncWorker.csproj" />
     <Project Path="src/Workers/Gise.Ticket.CommandWorker/Gise.Ticket.CommandWorker.csproj" />
     <Project Path="src/Workers/Gise.Ticket.InboxWorker/Gise.Ticket.InboxWorker.csproj" />
     <Project Path="src/Workers/Gise.Ticket.OutboxWorker/Gise.Ticket.OutboxWorker.csproj" />
@@ -87,7 +87,6 @@
   </Folder>
   <Folder Name="/src/Services/Search/Infrastructure/">
     <Project Path="src/Services/Search/Infrastructure/Gise.Search.Infrastructure/Gise.Search.Infrastructure.csproj" />
-    <Project Path="src/Services/Search/Infrastructure/Gise.Search.Persistence/Gise.Search.Persistence.csproj" />
   </Folder>
   <Folder Name="/src/Services/Search/Presentation/">
     <Project Path="src/Services/Search/Presentation/Gise.Search.Api/Gise.Search.Api.csproj" />

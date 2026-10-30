@@ -10,7 +10,7 @@ namespace Gise.Search.Infrastructure;
 
 public static class ServiceRegistration
 {
-    // Elasticsearch: search-api okur, search-inbox-worker yazar. Ayarlar appsettings'teki Elasticsearch bölümünden;
+    // Elasticsearch: search-api okur, search-sync-worker yazar. Ayarlar appsettings'teki Elasticsearch bölümünden;
     // parola compose'dan ortam değişkeniyle gelir.
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {

@@ -1,12 +1,9 @@
 using System.Diagnostics;
 using Gise.Search.Api.ErrorHandling;
-using Gise.Search.Api.HealthChecks;
 using Gise.Search.Application;
 using Gise.Search.Infrastructure;
-using Gise.Search.Persistence;
-using Gise.Search.Persistence.Contexts;
+using Gise.Search.Infrastructure.Elasticsearch;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,20 +22,13 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 });
 
 builder.Services.AddApplicationServices();
-builder.Services.AddPersistenceServices(builder.Configuration);
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
+// Veritabanı yok; arama kayıtları Elasticsearch'te.
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<SearchDbContext>("postgres", tags: ["ready"])
     .AddCheck<ElasticsearchHealthCheck>("elasticsearch", tags: ["ready"]);
 
 var app = builder.Build();
-
-// Şema açılışta migration'larla güncellenir (yalnızca inbox tablosu; arama kayıtları Elasticsearch'te).
-await using (var scope = app.Services.CreateAsyncScope())
-{
-    await scope.ServiceProvider.GetRequiredService<SearchDbContext>().Database.MigrateAsync();
-}
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();

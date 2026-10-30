@@ -1,7 +1,7 @@
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Gise.Search.Api.HealthChecks;
+namespace Gise.Search.Infrastructure.Elasticsearch;
 
 // Arama Elasticsearch'e bağlı; ulaşılamıyorsa servis hazır sayılmaz.
 public sealed class ElasticsearchHealthCheck : IHealthCheck

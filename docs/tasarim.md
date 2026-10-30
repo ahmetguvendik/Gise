@@ -71,7 +71,7 @@ Desen bu projede **bilerek iki farklı şekilde** kullanılır:
 
 **Inbox (alan taraf)**
 - Kafka'dan gelen mesaj önce `InboxMessages` tablosuna yazılır. `MessageId` üzerindeki **tekil indeks**, aynı mesaj iki kez gelirse ikincisinin kaydedilmesini engeller.
-- Asıl iş (e-posta göndermek, arama dizinini güncellemek) ayrı bir işlemci tarafından yapılır ve başarısız olursa yeniden denenir. Kafka'dan okuma ile işi yapma birbirinden ayrılır.
+- Asıl iş (e-posta göndermek, koltuk stoğunu güncellemek) ayrı bir işlemci tarafından yapılır ve başarısız olursa yeniden denenir. Kafka'dan okuma ile işi yapma birbirinden ayrılır.
 - Kafka offset'i, mesaj inbox'a yazıldıktan **sonra** onaylanır; arada çökme olursa mesaj yeniden gelir ve inbox tekrarı yakalar.
 
 
@@ -92,7 +92,7 @@ Desen bu projede **bilerek iki farklı şekilde** kullanılır:
 | Ticket | `ticket-outbox-worker` | Kafka outbox'ını gönderir (`TicketsIssued`) |
 | Order | `order-inbox-worker` | Kafka'dan okur, inbox'a yazar ve işler (iptal edilen etkinliğin tamamlanmış siparişlerini iade eder) |
 | Notification | `notification-inbox-worker` | Kafka'dan okur (`catalog.events`, `ticket.events`), inbox'a yazar ve işler (e-postalar) |
-| Search | `search-inbox-worker` | Kafka'dan okur, inbox'a yazar ve işler (arama dizini); dizin boşsa Catalog'dan gRPC ile kurar |
+| Search | `search-sync-worker` | Arama dizinini Catalog'dan gRPC ile 5 dakikada bir baştan kurar; Kafka dinlemez |
 
 Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 
@@ -108,7 +108,7 @@ Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 | **Payment** | Sahte ödeme sağlayıcısı; iade | PostgreSQL | — | RabbitMQ: `PaymentSucceeded`, `PaymentFailed` (iadenin cevabı beklenmez) | RabbitMQ: `ProcessPayment`, `RefundPayment` |
 | **Ticket** | QR'lı PDF bilet üretimi; kapıda okutma | PostgreSQL + MinIO | REST (biletlerim, PDF indirme, kapı okutma) | RabbitMQ: `TicketsIssued`, `TicketIssueFailed`; Kafka (`ticket.events`): `TicketsIssued` | RabbitMQ: `IssueTickets`; Kafka: `EventCancelled` |
 | **Notification** | E-posta | PostgreSQL (inbox, bilet sahipleri, gönderilenler) | — | — | Kafka: `TicketsIssued`, `EventCancelled`, `EventUpdated` |
-| **Search** | Ana sayfadaki liste, Türkçe tam metin arama, yazarken öneri | Elasticsearch + PostgreSQL (inbox) | REST (herkese açık) | — | Kafka: `EventPublished`, `EventUpdated`, `EventCancelled`; ilk dizin için Catalog gRPC |
+| **Search** | Ana sayfadaki liste, Türkçe tam metin arama, yazarken öneri | Elasticsearch | REST (herkese açık) | — | — (Catalog'dan gRPC ile 5 dakikada bir alır) |
 | **SeatMap** | Koltuk haritasında anlık güncelleme | Redis (backplane) | SignalR | — | Kafka: `SeatStatusChanged` |
 
 ### 3.1 Mimari
@@ -126,7 +126,7 @@ flowchart LR
     GW --> SRC["Search"]
 
     ORD -- "gRPC: fiyat" --> CAT
-    SRC -- "gRPC: ilk dizin" --> CAT
+    SRC -- "gRPC: 5 dk'da bir" --> CAT
 
     ORD <==> MQ[["RabbitMQ"]]
     MQ <==> RES
@@ -135,7 +135,6 @@ flowchart LR
 
     CAT & RES & ORD & TIC -- "olay" --> K{{"Kafka"}}
     K --> NOT["Notification"]
-    K --> SRC
     K --> SM
 ```
 
@@ -195,7 +194,7 @@ stateDiagram-v2
 | Ad, tarih (`PUT /api/events/{id}`) | Sahibi, admin | Kimse (422 `EVENT_IN_REVIEW`) | Yalnızca admin (organizatöre 403 `EVENT_ADMIN_ONLY`); `EventUpdated` gider | Kimse |
 | Mekân | Sahibi, admin; fiyatlar silinir | Kimse | Kimse (422 `EVENT_VENUE_LOCKED`): koltuk stoğu mekâna bağlı | Kimse |
 | Fiyat (`PUT .../prices`) | Sahibi, admin | Kimse | Yalnızca admin; `EventUpdated` gider | Kimse |
-| Afiş (`PUT .../poster`) | Sahibi, admin | Kimse | Yalnızca admin; değiştiyse `EventUpdated` gider | Kimse |
+| Afiş (`PUT .../poster`) | Sahibi, admin | Kimse | Yalnızca admin | Kimse |
 | Onaya gönder (`POST .../submit`) | Sahibi, admin; her bölüm fiyatlı olmalı | — | — | — |
 | Geri çek (`POST .../withdraw`) | — | Sahibi, admin | — | — |
 | Geri gönder (`POST .../return`, sebep zorunlu) | — | Yalnızca admin | — | — |
@@ -215,16 +214,16 @@ stateDiagram-v2
 
 ### 3.5 Catalog: olaylar ve gRPC
 
-- **`EventPublished`** (`Gise.Contracts/Events`) küçük bir olaydır: etkinlik, mekân, başlık, tarih, mekân adı, şehir, en düşük fiyat ve afiş anahtarı. Koltuk listesi olayda **yoktur**; her servis kendi ihtiyacını Catalog'a sorar.
-- **`EventUpdated`** aynı alanları ve `PreviousStartsAt`'i taşır; yayındaki etkinliğin adı, tarihi, fiyatları ya da afişi değişince gider. Search kaydını günceller, tarih değiştiyse bilet sahiplerine bildirim bununla gider.
+- **`EventPublished`** (`Gise.Contracts/Events`) küçük bir olaydır: etkinlik, mekân, başlık, tarih, mekân adı, şehir ve en düşük fiyat. Koltuk listesi olayda **yoktur**; her servis kendi ihtiyacını Catalog'a sorar.
+- **`EventUpdated`** aynı alanları ve `PreviousStartsAt`'i taşır; tarih değiştiyse bilet sahiplerine bildirim bununla gider.
 - **`EventCancelled`**: etkinlik, sebep ve iptal zamanı. Reservation satışı durduracak, Order ve Payment iade başlatacak.
 - Olayları `IOutboxMessageRepository.AddCatalogEventAsync` yazar: `Type` olayın sınıf adı, anahtar etkinlik ID'si.
 - Olaylar `catalog.events` topic'ine gider. Anahtar etkinlik ID'sidir, böylece aynı etkinliğin olayları aynı bölüme düşer ve sırası korunur. Başlıklar: `type` (ör. `EventPublished`), `message-id` (alan tarafın inbox'ı tekrarı bununla yakalar), `traceparent`.
 - **`catalog-outbox-worker`** (`src/Workers/Gise.Catalog.OutboxWorker`), Telgraf'taki outbox worker'lar gibi catalog-api'den **ayrı bir process**: API çökse de bekleyen olaylar gönderilmeye devam eder. Kendi `OutboxWorkerDbContext`'i yalnızca outbox tablosunu görür; tabloyu catalog-api'nin migration'ları kurar. Birkaç saniyede bir bekleyen satırları `FOR UPDATE SKIP LOCKED` ile alıp gönderir; aynı anahtarın daha eski bir olayı beklerken yenisi onu geçmez. Gönderilemeyen satır artan aralıklarla (en fazla 5 dk) yeniden denenir; `MaxRetryCount` aşılınca dead-letter olur. Gönderilmiş satırlar `RetentionDays` sonra silinir. Ayarlar worker'ın appsettings'inde: `Kafka` ve `Outbox` bölümleri.
 - Worker'ın `/health/ready` ucu: döngü dönüyor mu (heartbeat, `src/Shared/Gise.HealthChecks`), Postgres erişilebilir mi, dead-letter var mı (varsa "Degraded").
 - Topic'i olayı yayan servis açılışta oluşturur; Kafka'da otomatik oluşturma kapalıdır.
-- Kafka olayları varsayılanla **7 gün** tutar; daha eski olaylar topic'te yoktur. Sonradan eklenen bir dinleyici geçmişi topic'ten değil Catalog'dan alır (Search, bkz. 3.10).
-- **gRPC** (`Gise.Contracts/Protos/catalog.proto`): `GetEventSeats(event_id)` yayındaki etkinliğin koltuklarını bölüm, sıra, numara ve kuruş cinsinden fiyatla döndürür. Reservation, `EventPublished` gelince stoğu bununla kurar. `ListPublishedEvents(page, page_size)` yayındaki, henüz başlamamış etkinlikleri tarih ve ID sırasıyla sayfa sayfa döndürür (sayfa en fazla 500); Search ilk dizini bununla kurar. Catalog bunları yalnızca **8081** portunda (HTTP/2) sunar; bu port Docker ağının dışına ve gateway'e açık değildir. Hatalar gRPC durum koduna çevrilir: 404 → `NotFound`, iş kuralı → `FailedPrecondition`; `error-code` başlığı merkezi hata kodunu taşır.
+- Kafka olayları varsayılanla **7 gün** tutar; daha eski olaylar topic'te yoktur. Sonradan eklenen bir dinleyici geçmişi topic'ten okuyamaz.
+- **gRPC** (`Gise.Contracts/Protos/catalog.proto`): `GetEventSeats(event_id)` yayındaki etkinliğin koltuklarını bölüm, sıra, numara ve kuruş cinsinden fiyatla döndürür. Reservation, `EventPublished` gelince stoğu bununla kurar. `ListPublishedEvents(page, page_size)` yayındaki, henüz başlamamış etkinlikleri tarih ve ID sırasıyla sayfa sayfa döndürür (sayfa en fazla 500); Search dizini bununla düzenli olarak baştan kurar (bkz. 3.10). Catalog bunları yalnızca **8081** portunda (HTTP/2) sunar; bu port Docker ağının dışına ve gateway'e açık değildir. Hatalar gRPC durum koduna çevrilir: 404 → `NotFound`, iş kuralı → `FailedPrecondition`; `error-code` başlığı merkezi hata kodunu taşır.
 - Servisler arası kimlik doğrulama (Keycloak servis token'ı) henüz yok.
 - Biçim kuralları (fiyat aralığı, ondalık, tekrar eden bölüm) validator'da; veritabanına bakan kurallar (sahiplik, iptal, bölümün mekâna ait olması) `SetEventPricesCommandHandler`'da.
 
@@ -314,26 +313,25 @@ Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik 
 
 Ana sayfadaki liste, arama kutusu ve öneriler Search'ten gelir; ön yüz Catalog'un listesini (`GET /api/events`) artık kullanmaz.
 
-- **Dizin:** Elasticsearch 9; dizin `events-v1`, uygulama `events` takma adını kullanır (eşleme değişince yeni dizin kurulup takma ad taşınabilir). Belge başına etkinlik, mekân, başlık, tarih, mekân adı, şehir, en düşük fiyat ve afiş anahtarı. Yalnızca yayındaki etkinlikler; iptal edilen silinir, geçmiş etkinlik tarih filtresiyle elenir. Eşleme `dynamic: strict` (`Gise.Search.Infrastructure/Elasticsearch/events-index.json`).
+- **Dizin:** Elasticsearch 9. Belge başına etkinlik, mekân, başlık, tarih, mekân adı, şehir, en düşük fiyat ve afiş anahtarı. Yalnızca yayındaki, henüz başlamamış etkinlikler. Eşleme `dynamic: strict` (`Gise.Search.Infrastructure/Elasticsearch/events-index.json`).
 - **Türkçe:** başlık, mekân ve şehir Türkçe analizörle dizinlenir: kesme işareti atılır (İstanbul'da → İstanbul), Türkçe küçük harf (I → ı, İ → i), Türkçe stop words, kök bulma, `asciifolding` (kadıköy = kadikoy). Küçük yazım hataları `fuzziness: AUTO` ile tolere edilir; yarım yazılan kelime edge n-gram alt alanlarıyla bulunur.
 - **Sıralama:** metin yoksa tarihe göre; metin varsa uygunluk (başlık ×3, mekân ×2, şehir), eşitse tarih.
 - **Uçlar** (gateway'de `/api/search`, herkese açık; öneri sık çağrıldığı için dakikada 600 istek):
   - `GET events?q=&city=&from=&to=&page=&pageSize=`: sonuçlar, toplam ve şehirler (sayılarıyla). Şehir sayıları seçili şehirden bağımsızdır (`post_filter`); şehir seçilince filtre listesi daralmaz. `from` verilmezse ya da geçmişse şu an. Sayfa en fazla 48.
   - `GET suggest?q=` (2–50 karakter): en fazla 5 etkinlik, 5 mekân, 5 şehir.
   - Afiş adresi (`posterUrl`, `posterSrcset`) Catalog'unkiyle aynı kuralla üretilir; `Posters` ayarı Catalog'un `Storage` ayarlarıyla aynı olmalı.
-- **Güncel tutma** (`search-inbox-worker`, Reservation'ın inbox'ıyla aynı yapı):
-
-| Olay | Search'te |
-|---|---|
-| `EventPublished` | Belge yazılır. |
-| `EventUpdated` | Belge olayın taşıdığı hâlle yeniden yazılır (ad, tarih, fiyat, afiş). |
-| `EventCancelled` | Belge silinir. |
-
-- **İlk dizin ve yeniden dizinleme:** Kafka eski olayları sildiği için (bkz. 3.5) dizin topic'ten baştan kurulamaz. Worker açılışta dizini kurar; dizin boşsa yayındaki etkinlikleri Catalog'dan gRPC ile 200'erli sayfalarla alır (`ListPublishedEvents`). Bu bitmeden inbox işlenmez; gelen olaylar bekler, sonra sırayla uygulanır. Dizinleme sırasında yayınlanan ya da değişen etkinlik de böylece inbox'tan gelir. Belgeye yazmak tekrarlanabilir; aynı olayın iki kez işlenmesi sorun olmaz. Yeniden dizinlemek için worker durdurulur, dizin silinir (`DELETE /events-v1`), worker başlatılır. Worker çalışırken silinirse gelen bir olay takma adsız, eşlemesiz bir dizin açabilir.
-- **Veri:** PostgreSQL'de yalnızca inbox (`gise_search`); migration'ları search-api çalıştırır. Elasticsearch parolası `deploy/.env`'deki `ELASTIC_PASSWORD`, compose'dan ortam değişkeniyle gelir.
-- **Sağlık:** search-api `/health/ready`: Postgres ve Elasticsearch. Worker: heartbeat, Postgres, dead-letter.
+- **Güncel tutma** (`search-sync-worker`): Search Kafka dinlemez. Worker açılışta ve sonra **5 dakikada bir** (`Sync:IntervalSeconds`) yayındaki etkinlikleri Catalog'dan gRPC ile 200'erli sayfalarla alır (`ListPublishedEvents`, bkz. 3.5) ve dizini baştan kurar:
+  1. Yeni bir dizin açılır (`events-<zaman>`), bütün etkinlikler ona yazılır.
+  2. `events` takma adı tek istekte yeni dizine geçer; search-api hep bu takma addan okur, hiçbir an boş ya da yarım dizin görmez.
+  3. Eski dizin silinir. İptal edilen ya da başlamış etkinlik yeni dizinde olmadığı için kendiliğinden düşer.
+- **Gecikme:** yayın, değişiklik (ad, tarih, fiyat, afiş, mekân adı) ve iptal aramaya en geç 5 dakikada yansır. İptal edilen etkinlik bu sürede listede görünebilir; detay sayfası "iptal edildi" uyarısını gösterir, satış Reservation'da zaten kapalıdır.
+- **Hata:** Catalog ya da Elasticsearch'e ulaşılamazsa arama eski dizinle devam eder, worker 30 sn sonra (`Sync:RetryDelaySeconds`) tekrar dener. Yarıda kalan yeni dizin silinir; silinemezse bir sonraki başarılı yenileme siler.
+- **Eşleme değişikliği** (`events-index.json`): ayrı bir adım gerekmez; bir sonraki yenileme yeni eşlemeyle kurulur.
+- **Neden Kafka değil:** Search'ün yazdığı her şey Catalog'dan yeniden üretilebilir; düzenli tam yenileme inbox, sıra, tekrar ve Kafka'nın 7 günlük saklama süresi gibi dertlerin hiçbirini taşımaz. Bedeli dakikalarla ölçülen gecikme ve her turda bütün listenin çekilmesi; bu ölçekte (yüzlerce etkinlik) önemsiz. Etkinlik sayısı çok artarsa yalnızca değişenleri çekmek ya da olaylara dönmek düşünülür.
+- **Veri:** veritabanı yok. Elasticsearch parolası `deploy/.env`'deki `ELASTIC_PASSWORD`, compose'dan ortam değişkeniyle gelir. Worker tek kopya çalışır; iki kopya aynı anda yenilerse biri ötekinin dizinini silebilir, o tur boşa gider.
+- **Sağlık:** search-api `/health/ready`: Elasticsearch. Worker: heartbeat (eşik aralığın 2 katı) ve Elasticsearch.
 - **Ön yüz:** ana sayfanın üstünde arama kutusu. Yazarken (200 ms bekleyip) öneriler gelir: etkinliğe tıklanınca sayfası açılır, mekâna tıklanınca o adla aranır, şehre tıklanınca şehir filtresi olur. Ok tuşları ve Enter ile seçilir, Esc kapatır. Filtreler: şehir (sonuçtaki şehirler) ve tarih (Bugün, Bu hafta sonu, Bu ay, Tarih seç). Filtreler adreste durur (`?q=&sehir=&tarih=&bas=&bit=`); paylaşılabilir, geri tuşu önceki aramaya döner. Sonuçlar 24'erli, "Daha fazla göster" ile.
-- **Henüz yok:** mekânın adı ya da şehri değişince Catalog olay göndermiyor; dizinde eski ad kalır, yeniden dizinleme düzeltir. Fiyat ve tür filtresi, arama istatistikleri.
+- **Henüz yok:** sonuç cache'i (Redis; yük artınca ölçülüp karar verilecek), fiyat ve tür filtresi, arama istatistikleri.
 
 ---
 
@@ -631,7 +629,7 @@ Kodda ve konteyner adlarında ASCII **`gise`** kullanılır; klasör adındaki `
 | # | Aşama | Bitti sayılması için |
 |---|---|---|
 | 0 | **İskelet** | Solution, Catalog'dan tek uç nokta, APISIX, Keycloak (PKCE) ile giriş yapan boş React sayfası, GitHub Actions'ta build ve test |
-| 1 | **Catalog** (+ Search) | Etkinlik oluşturma, listeleme, arama. **İlk outbox:** `EventPublished` outbox üzerinden Kafka'ya gider; Search onu **ilk inbox** ile alır |
+| 1 | **Catalog** (+ Search) | Etkinlik oluşturma, listeleme, arama. **İlk outbox:** `EventPublished` outbox üzerinden Kafka'ya gider; Reservation onu **ilk inbox** ile alır. Search, Catalog'dan gRPC ile düzenli dolar |
 | 2 | **Reservation** | Koltuk tutma ve bırakma; k6 yarış testi CI'da yeşil |
 | 3 | **Order + Payment** | Saga'nın tüm yolları; her başarısızlık yolu için entegrasyon testi |
 | 4 | **Ticket + Notification** | QR'lı PDF bilet, kapıda okutma, e-posta |
