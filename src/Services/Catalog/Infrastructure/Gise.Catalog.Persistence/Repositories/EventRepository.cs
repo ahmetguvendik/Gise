@@ -60,4 +60,15 @@ public sealed class EventRepository : IEventRepository
             .Where(e => e.Status == EventStatus.Published && e.StartsAt > from)
             .OrderBy(e => e.StartsAt)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Event>> GetUpcomingPublishedPageAsync(DateTime from, int skip, int take, CancellationToken cancellationToken)
+        => await _context.Events
+            .AsNoTracking()
+            .Include(e => e.PriceCategories)
+            .Where(e => e.Status == EventStatus.Published && e.StartsAt > from)
+            .OrderBy(e => e.StartsAt)
+            .ThenBy(e => e.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
 }

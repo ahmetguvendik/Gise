@@ -11,4 +11,8 @@ public sealed class EventPublished
     public string VenueName { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
     public decimal MinPrice { get; set; }
+
+    // MinIO'daki afişin temel anahtarı (ör. "posters/2026/10/<id>"); afiş yoksa null. Boyların adresini dinleyen servis
+    // kendisi üretir (Search sonuçlarında afiş gösterir).
+    public string? PosterKey { get; set; }
 }

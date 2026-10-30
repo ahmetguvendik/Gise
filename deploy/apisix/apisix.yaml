@@ -19,6 +19,10 @@ upstreams:
     type: roundrobin
     nodes:
       "ticket-api:8080": 1
+  - id: search
+    type: roundrobin
+    nodes:
+      "search-api:8080": 1
 
 routes:
   - id: catalog
@@ -68,6 +72,20 @@ routes:
     plugins:
       limit-count:
         count: 300
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        policy: local
+        rejected_code: 429
+
+  # Yazarken öneri her tuşta değil, kısa bir bekleme sonrası istenir; yine de diğerlerinden daha sık çağrılır.
+  - id: search
+    uris: ["/api/search/*"]
+    upstream_id: search
+    priority: 10
+    plugins:
+      limit-count:
+        count: 600
         time_window: 60
         key_type: var
         key: remote_addr

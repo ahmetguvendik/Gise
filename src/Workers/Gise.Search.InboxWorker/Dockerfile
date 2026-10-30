@@ -1,0 +1,25 @@
+# Build context: repo kökü (deploy/docker-compose.yml böyle derler).
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+# Compose healthcheck'i sağlık ucuna istek atıyor; aspnet imajında HTTP istemcisi yok.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+USER $APP_UID
+# Yalnızca sağlık ucu.
+EXPOSE 8080
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+COPY Directory.Build.props Directory.Packages.props ./
+COPY src/Shared/ src/Shared/
+COPY src/Services/Search/ src/Services/Search/
+COPY src/Workers/Gise.Search.InboxWorker/ src/Workers/Gise.Search.InboxWorker/
+# NuGet paketleri build'ler arasında önbellekte kalır; kod değişince restore saniyeler sürer.
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet publish src/Workers/Gise.Search.InboxWorker/Gise.Search.InboxWorker.csproj -c Release -o /app/publish
+
+FROM base AS final
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "Gise.Search.InboxWorker.dll"]

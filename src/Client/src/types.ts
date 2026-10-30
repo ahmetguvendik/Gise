@@ -1,16 +1,45 @@
 /** PendingReview: organizatör onaya gönderdi, admin yayınlar ya da geri gönderir. */
 export type EventStatus = 'Draft' | 'PendingReview' | 'Published' | 'Cancelled'
 
-export interface EventSummary {
+/** Arama sonucundaki etkinlik: yalnızca yayındaki ve yaklaşan etkinlikler. */
+export interface SearchEventItem {
   id: string
   title: string
-  venueId: string
   startsAt: string
+  venueName: string
+  city: string
+  minPrice: number
   /** Afiş yoksa boş; o zaman renkli yer tutucu çizilir. */
   posterUrl: string | null
   posterSrcset: string | null
-  /** Yayındaki etkinlikte her bölüm fiyatlıdır; yine de API boş dönebilir. */
-  minPrice: number | null
+}
+
+export interface CityFacet {
+  name: string
+  count: number
+}
+
+export interface SearchEventsResult {
+  items: SearchEventItem[]
+  total: number
+  page: number
+  pageSize: number
+  /** Aramaya ve tarihe uyan etkinliklerin şehirleri; seçili şehirden bağımsız. */
+  cities: CityFacet[]
+}
+
+export interface SuggestedEvent {
+  id: string
+  title: string
+  startsAt: string
+  venueName: string
+  city: string
+}
+
+export interface Suggestions {
+  events: SuggestedEvent[]
+  venues: string[]
+  cities: string[]
 }
 
 export interface EventPrice {

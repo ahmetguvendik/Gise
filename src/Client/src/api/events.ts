@@ -1,9 +1,8 @@
-import type { CreatedEvent, CreateEventInput, EventDetail, EventSummary, MyEvent, PendingEvent, PriceInput } from '../types'
+import type { CreatedEvent, CreateEventInput, EventDetail, MyEvent, PendingEvent, PriceInput } from '../types'
 import { request } from './http'
 
+// Ana sayfadaki liste Search servisinden gelir (bkz. searchApi).
 export const eventsApi = {
-  list: () => request<EventSummary[]>('/api/events'),
-
   // Taslağı yalnızca sahibi ve admin görür; token yoksa taslak için 404 döner.
   get: (id: string, token?: string) => request<EventDetail>(`/api/events/${id}`, { token }),
 

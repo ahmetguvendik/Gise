@@ -100,6 +100,7 @@ public sealed class SetEventPricesCommandHandler : IRequestHandler<SetEventPrice
                 VenueName = venue.Name,
                 City = venue.City,
                 MinPrice = entity.PriceCategories.Min(p => p.Price),
+                PosterKey = entity.PosterKey,
                 PreviousStartsAt = entity.StartsAt
             }, cancellationToken);
         }

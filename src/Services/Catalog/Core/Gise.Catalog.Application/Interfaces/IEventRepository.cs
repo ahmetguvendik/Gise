@@ -22,4 +22,7 @@ public interface IEventRepository
 
     // Fiyatlarıyla birlikte, tarihe göre sıralı.
     Task<IReadOnlyList<Domain.Entities.Event>> GetUpcomingPublishedAsync(DateTime from, CancellationToken cancellationToken);
+
+    // GetUpcomingPublishedAsync'in sayfalı hâli; aynı tarihtekiler ID'ye göre sıralanır, sayfalar kaymaz.
+    Task<IReadOnlyList<Domain.Entities.Event>> GetUpcomingPublishedPageAsync(DateTime from, int skip, int take, CancellationToken cancellationToken);
 }

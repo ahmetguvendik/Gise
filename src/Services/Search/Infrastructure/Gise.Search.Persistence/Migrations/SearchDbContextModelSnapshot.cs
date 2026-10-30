@@ -41,6 +41,12 @@ namespace Gise.Search.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_dead_lettered");
 
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("key");
+
                     b.Property<string>("MessageId")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -74,6 +80,12 @@ namespace Gise.Search.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("trace_parent");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("type");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
