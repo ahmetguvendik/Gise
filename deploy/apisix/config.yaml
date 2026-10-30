@@ -25,6 +25,9 @@ deployment:
     timeout: 30
 
 apisix:
+  router:
+    # Uçlar tek tek route olarak tanımlı; yol parametreleri (/api/events/:id) bu router'la eşleşir.
+    http: radixtree_uri_with_parameter
   # Konteyner yeniden oluşturulunca yeni IP'si en geç 10 sn'de görülür. Telgraf'ta varsayılan
   # süre yüzünden gateway dakikalarca eski IP'ye gidiyordu.
   dns_resolver_valid: 10

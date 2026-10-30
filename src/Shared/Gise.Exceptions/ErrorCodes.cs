@@ -7,6 +7,10 @@ public static class ErrorCodes
         public const string ValidationFailed = "VALIDATION_FAILED";
         public const string InternalError = "INTERNAL_SERVER_ERROR";
         public const string ServiceUnavailable = "SERVICE_UNAVAILABLE";
+
+        // Servisler değil APISIX üretir (deploy/apisix/seed.sh): istek sınırı aşıldı, tanımsız API yolu ya da yöntemi.
+        public const string RateLimitExceeded = "RATE_LIMIT_EXCEEDED";
+        public const string RouteNotFound = "ROUTE_NOT_FOUND";
     }
 
     public static class Auth

@@ -533,19 +533,26 @@ stateDiagram-v2
 - Dışarıya açık tek uygulama portu gateway'dir (`localhost:8000`). İstemci de gateway'in arkasından sunulur; tarayıcı tek bir adresle konuşur, CORS gerekmez.
 - APISIX **etcd ile** çalışır (`deploy/apisix/config.yaml`): route'lar, upstream'ler ve eklentiler etcd'de durur ve **dashboard**'dan yönetilir: `http://127.0.0.1:9180/ui/`. Dashboard ile yönetim API'si aynı porttadır. Port yalnızca makinenin `127.0.0.1`'ine açıktır ve `deploy/.env`'deki `APISIX_ADMIN_KEY` olmadan açılmaz.
 - **Başlangıç route'ları** `deploy/apisix/seed.sh`'tadır; yeni kurulumda bir kez yüklenir: `docker compose -f deploy/docker-compose.yml --profile setup up apisix-init`. Script tekrar çalıştırılırsa aynı id'li route'lar script'teki hâline döner. Dashboard'dan yapılan değişiklik koda yansımaz; kalıcı olması istenen değişiklik script'e de yazılır.
+- **Her API ucu ayrı bir route'tur**, yöntem ve yoluyla: ör. `POST /api/events/:id/publish` (34 uç). Yol parametreleri `:ad` biçimindedir (router `radixtree_uri_with_parameter`). Serviste yeni bir uç açılınca `seed.sh`'a da route eklenir; eklenmezse gateway 404 döner.
+- **Tanımsız yol ya da yöntem** (`/api/*`, öncelik 1) istemciye (index.html) düşmez: 404 ProblemDetails, `ROUTE_NOT_FOUND`. İstemci route'u (`/*`) en düşük önceliktedir.
+- **İstek sınırı** IP başına, dakikalıktır. Aynı gruptaki uçlar tek sayacı paylaşır (limit-count `group`); sınır kaynağın bütün uçları için toplamdır. Kötüye kullanıma açık uçların kendi sayacı ve daha dar sınırı vardır:
 
-| Route | Yollar | Servis | İstek sınırı (IP başına, dakikada) |
-|---|---|---|---|
-| `catalog` | `/api/events`, `/api/venues`, `/api/media` | catalog-api | 300 |
-| `reservation` | `/api/reservation` | reservation-api | 300 |
-| `order` | `/api/orders` | order-api | 300 |
-| `ticket` | `/api/tickets` | ticket-api | 300 |
-| `search` | `/api/search` | search-api | 600 (yazarken öneri) |
-| `client` | `/*` (API'lere uymayan her istek) | client (React) | — |
+| Sayaç | Uçlar | Sınır |
+|---|---|---|
+| `events` | etkinliklerin 14 ucu | 300 |
+| `venues` | mekânların 6 ucu | 300 |
+| `media` | `POST /api/media/commit`, `GET /api/media/policy` | 300 |
+| `reservation` | koltuk durumu | 300 |
+| `orders` | siparişlerim, sipariş durumu, ödeme, vazgeçme | 300 |
+| `tickets` | biletlerim, PDF, kapıda okutma | 300 |
+| `search` | arama, yazarken öneri | 600 |
+| kendi sayacı | `POST /api/media/upload-url` (depoya dosya yükletir) | 20 |
+| kendi sayacı | `POST /api/orders` (koltuk tutar) | 10 |
 
-- API route'larının önceliği 10, istemcininki 0: `/api/...` istekleri istemciye düşmez.
+- Sınır aşılınca servislerin hata biçiminde 429 döner (ProblemDetails, `RATE_LIMIT_EXCEEDED`, `Retry-After: 60`); ön yüz mesajı gösterir. Gateway'in ürettiği kodlar da `ErrorCodes.General`'da yazılıdır.
+- Sayaç APISIX'in belleğindedir (`policy: local`). Birden çok APISIX düğümüne çıkılırsa her düğüm kendi sayar ve sınır düğüm sayısı kadar gevşer; o zaman `redis` politikasına geçilir (Telgraf notu).
 - etcd dışarıya açık değildir ve kimlik doğrulaması kapalıdır (yalnızca compose ağında). Canlıda etcd'de kimlik doğrulaması ve TLS açılmalı, yönetim API'sine erişim de daraltılmalı.
-- Satış anında koltuk tutma ucu için IP ve kullanıcı bazlı istek sınırı uygulanır.
+- Koltuk tutan sipariş açma ucu IP başına dakikada 10 ile sınırlıdır; kullanıcı bazlı sınır henüz yok.
 - **Telgraf dersi:** APISIX'in DNS önbellek süresi kısa tutulur; aksi halde yeniden başlatılan bir konteynerin eski IP'sine gider.
 
 ---
