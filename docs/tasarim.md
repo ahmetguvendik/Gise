@@ -531,7 +531,20 @@ stateDiagram-v2
 ## 7. Gateway (APISIX)
 
 - Dışarıya açık tek uygulama portu gateway'dir (`localhost:8000`). İstemci de gateway'in arkasından sunulur; tarayıcı tek bir adresle konuşur, CORS gerekmez.
-- APISIX **bağımsız (standalone) modda** çalışır: route'lar ve istek sınırları `deploy/apisix/apisix.yaml` dosyasında kod olarak durur. etcd ve yönetim API'si yoktur; dışarıya açık bir yönetim portu da yoktur.
+- APISIX **etcd ile** çalışır (`deploy/apisix/config.yaml`): route'lar, upstream'ler ve eklentiler etcd'de durur ve **dashboard**'dan yönetilir: `http://127.0.0.1:9180/ui/`. Dashboard ile yönetim API'si aynı porttadır. Port yalnızca makinenin `127.0.0.1`'ine açıktır ve `deploy/.env`'deki `APISIX_ADMIN_KEY` olmadan açılmaz.
+- **Başlangıç route'ları** `deploy/apisix/seed.sh`'tadır; yeni kurulumda bir kez yüklenir: `docker compose -f deploy/docker-compose.yml --profile setup up apisix-init`. Script tekrar çalıştırılırsa aynı id'li route'lar script'teki hâline döner. Dashboard'dan yapılan değişiklik koda yansımaz; kalıcı olması istenen değişiklik script'e de yazılır.
+
+| Route | Yollar | Servis | İstek sınırı (IP başına, dakikada) |
+|---|---|---|---|
+| `catalog` | `/api/events`, `/api/venues`, `/api/media` | catalog-api | 300 |
+| `reservation` | `/api/reservation` | reservation-api | 300 |
+| `order` | `/api/orders` | order-api | 300 |
+| `ticket` | `/api/tickets` | ticket-api | 300 |
+| `search` | `/api/search` | search-api | 600 (yazarken öneri) |
+| `client` | `/*` (API'lere uymayan her istek) | client (React) | — |
+
+- API route'larının önceliği 10, istemcininki 0: `/api/...` istekleri istemciye düşmez.
+- etcd dışarıya açık değildir ve kimlik doğrulaması kapalıdır (yalnızca compose ağında). Canlıda etcd'de kimlik doğrulaması ve TLS açılmalı, yönetim API'sine erişim de daraltılmalı.
 - Satış anında koltuk tutma ucu için IP ve kullanıcı bazlı istek sınırı uygulanır.
 - **Telgraf dersi:** APISIX'in DNS önbellek süresi kısa tutulur; aksi halde yeniden başlatılan bir konteynerin eski IP'sine gider.
 
@@ -566,7 +579,7 @@ Gişe/
 ├── docs/                          # tasarım ve kararlar
 ├── deploy/
 │   ├── docker-compose.yml         # name: gise
-│   ├── apisix/                    # config.yaml, apisix.yaml (route'lar ve istek sınırları)
+│   ├── apisix/                    # config.yaml (etcd, yönetim API'si), seed.sh (başlangıç route'ları)
 │   ├── keycloak/                  # gise-realm.json
 │   └── scripts/                   # dev-users.sh
 ├── src/

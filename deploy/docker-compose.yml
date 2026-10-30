@@ -624,19 +624,56 @@ services:
       context: ../src/Client
     restart: unless-stopped
 
+  # APISIX'in route ve ayar deposu; dashboard'dan yapılan değişiklikler burada durur. Dışarıya açık değil.
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.21
+    restart: unless-stopped
+    command:
+      - etcd
+      - --name=gise-etcd
+      - --data-dir=/etcd-data
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://etcd:2379
+    volumes:
+      - etcd_data:/etcd-data
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   apisix:
     image: apache/apisix:3.16.0-debian
     restart: unless-stopped
+    environment:
+      APISIX_ADMIN_KEY: ${APISIX_ADMIN_KEY:?deploy/.env içinde APISIX_ADMIN_KEY tanımlı olmalı}
     ports:
       - "8000:9080"
+      # Yönetim API'si ve dashboard (/ui/): yalnızca bu makineden.
+      - "127.0.0.1:9180:9180"
     volumes:
       - ./apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
-      - ./apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
     depends_on:
+      etcd:
+        condition: service_healthy
       catalog-api:
         condition: service_healthy
       client:
         condition: service_started
+
+  # Başlangıç route'larını etcd'ye yazar; sonrası dashboard'dan yönetilir (bkz. deploy/apisix/seed.sh).
+  apisix-init:
+    profiles: ["setup"]
+    image: curlimages/curl:8.11.1
+    depends_on:
+      apisix:
+        condition: service_started
+    environment:
+      APISIX_ADMIN_KEY: ${APISIX_ADMIN_KEY}
+    entrypoint: ["/bin/sh", "/seed.sh"]
+    volumes:
+      - ./apisix/seed.sh:/seed.sh:ro
+    restart: "no"
 
 volumes:
   postgres_data:
@@ -646,3 +683,4 @@ volumes:
   rabbitmq_data:
   minio_data:
   elasticsearch_data:
+  etcd_data:

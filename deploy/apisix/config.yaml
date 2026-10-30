@@ -1,9 +1,28 @@
-# Bağımsız (standalone) mod: route'lar apisix.yaml dosyasından okunur. etcd ve yönetim API'si
-# yok; dışarıya açık bir yönetim portu da yok. Dosya değişince APISIX kendini yeniden yükler.
+# Route'lar, upstream'ler ve eklentiler etcd'de durur; yönetim API'si ve dashboard (http://127.0.0.1:9180/ui/) bunları
+# değiştirir. Başlangıç route'ları deploy/apisix/seed.sh ile yüklenir.
 deployment:
-  role: data_plane
-  role_data_plane:
-    config_provider: yaml
+  role: traditional
+  role_traditional:
+    config_provider: etcd
+  admin:
+    # Yönetim API'si ve dashboard anahtarsız açılmaz. Anahtar deploy/.env'deki APISIX_ADMIN_KEY.
+    admin_key_required: true
+    admin_key:
+      - name: admin
+        key: ${{APISIX_ADMIN_KEY}}
+        role: admin
+    # Port compose'da yalnızca makinenin 127.0.0.1'ine açık. İstek konteynere Docker ağ geçidinden geldiği için burada
+    # adres kısıtı yok; compose ağındaki konteynerler de ulaşabilir ama anahtarsız bir şey yapamaz.
+    allow_admin:
+      - 0.0.0.0/0
+    admin_listen:
+      ip: 0.0.0.0
+      port: 9180
+  etcd:
+    host:
+      - "http://etcd:2379"
+    prefix: /apisix
+    timeout: 30
 
 apisix:
   # Konteyner yeniden oluşturulunca yeni IP'si en geç 10 sn'de görülür. Telgraf'ta varsayılan
