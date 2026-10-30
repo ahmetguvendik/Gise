@@ -585,7 +585,7 @@ services:
       elasticsearch:
         condition: service_healthy
 
-  # Arama dizinini Catalog'dan gRPC ile dakikada bir baştan kurar (Sync:IntervalSeconds).
+  # Arama dizinini Catalog'dan (etkinlikler) ve Reservation'dan (koltuk durumu) gRPC ile dakikada bir baştan kurar.
   search-sync-worker:
     image: gise/search-sync-worker:dev
     build:
@@ -605,6 +605,9 @@ services:
       elasticsearch:
         condition: service_healthy
       catalog-api:
+        condition: service_healthy
+      # Koltuk durumu ("Tükendi", "Son N bilet") Reservation'ın gRPC ucundan.
+      reservation-api:
         condition: service_healthy
 
   # Kalıcı verisi yok (yalnızca Redis); migration adımı da yok.

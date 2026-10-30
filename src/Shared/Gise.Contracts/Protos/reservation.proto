@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+// Reservation'ın diğer servislere açtığı senkron uç. Yalnızca Docker ağının içinden, 8081 portundan erişilir.
+package gise.reservation.v1;
+
+option csharp_namespace = "Gise.Contracts.Grpc.Reservation";
+
+service ReservationGrpc {
+  // Etkinliklerin koltuk sayısı ve satılmamış koltuk sayısı. Search ana sayfadaki "Tükendi" ve "Son N bilet" bilgisini
+  // bununla kurar. Sepette tutulan koltuk satılmamış sayılır: 10 dakika içinde geri açılabilir. Stoğu henüz kurulmamış
+  // etkinlik yanıtta yer almaz. Bir istekte en fazla 500 etkinlik.
+  rpc GetAvailability (GetAvailabilityRequest) returns (GetAvailabilityReply);
+}
+
+message GetAvailabilityRequest {
+  repeated string event_ids = 1;
+}
+
+message GetAvailabilityReply {
+  repeated EventAvailability events = 1;
+}
+
+message EventAvailability {
+  string event_id = 1;
+  int32 seat_count = 2;
+  int32 available_count = 3;
+}

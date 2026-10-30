@@ -7,6 +7,9 @@ public sealed class GetEventSeatsResponse
 
     // İptal edilmemiş ve başlamamışsa satışta.
     public bool IsOnSale { get; set; }
+
+    // Bütün koltuklar satılmış. Sepette tutulan koltuk satılmamış sayılır: 10 dakika içinde geri açılabilir.
+    public bool SoldOut { get; set; }
     public List<SeatSectionResponse> Sections { get; set; } = [];
 }
 

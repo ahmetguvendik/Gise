@@ -3,8 +3,10 @@
     <ProjectReference Include="..\..\Core\Gise.Reservation.Application\Gise.Reservation.Application.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Gise.Reservation.Persistence\Gise.Reservation.Persistence.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Gise.Reservation.Infrastructure\Gise.Reservation.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore.Server" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
   </ItemGroup>
 </Project>

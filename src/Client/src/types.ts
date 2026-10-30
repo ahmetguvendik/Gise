@@ -12,6 +12,10 @@ export interface SearchEventItem {
   /** Afiş yoksa boş; o zaman renkli yer tutucu çizilir. */
   posterUrl: string | null
   posterSrcset: string | null
+  /** Bütün koltuklar satılmış (en fazla 1 dakika önceki durum). */
+  soldOut: boolean
+  /** Az kaldıysa (20 ve altı) satılmamış koltuk sayısı; değilse boş. */
+  remainingSeats: number | null
 }
 
 export interface CityFacet {
@@ -143,6 +147,8 @@ export interface SeatMap {
   startsAt: string
   /** İptal edilmemiş ve başlamamışsa satışta. */
   isOnSale: boolean
+  /** Bütün koltuklar satılmış; sepette tutulanlar satılmamış sayılır. */
+  soldOut: boolean
   sections: SeatMapSection[]
 }
 

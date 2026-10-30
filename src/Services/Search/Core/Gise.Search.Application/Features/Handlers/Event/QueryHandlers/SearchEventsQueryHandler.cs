@@ -2,6 +2,7 @@ using Gise.Search.Application.Features.Queries.Event.Request;
 using Gise.Search.Application.Features.Queries.Event.Response;
 using Gise.Search.Application.Interfaces;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 
 namespace Gise.Search.Application.Features.Handlers.Event.QueryHandlers;
 
@@ -10,12 +11,14 @@ public sealed class SearchEventsQueryHandler : IRequestHandler<SearchEventsQuery
     private readonly IEventIndex _eventIndex;
     private readonly IPosterUrlResolver _posterUrls;
     private readonly TimeProvider _timeProvider;
+    private readonly int _fewLeftThreshold;
 
-    public SearchEventsQueryHandler(IEventIndex eventIndex, IPosterUrlResolver posterUrls, TimeProvider timeProvider)
+    public SearchEventsQueryHandler(IEventIndex eventIndex, IPosterUrlResolver posterUrls, TimeProvider timeProvider, IConfiguration configuration)
     {
         _eventIndex = eventIndex;
         _posterUrls = posterUrls;
         _timeProvider = timeProvider;
+        _fewLeftThreshold = configuration.GetRequiredSection("Availability").GetValue<int>("FewLeftThreshold");
     }
 
     public async Task<SearchEventsResponse> Handle(SearchEventsQuery request, CancellationToken cancellationToken)
@@ -46,7 +49,10 @@ public sealed class SearchEventsQueryHandler : IRequestHandler<SearchEventsQuery
                 City = e.City,
                 MinPrice = e.MinPrice,
                 PosterUrl = _posterUrls.ResolveUrl(e.PosterKey),
-                PosterSrcset = _posterUrls.ResolveSrcset(e.PosterKey)
+                PosterSrcset = _posterUrls.ResolveSrcset(e.PosterKey),
+                // Stok bilgisi yoksa (henüz kurulmadı) ikisi de gösterilmez.
+                SoldOut = e.SeatCount > 0 && e.AvailableCount == 0,
+                RemainingSeats = e.AvailableCount is > 0 and var left && left <= _fewLeftThreshold ? left : null
             }).ToList(),
             Cities = result.Cities.Select(c => new CityFacet { Name = c.City, Count = c.Count }).ToList()
         };

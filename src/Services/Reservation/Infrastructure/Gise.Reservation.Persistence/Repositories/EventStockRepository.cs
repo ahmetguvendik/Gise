@@ -1,5 +1,6 @@
 using Gise.Reservation.Application.Interfaces;
 using Gise.Reservation.Domain.Entities;
+using Gise.Reservation.Domain.Enums;
 using Gise.Reservation.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +27,14 @@ public sealed class EventStockRepository : IEventStockRepository
     public async Task<IReadOnlyList<EventSeat>> GetSeatsForUpdateAsync(Guid eventId, IReadOnlyCollection<Guid> seatIds, CancellationToken cancellationToken)
         => await _context.EventSeats
             .Where(s => s.EventId == eventId && seatIds.Contains(s.SeatId))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<EventAvailability>> GetAvailabilityAsync(IReadOnlyCollection<Guid> eventIds, CancellationToken cancellationToken)
+        => await _context.EventSeats
+            .AsNoTracking()
+            .Where(s => eventIds.Contains(s.EventId))
+            .GroupBy(s => s.EventId)
+            .Select(g => new EventAvailability(g.Key, g.Count(), g.Count(s => s.Status == SeatStatus.Available)))
             .ToListAsync(cancellationToken);
 
     public Task<EventStock?> GetWithSeatsAsync(Guid eventId, CancellationToken cancellationToken)

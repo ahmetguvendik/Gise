@@ -15,4 +15,9 @@ public interface IEventStockRepository
 
     // Koltuklarıyla birlikte, salt okunur.
     Task<EventStock?> GetWithSeatsAsync(Guid eventId, CancellationToken cancellationToken);
+
+    // Etkinlik başına koltuk ve satılmamış koltuk sayısı; stoğu olmayan etkinlik sonuçta yer almaz.
+    Task<IReadOnlyList<EventAvailability>> GetAvailabilityAsync(IReadOnlyCollection<Guid> eventIds, CancellationToken cancellationToken);
 }
+
+public sealed record EventAvailability(Guid EventId, int SeatCount, int AvailableCount);

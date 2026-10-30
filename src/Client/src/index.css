@@ -283,6 +283,12 @@ a:hover { color: var(--link-hover); }
 }
 .event-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
 .event-card .poster { height: 210px; }
+/* Tükenen etkinlik listede kalır ama geri planda durur. */
+.event-card--soldout .poster { filter: grayscale(0.85); opacity: 0.7; }
+.event-card--soldout .event-card__title a { color: var(--muted); }
+.badge--soldout { background: var(--surface-2); color: var(--text); border: 1px solid var(--border-strong); }
+.badge--few-left { justify-self: start; align-self: flex-start; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--link); }
+.notice--soldout { background: var(--surface-2); color: var(--text); }
 .event-card__body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
 .event-card__title { font-size: 22px; letter-spacing: -0.02em; line-height: 1.1; }
 .event-card__title a { color: var(--text); text-decoration: none; }

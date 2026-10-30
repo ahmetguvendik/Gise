@@ -91,8 +91,8 @@ export function EventsPage() {
   const showResults = () => document.getElementById('etkinlikler')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   const stale = results !== null && results.key !== key
-  // Filtresiz listede en yakın etkinlik öne çıkar.
-  const featured = !filtered && !stale ? results?.items[0] : undefined
+  // Filtresiz listede bileti olan en yakın etkinlik öne çıkar.
+  const featured = !filtered && !stale ? results?.items.find((item) => !item.soldOut) : undefined
   // Seçili şehir bu aramada hiç geçmiyorsa da listede kalsın; yoksa seçim görünmez olur.
   const cityOptions = results?.cities ?? []
   const cities = city && !cityOptions.some((option) => option.name === city) ? [{ name: city, count: 0 }, ...cityOptions] : cityOptions
@@ -244,6 +244,8 @@ export function EventsPage() {
                     minPrice={event.minPrice}
                     posterUrl={event.posterUrl}
                     posterSrcset={event.posterSrcset}
+                    soldOut={event.soldOut}
+                    remainingSeats={event.remainingSeats}
                   />
                 ))}
               </ul>

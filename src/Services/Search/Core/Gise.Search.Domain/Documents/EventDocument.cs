@@ -17,4 +17,8 @@ public sealed class EventDocument
 
     // MinIO'daki afişin temel anahtarı; adresler sonuç dönerken üretilir.
     public string? PosterKey { get; set; }
+
+    // Reservation'dan: koltuk sayısı ve satılmamış koltuk sayısı. Stoğu henüz kurulmamış etkinlikte boş.
+    public int? SeatCount { get; set; }
+    public int? AvailableCount { get; set; }
 }

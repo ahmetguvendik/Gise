@@ -114,6 +114,12 @@
       "posterKey": {
         "type": "keyword",
         "index": false
+      },
+      "seatCount": {
+        "type": "integer"
+      },
+      "availableCount": {
+        "type": "integer"
       }
     }
   }

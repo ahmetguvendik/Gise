@@ -35,6 +35,7 @@ public sealed class GetEventSeatsQueryHandler : IRequestHandler<GetEventSeatsQue
             EventId = stock.Id,
             StartsAt = stock.StartsAt,
             IsOnSale = stock.CancelledAt is null && stock.StartsAt > _timeProvider.GetUtcNow().UtcDateTime,
+            SoldOut = stock.Seats.Count > 0 && stock.Seats.All(s => s.Status == SeatStatus.Sold),
             Sections = stock.Seats
                 .GroupBy(s => new { s.SectionId, s.SectionName })
                 .OrderBy(g => g.Key.SectionName)

@@ -10,5 +10,6 @@
   <ItemGroup>
     <!-- Sunucu (Catalog) ve istemci (Reservation…) aynı üretilmiş koddan beslenir. -->
     <Protobuf Include="Protos\catalog.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\reservation.proto" GrpcServices="Both" />
   </ItemGroup>
 </Project>

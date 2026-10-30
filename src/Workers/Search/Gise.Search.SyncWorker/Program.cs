@@ -1,4 +1,5 @@
 using Gise.Contracts.Grpc.Catalog;
+using Gise.Contracts.Grpc.Reservation;
 using Gise.HealthChecks;
 using Gise.Search.Infrastructure;
 using Gise.Search.Infrastructure.Elasticsearch;
@@ -11,6 +12,11 @@ var builder = WebApplication.CreateBuilder(args);
 var catalogGrpcUrl = builder.Configuration.GetRequiredSection("Catalog")["GrpcUrl"]
     ?? throw new InvalidOperationException("Catalog:GrpcUrl ayarı eksik.");
 builder.Services.AddGrpcClient<CatalogGrpc.CatalogGrpcClient>(options => options.Address = new Uri(catalogGrpcUrl));
+
+// Reservation'ın gRPC ucu: koltuk durumu, aynı biçimde.
+var reservationGrpcUrl = builder.Configuration.GetRequiredSection("Reservation")["GrpcUrl"]
+    ?? throw new InvalidOperationException("Reservation:GrpcUrl ayarı eksik.");
+builder.Services.AddGrpcClient<ReservationGrpc.ReservationGrpcClient>(options => options.Address = new Uri(reservationGrpcUrl));
 
 // Arama dizini (Elasticsearch).
 builder.Services.AddInfrastructureServices(builder.Configuration);

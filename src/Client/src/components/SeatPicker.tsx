@@ -92,7 +92,11 @@ export function SeatPicker({ eventId }: Props) {
 
   return (
     <div className="seat-picker">
-      {!map.isOnSale && <p className="muted">Bu etkinliğin satışı kapalı.</p>}
+      {map.soldOut ? (
+        <div className="notice notice--soldout">Bu etkinliğin biletleri tükendi.</div>
+      ) : (
+        !map.isOnSale && <p className="muted">Bu etkinliğin satışı kapalı.</p>
+      )}
 
       <ul className="seat-legend" aria-label="Koltuk durumları">
         <li>

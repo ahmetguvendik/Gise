@@ -21,6 +21,12 @@ public sealed class SearchEventItem
     public decimal MinPrice { get; set; }
     public string? PosterUrl { get; set; }
     public string? PosterSrcset { get; set; }
+
+    // Bütün koltuklar satılmış.
+    public bool SoldOut { get; set; }
+
+    // Az kaldıysa (Availability:FewLeftThreshold ve altı) satılmamış koltuk sayısı; değilse boş.
+    public int? RemainingSeats { get; set; }
 }
 
 public sealed class CityFacet
