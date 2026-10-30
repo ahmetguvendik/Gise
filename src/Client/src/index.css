@@ -121,7 +121,31 @@ a:hover { color: var(--link-hover); }
 .nav__link:hover { color: var(--text); background: var(--surface-2); }
 .nav__link.is-active { background: var(--contrast-bg); color: var(--contrast-text); }
 .header__user { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.header__name { font-weight: 600; font-size: 15px; }
+.header__name { font-weight: 600; font-size: 15px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Üst bardaki açılır menüler (Yönetim, hesap). */
+.menu { position: relative; }
+/* font kısaltması nav__link'in yazı boyutunu ve kalınlığını ezerdi; yalnızca yazı ailesi alınır. */
+.menu__button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; font-family: inherit; cursor: pointer; }
+.menu__button[aria-expanded='true'] { background: var(--surface-2); color: var(--text); }
+.menu__chevron { flex: none; transition: transform 0.15s; }
+.menu__button[aria-expanded='true'] .menu__chevron { transform: rotate(180deg); }
+.menu__button--account { min-height: 44px; padding: 8px 14px 8px 18px; border: 2px solid var(--border-strong); border-radius: 999px; color: var(--text); }
+.menu__button--account:hover { background: var(--surface-2); }
+.menu__panel { position: absolute; z-index: 30; top: calc(100% + 8px); min-width: 220px; padding: 8px; display: grid; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); }
+.menu__panel--start { left: 0; }
+.menu__panel--end { right: 0; }
+.menu__item { display: block; width: 100%; padding: 10px 14px; border: 0; border-radius: 10px; background: transparent; color: var(--text); font: inherit; font-size: 15px; font-weight: 600; text-align: left; text-decoration: none; cursor: pointer; }
+.menu__item:hover { background: var(--surface-2); color: var(--text); }
+.menu__item.is-active { background: var(--surface-2); color: var(--link); }
+/* Dar ekranda: logo ve hesap menüsü üstte, ana menü altında tek satır. */
+@media (max-width: 640px) {
+  .header__inner { gap: 10px 12px; }
+  .header__user { order: 2; margin-left: auto; }
+  .nav { order: 3; flex-basis: 100%; margin-right: 0; gap: 2px; }
+  .nav__link { padding: 8px 11px; font-size: 14px; }
+  .header__name { max-width: 130px; }
+}
 
 .footer { background: var(--surface-2); }
 .footer__inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 32px; padding-bottom: 32px; }

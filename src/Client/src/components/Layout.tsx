@@ -5,9 +5,13 @@ import { accountUrl } from '../auth/oidcConfig'
 import { useSessionReady } from '../auth/SilentSignin'
 import { canCheckIn, canManageEvents, isAdmin } from '../auth/roles'
 import { Logo, TicketMark } from './Logo'
+import { Menu } from './Menu'
 
 // Giriş ve kayıttan sonra kullanıcı bulunduğu sayfaya döner.
 const here = () => window.location.origin + window.location.pathname
+
+// "Yönetim" menüsündeki sayfalar; bunlardan birindeyken menü düğmesi seçili görünür.
+const MANAGEMENT_PATHS = ['/kapi', '/etkinliklerim', '/onay-bekleyenler', '/mekan']
 
 export function Layout() {
   const auth = useAuth()
@@ -19,6 +23,13 @@ export function Layout() {
     window.scrollTo(0, 0)
   }, [pathname])
   const navClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'nav__link is-active' : 'nav__link')
+  const itemClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'menu__item is-active' : 'menu__item')
+
+  // Rolüne göre yönetim sayfaları; hiçbiri yoksa menü görünmez.
+  const gate = canCheckIn(auth.user)
+  const organizer = canManageEvents(auth.user)
+  const admin = isAdmin(auth.user)
+  const name = auth.user?.profile.name ?? auth.user?.profile.preferred_username
 
   return (
     <>
@@ -43,37 +54,42 @@ export function Layout() {
                 </NavLink>
               </>
             )}
-            {canCheckIn(auth.user) && (
-              <NavLink to="/kapi" className={navClass}>
-                Kapı
-              </NavLink>
-            )}
-            {canManageEvents(auth.user) && (
-              <NavLink to="/etkinliklerim" className={navClass}>
-                Etkinliklerim
-              </NavLink>
-            )}
-            {isAdmin(auth.user) && (
-              <>
-                <NavLink to="/onay-bekleyenler" className={navClass}>
-                  Onay bekleyenler
-                </NavLink>
-                <NavLink to="/mekanlar" className={navClass}>
-                  Mekânlar
-                </NavLink>
-              </>
+            {(gate || organizer || admin) && (
+              <Menu label="Yönetim" className="nav__link" active={MANAGEMENT_PATHS.some((path) => pathname.startsWith(path))}>
+                {organizer && (
+                  <NavLink to="/etkinliklerim" className={itemClass}>
+                    Etkinliklerim
+                  </NavLink>
+                )}
+                {admin && (
+                  <>
+                    <NavLink to="/onay-bekleyenler" className={itemClass}>
+                      Onay bekleyenler
+                    </NavLink>
+                    <NavLink to="/mekanlar" className={itemClass}>
+                      Mekânlar
+                    </NavLink>
+                  </>
+                )}
+                {gate && (
+                  <NavLink to="/kapi" className={itemClass}>
+                    Kapı
+                  </NavLink>
+                )}
+              </Menu>
             )}
           </nav>
 
           {!sessionReady ? null : auth.isAuthenticated ? (
             <div className="header__user">
-              <span className="header__name">{auth.user?.profile.name ?? auth.user?.profile.preferred_username}</span>
-              <a className="button button--outline" href={accountUrl}>
-                Hesabım
-              </a>
-              <button className="button button--ghost" onClick={() => void auth.signoutRedirect()}>
-                Çıkış
-              </button>
+              <Menu label={<span className="header__name">{name}</span>} className="menu__button--account" align="end">
+                <a className="menu__item" href={accountUrl}>
+                  Hesabım
+                </a>
+                <button type="button" className="menu__item" onClick={() => void auth.signoutRedirect()}>
+                  Çıkış
+                </button>
+              </Menu>
             </div>
           ) : (
             <div className="header__user">
