@@ -209,7 +209,7 @@ services:
     image: gise/catalog-outbox-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Catalog.OutboxWorker/Dockerfile
+      dockerfile: src/Workers/Catalog/Gise.Catalog.OutboxWorker/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Catalog: Host=postgres;Database=gise_catalog;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -256,7 +256,7 @@ services:
     image: gise/reservation-inbox-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Reservation.InboxWorker/Dockerfile
+      dockerfile: src/Workers/Reservation/Gise.Reservation.InboxWorker/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -281,7 +281,7 @@ services:
     image: gise/reservation-command-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Reservation.CommandWorker/Dockerfile
+      dockerfile: src/Workers/Reservation/Gise.Reservation.CommandWorker/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -333,7 +333,7 @@ services:
     image: gise/order-inbox-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Order.InboxWorker/Dockerfile
+      dockerfile: src/Workers/Order/Gise.Order.InboxWorker/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -360,7 +360,7 @@ services:
     image: gise/order-saga-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Order.SagaWorker/Dockerfile
+      dockerfile: src/Workers/Order/Gise.Order.SagaWorker/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -402,7 +402,7 @@ services:
     image: gise/payment-command-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Payment.CommandWorker/Dockerfile
+      dockerfile: src/Workers/Payment/Gise.Payment.CommandWorker/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Payment: Host=postgres;Database=gise_payment;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -450,7 +450,7 @@ services:
     image: gise/ticket-command-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Ticket.CommandWorker/Dockerfile
+      dockerfile: src/Workers/Ticket/Gise.Ticket.CommandWorker/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -478,7 +478,7 @@ services:
     image: gise/ticket-outbox-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Ticket.OutboxWorker/Dockerfile
+      dockerfile: src/Workers/Ticket/Gise.Ticket.OutboxWorker/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -501,7 +501,7 @@ services:
     image: gise/ticket-inbox-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Ticket.InboxWorker/Dockerfile
+      dockerfile: src/Workers/Ticket/Gise.Ticket.InboxWorker/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -542,7 +542,7 @@ services:
     image: gise/notification-inbox-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Notification.InboxWorker/Dockerfile
+      dockerfile: src/Workers/Notification/Gise.Notification.InboxWorker/Dockerfile
     restart: unless-stopped
     environment:
       ConnectionStrings__Notification: Host=postgres;Database=gise_notification;Username=gise;Password=${POSTGRES_PASSWORD}
@@ -587,7 +587,7 @@ services:
     image: gise/search-sync-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Gise.Search.SyncWorker/Dockerfile
+      dockerfile: src/Workers/Search/Gise.Search.SyncWorker/Dockerfile
     restart: unless-stopped
     environment:
       Elasticsearch__Password: ${ELASTIC_PASSWORD}

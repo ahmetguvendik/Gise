@@ -219,7 +219,7 @@ stateDiagram-v2
 - **`EventCancelled`**: etkinlik, sebep ve iptal zamanı. Reservation satışı durduracak, Order ve Payment iade başlatacak.
 - Olayları `IOutboxMessageRepository.AddCatalogEventAsync` yazar: `Type` olayın sınıf adı, anahtar etkinlik ID'si.
 - Olaylar `catalog.events` topic'ine gider. Anahtar etkinlik ID'sidir, böylece aynı etkinliğin olayları aynı bölüme düşer ve sırası korunur. Başlıklar: `type` (ör. `EventPublished`), `message-id` (alan tarafın inbox'ı tekrarı bununla yakalar), `traceparent`.
-- **`catalog-outbox-worker`** (`src/Workers/Gise.Catalog.OutboxWorker`), Telgraf'taki outbox worker'lar gibi catalog-api'den **ayrı bir process**: API çökse de bekleyen olaylar gönderilmeye devam eder. Kendi `OutboxWorkerDbContext`'i yalnızca outbox tablosunu görür; tabloyu catalog-api'nin migration'ları kurar. Birkaç saniyede bir bekleyen satırları `FOR UPDATE SKIP LOCKED` ile alıp gönderir; aynı anahtarın daha eski bir olayı beklerken yenisi onu geçmez. Gönderilemeyen satır artan aralıklarla (en fazla 5 dk) yeniden denenir; `MaxRetryCount` aşılınca dead-letter olur. Gönderilmiş satırlar `RetentionDays` sonra silinir. Ayarlar worker'ın appsettings'inde: `Kafka` ve `Outbox` bölümleri.
+- **`catalog-outbox-worker`** (`src/Workers/Catalog/Gise.Catalog.OutboxWorker`), Telgraf'taki outbox worker'lar gibi catalog-api'den **ayrı bir process**: API çökse de bekleyen olaylar gönderilmeye devam eder. Kendi `OutboxWorkerDbContext`'i yalnızca outbox tablosunu görür; tabloyu catalog-api'nin migration'ları kurar. Birkaç saniyede bir bekleyen satırları `FOR UPDATE SKIP LOCKED` ile alıp gönderir; aynı anahtarın daha eski bir olayı beklerken yenisi onu geçmez. Gönderilemeyen satır artan aralıklarla (en fazla 5 dk) yeniden denenir; `MaxRetryCount` aşılınca dead-letter olur. Gönderilmiş satırlar `RetentionDays` sonra silinir. Ayarlar worker'ın appsettings'inde: `Kafka` ve `Outbox` bölümleri.
 - Worker'ın `/health/ready` ucu: döngü dönüyor mu (heartbeat, `src/Shared/Gise.HealthChecks`), Postgres erişilebilir mi, dead-letter var mı (varsa "Degraded").
 - Topic'i olayı yayan servis açılışta oluşturur; Kafka'da otomatik oluşturma kapalıdır.
 - Kafka olayları varsayılanla **7 gün** tutar; daha eski olaylar topic'te yoktur. Sonradan eklenen bir dinleyici geçmişi topic'ten okuyamaz.
@@ -261,7 +261,7 @@ sequenceDiagram
 
 ### 3.7 Reservation: koltuk stoğu
 
-Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik için kendi koltuk stoğunu tutar. Koltuk haritası ve satış Catalog'a sormadan çalışır. Okuma ve işleme aynı worker'da (`src/Workers/Gise.Reservation.InboxWorker`, compose'da `reservation-inbox-worker`), iki ayrı parça olarak çalışır:
+Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik için kendi koltuk stoğunu tutar. Koltuk haritası ve satış Catalog'a sormadan çalışır. Okuma ve işleme aynı worker'da (`src/Workers/Reservation/Gise.Reservation.InboxWorker`, compose'da `reservation-inbox-worker`), iki ayrı parça olarak çalışır:
 
 - **Tüketici** (`CatalogEventsConsumer`): `catalog.events`'ten okur, mesajı `message-id` başlığıyla `inbox_messages`'a yazar (aynı mesaj ikinci kez yazılmaz), sonra offset'i onaylar. Yazamazsa okuma konumunu geri sarar; mesaj atlanmaz.
 - **İşlemci** (`Worker`): inbox'ı işler:
@@ -575,7 +575,14 @@ Gişe/
 │   │   ├── Gise.Contracts/        # yalnızca servisler arası sözleşmeler: Commands/, Events/, Protos/ (gRPC)
 │   │   ├── Gise.Exceptions/       # merkezi hata türleri ve ErrorCodes; her servisin Application'ı kullanır
 │   │   └── Gise.HealthChecks/     # worker'ların ortak sağlık kontrolleri (heartbeat)
-│   ├── Workers/                   # servislerden ayrı process'ler, ör. Gise.Catalog.OutboxWorker
+│   ├── Workers/                   # servislerden ayrı process'ler, servise göre klasörlü (bkz. 2.2)
+│   │   ├── Catalog/               # Gise.Catalog.OutboxWorker
+│   │   ├── Reservation/           # Gise.Reservation.InboxWorker, Gise.Reservation.CommandWorker
+│   │   ├── Order/                 # Gise.Order.SagaWorker, Gise.Order.InboxWorker
+│   │   ├── Payment/               # Gise.Payment.CommandWorker
+│   │   ├── Ticket/                # Gise.Ticket.CommandWorker, Gise.Ticket.InboxWorker, Gise.Ticket.OutboxWorker
+│   │   ├── Notification/          # Gise.Notification.InboxWorker
+│   │   └── Search/                # Gise.Search.SyncWorker
 │   ├── Services/
 │   │   ├── Catalog/  Reservation/  Order/  Payment/
 │   │   ├── Ticket/   Notification/  Search/  SeatMap/

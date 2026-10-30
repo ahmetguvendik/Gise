@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- Ayrı process: Catalog'un olaylarını Kafka'dan okur, inbox'a yazar ve işler (iptal edilen etkinliğin tamamlanmış
+       siparişlerini iade eder). Web host yalnızca sağlık ucu için. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Gise.HealthChecks\Gise.HealthChecks.csproj" />
+    <ProjectReference Include="..\..\..\Services\Order\Core\Gise.Order.Application\Gise.Order.Application.csproj" />
+    <ProjectReference Include="..\..\..\Services\Order\Infrastructure\Gise.Order.Persistence\Gise.Order.Persistence.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <PackageReference Include="MassTransit.RabbitMQ" />
+    <!-- MassTransit.EntityFrameworkCore eski Relational sürümünü getiriyor; projenin kalanıyla aynı sürüme sabitlenir. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+  </ItemGroup>
+</Project>

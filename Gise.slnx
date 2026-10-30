@@ -6,18 +6,31 @@
     <Project Path="src/Shared/Gise.Exceptions/Gise.Exceptions.csproj" />
     <Project Path="src/Shared/Gise.HealthChecks/Gise.HealthChecks.csproj" />
   </Folder>
-  <Folder Name="/src/Workers/">
-    <Project Path="src/Workers/Gise.Catalog.OutboxWorker/Gise.Catalog.OutboxWorker.csproj" />
-    <Project Path="src/Workers/Gise.Notification.InboxWorker/Gise.Notification.InboxWorker.csproj" />
-    <Project Path="src/Workers/Gise.Order.InboxWorker/Gise.Order.InboxWorker.csproj" />
-    <Project Path="src/Workers/Gise.Order.SagaWorker/Gise.Order.SagaWorker.csproj" />
-    <Project Path="src/Workers/Gise.Payment.CommandWorker/Gise.Payment.CommandWorker.csproj" />
-    <Project Path="src/Workers/Gise.Reservation.CommandWorker/Gise.Reservation.CommandWorker.csproj" />
-    <Project Path="src/Workers/Gise.Reservation.InboxWorker/Gise.Reservation.InboxWorker.csproj" />
-    <Project Path="src/Workers/Gise.Search.SyncWorker/Gise.Search.SyncWorker.csproj" />
-    <Project Path="src/Workers/Gise.Ticket.CommandWorker/Gise.Ticket.CommandWorker.csproj" />
-    <Project Path="src/Workers/Gise.Ticket.InboxWorker/Gise.Ticket.InboxWorker.csproj" />
-    <Project Path="src/Workers/Gise.Ticket.OutboxWorker/Gise.Ticket.OutboxWorker.csproj" />
+  <Folder Name="/src/Workers/" />
+  <Folder Name="/src/Workers/Catalog/">
+    <Project Path="src/Workers/Catalog/Gise.Catalog.OutboxWorker/Gise.Catalog.OutboxWorker.csproj" />
+  </Folder>
+  <Folder Name="/src/Workers/Notification/">
+    <Project Path="src/Workers/Notification/Gise.Notification.InboxWorker/Gise.Notification.InboxWorker.csproj" />
+  </Folder>
+  <Folder Name="/src/Workers/Order/">
+    <Project Path="src/Workers/Order/Gise.Order.InboxWorker/Gise.Order.InboxWorker.csproj" />
+    <Project Path="src/Workers/Order/Gise.Order.SagaWorker/Gise.Order.SagaWorker.csproj" />
+  </Folder>
+  <Folder Name="/src/Workers/Payment/">
+    <Project Path="src/Workers/Payment/Gise.Payment.CommandWorker/Gise.Payment.CommandWorker.csproj" />
+  </Folder>
+  <Folder Name="/src/Workers/Reservation/">
+    <Project Path="src/Workers/Reservation/Gise.Reservation.CommandWorker/Gise.Reservation.CommandWorker.csproj" />
+    <Project Path="src/Workers/Reservation/Gise.Reservation.InboxWorker/Gise.Reservation.InboxWorker.csproj" />
+  </Folder>
+  <Folder Name="/src/Workers/Search/">
+    <Project Path="src/Workers/Search/Gise.Search.SyncWorker/Gise.Search.SyncWorker.csproj" />
+  </Folder>
+  <Folder Name="/src/Workers/Ticket/">
+    <Project Path="src/Workers/Ticket/Gise.Ticket.CommandWorker/Gise.Ticket.CommandWorker.csproj" />
+    <Project Path="src/Workers/Ticket/Gise.Ticket.InboxWorker/Gise.Ticket.InboxWorker.csproj" />
+    <Project Path="src/Workers/Ticket/Gise.Ticket.OutboxWorker/Gise.Ticket.OutboxWorker.csproj" />
   </Folder>
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/Catalog/" />
