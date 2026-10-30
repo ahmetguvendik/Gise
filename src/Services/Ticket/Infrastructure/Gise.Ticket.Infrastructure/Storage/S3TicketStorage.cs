@@ -2,6 +2,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Gise.Ticket.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Gise.Ticket.Infrastructure.Storage;
 
@@ -13,9 +14,12 @@ public sealed class S3TicketStorage : ITicketStorage, IDisposable
     private readonly int _downloadUrlTtlSeconds;
     private readonly IAmazonS3 _internalClient;
     private readonly IAmazonS3 _publicClient;
+    private readonly ILogger<S3TicketStorage> _logger;
 
-    public S3TicketStorage(IConfiguration configuration)
+    public S3TicketStorage(IConfiguration configuration, ILogger<S3TicketStorage> logger)
     {
+        _logger = logger;
+
         // Ayarlar appsettings'teki Storage bölümünden okunur; anahtarlar compose'dan ortam değişkeniyle gelir.
         var storage = configuration.GetRequiredSection("Storage");
         _publicEndpoint = storage.GetValue<string>("PublicEndpoint")!;
@@ -51,6 +55,18 @@ public sealed class S3TicketStorage : ITicketStorage, IDisposable
             InputStream = stream,
             ContentType = "application/pdf"
         }, cancellationToken);
+    }
+
+    public async Task TryDeletePdfAsync(string key, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _internalClient.DeleteObjectAsync(_bucket, key, cancellationToken);
+        }
+        catch (Exception ex) when (ex is AmazonS3Exception or HttpRequestException)
+        {
+            _logger.LogWarning(ex, "Bilet PDF'i silinemedi: {Key}", key);
+        }
     }
 
     public TicketDownload CreateDownloadUrl(string key, string fileName)

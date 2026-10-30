@@ -22,6 +22,7 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Domain.Entiti
         builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(t => t.PdfKey).HasMaxLength(300).IsRequired();
         builder.Property(t => t.CheckedInBy).HasMaxLength(64);
+        builder.Property(t => t.Version).IsRowVersion();
 
         builder.HasIndex(t => t.Code).IsUnique();
 

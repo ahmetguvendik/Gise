@@ -18,6 +18,7 @@ public sealed class InboxWorkerDbContext(DbContextOptions<InboxWorkerDbContext> 
         modelBuilder.Entity<InboxMessage>().Property(m => m.Payload).HasColumnType("jsonb");
         modelBuilder.Entity<Domain.Entities.Ticket>().Property(t => t.Status).HasConversion<string>();
         modelBuilder.Entity<Domain.Entities.Ticket>().Property(t => t.Price).HasPrecision(10, 2);
+        modelBuilder.Entity<Domain.Entities.Ticket>().Property(t => t.Version).IsRowVersion();
     }
 
     // ticket-api'deki gibi: zaman damgaları kayıt sırasında doldurulur.

@@ -32,4 +32,19 @@ public class ConflictException : AppException
         ErrorCodes.Hold.AlreadyActive,
         "Bu etkinlik için ödemesi bekleyen bir siparişiniz var.",
         $"'{eventId}' ID'li etkinlikte koltukları hâlâ tutulan bir siparişiniz var; yenisi için önce onu tamamlayın ya da vazgeçin.");
+
+    public static ConflictException ConcurrentUpdate() => new(
+        ErrorCodes.General.ConcurrentUpdate,
+        "Kayıt bu sırada başka bir işlemle değişti.",
+        "Sayfayı yenileyip yeniden deneyin.");
+
+    public static ConflictException TicketTransferPending(Guid ticketId) => new(
+        ErrorCodes.Ticket.TransferPending,
+        "Bu biletin bekleyen bir aktarımı var.",
+        $"'{ticketId}' ID'li bileti yeniden aktarmak için önce bekleyen aktarımı geri alın.");
+
+    public static ConflictException TicketTransferNotPending(Guid transferId) => new(
+        ErrorCodes.Ticket.TransferNotPending,
+        "Bu aktarım artık geçerli değil.",
+        $"'{transferId}' ID'li aktarım geri alınmış, reddedilmiş, kabul edilmiş ya da süresi dolmuş.");
 }

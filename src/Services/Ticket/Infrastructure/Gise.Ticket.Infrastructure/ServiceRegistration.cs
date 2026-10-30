@@ -7,7 +7,8 @@ namespace Gise.Ticket.Infrastructure;
 
 public static class ServiceRegistration
 {
-    // PDF: ticket-command-worker bilet çıkarırken üretir ve yükler; ticket-api yalnızca indirme adresi üretir.
+    // PDF: ticket-command-worker bilet çıkarırken, ticket-api aktarım kabul edilince (yeni QR), ticket-inbox-worker etkinlik
+    // güncellenince üretir ve yükler. Üçü de yazı tipini ve TicketPdf ayarını ister.
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
         services.AddSingleton<ITicketStorage, S3TicketStorage>();

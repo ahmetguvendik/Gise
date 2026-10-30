@@ -147,6 +147,12 @@ echo "Ticket"
 endpoint tickets-mine     GET  /api/tickets/mine         ticket tickets "Müşterinin biletleri"
 endpoint tickets-download GET  /api/tickets/:id/download ticket tickets "Bilet PDF'i (imzalı adres)"
 endpoint tickets-check-in POST /api/tickets/check-in     ticket tickets "Kapıda okutma (görevli)"
+# Her teklif alıcıya e-posta gönderir; rastgele adreslere e-posta yağdırmaya karşı dar.
+strict_endpoint tickets-transfer POST /api/tickets/:id/transfer ticket 10 "Çok fazla aktarım isteği gönderdiniz." "Bileti e-postayla aktarma"
+endpoint tickets-transfer-cancel  POST /api/tickets/:id/transfer/cancel         ticket tickets "Aktarımı geri alma (gönderen)"
+endpoint tickets-incoming         GET  /api/tickets/transfers/incoming          ticket tickets "Bana gönderilen biletler"
+endpoint tickets-transfer-accept  POST /api/tickets/transfers/:id/accept        ticket tickets "Aktarımı kabul etme (alıcı)"
+endpoint tickets-transfer-decline POST /api/tickets/transfers/:id/decline       ticket tickets "Aktarımı reddetme (alıcı)"
 
 echo "Search"
 endpoint search-events  GET /api/search/events  search search "Ana sayfa listesi ve arama"

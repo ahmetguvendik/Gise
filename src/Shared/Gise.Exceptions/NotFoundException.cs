@@ -38,4 +38,14 @@ public class NotFoundException : AppException
         ErrorCodes.Stock.NotFound,
         "Etkinliğin koltuk bilgisi bulunamadı.",
         $"'{eventId}' ID'li etkinlik satışa açılmamış ya da koltukları henüz hazırlanıyor.");
+
+    public static NotFoundException TicketTransfer(Guid id) => new(
+        ErrorCodes.Ticket.TransferNotFound,
+        "Aktarım bulunamadı.",
+        $"'{id}' ID'li aktarım sistemde yok.");
+
+    public static NotFoundException PendingTicketTransfer(Guid ticketId) => new(
+        ErrorCodes.Ticket.TransferNotFound,
+        "Bu biletin bekleyen bir aktarımı yok.",
+        $"'{ticketId}' ID'li biletin geri alınacak bir aktarımı bulunmuyor.");
 }

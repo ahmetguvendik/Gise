@@ -496,7 +496,7 @@ services:
       ticket-api:
         condition: service_healthy
 
-  # Catalog'un olaylarını Kafka'dan okur; iptal edilen etkinliğin biletlerini geçersiz yapar.
+  # Catalog'un olaylarını Kafka'dan okur; iptalde biletleri geçersiz yapar, güncellemede bilgi ve PDF'leri yeniler.
   ticket-inbox-worker:
     image: gise/ticket-inbox-worker:dev
     build:
@@ -505,6 +505,9 @@ services:
     restart: unless-stopped
     environment:
       ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
+      # Etkinlik güncellenince bilet PDF'leri yeniden yazılır.
+      Storage__AccessKey: gise
+      Storage__SecretKey: ${MINIO_ROOT_PASSWORD}
     healthcheck:
       # Döngü asılı kalırsa (heartbeat eskirse) ready kontrolü düşer.
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]

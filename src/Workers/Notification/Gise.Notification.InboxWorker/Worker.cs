@@ -26,6 +26,10 @@ public sealed class Worker : BackgroundService
     private readonly string _ticketsUrl;
     private readonly TimeZoneInfo _timeZone;
 
+    // Aktarım teklifinde alıcının kimliği (sub) kabul edene kadar bilinmez; gönderilen e-posta kaydında bu değer durur.
+    // Adres yazılmaz: loglarda alıcı kimliği görünür, adres kişisel veri.
+    private const string TransferRecipientId = "transfer-recipient";
+
     private DateTime _lastCleanupAt = DateTime.MinValue;
 
     public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger, IConfiguration configuration, WorkerHeartbeat heartbeat, IEmailSender emailSender)
@@ -138,6 +142,14 @@ public sealed class Worker : BackgroundService
                 await OnTicketsIssuedAsync(db, Deserialize<TicketsIssued>(message), cancellationToken);
                 break;
 
+            case nameof(TicketTransferOffered) when message.Topic == Kafka.TicketEventsTopic:
+                await OnTicketTransferOfferedAsync(db, Deserialize<TicketTransferOffered>(message), cancellationToken);
+                break;
+
+            case nameof(TicketTransferred) when message.Topic == Kafka.TicketEventsTopic:
+                await OnTicketTransferredAsync(db, Deserialize<TicketTransferred>(message), cancellationToken);
+                break;
+
             case nameof(EventCancelled):
                 await OnEventCancelledAsync(db, Deserialize<EventCancelled>(message), cancellationToken);
                 break;
@@ -179,6 +191,48 @@ public sealed class Worker : BackgroundService
         await SendOnceAsync(db, NotificationType.TicketsIssued, evt.OrderId, evt.CustomerId, evt.CustomerEmail, email, cancellationToken);
     }
 
+    // Alıcının hesabı olmayabilir; e-posta yazılan adrese gider.
+    private async Task OnTicketTransferOfferedAsync(InboxWorkerDbContext db, TicketTransferOffered evt, CancellationToken cancellationToken)
+    {
+        var email = EmailTemplates.TicketTransferOffered(
+            evt.FromName, evt.EventTitle, evt.EventStartsAt, evt.VenueName, evt.City,
+            (evt.SectionName, evt.Row, evt.Number), evt.ExpiresAt, _ticketsUrl, _timeZone);
+        await SendOnceAsync(db, NotificationType.TicketTransferOffered, evt.TransferId, TransferRecipientId, evt.ToEmail, email, cancellationToken);
+    }
+
+    // Alan kişi bilet sahiplerine eklenir (Id = biletin ID'si), satın alanın bilet sayısı bir azalır: iptal ve erteleme
+    // e-postaları bileti o an elinde tutana gider. Gönderene aktarımın tamamlandığı yazılır.
+    private async Task OnTicketTransferredAsync(InboxWorkerDbContext db, TicketTransferred evt, CancellationToken cancellationToken)
+    {
+        // Olay yeniden işlenirse satır zaten vardır; sayı ikinci kez azalmaz.
+        if (!await db.TicketHolders.AnyAsync(h => h.Id == evt.TicketId, cancellationToken))
+        {
+            var buyer = await db.TicketHolders.FirstOrDefaultAsync(h => h.Id == evt.OrderId, cancellationToken);
+            if (buyer is { TicketCount: > 0 })
+                buyer.TicketCount--;
+
+            db.TicketHolders.Add(new TicketHolder
+            {
+                Id = evt.TicketId,
+                EventId = evt.EventId,
+                CustomerId = evt.ToCustomerId,
+                Email = evt.ToEmail,
+                Name = evt.ToName,
+                EventTitle = evt.EventTitle,
+                EventStartsAt = evt.EventStartsAt,
+                VenueName = evt.VenueName,
+                City = evt.City,
+                TicketCount = 1
+            });
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        var email = EmailTemplates.TicketTransferAccepted(
+            evt.FromName, evt.ToEmail, evt.EventTitle, evt.EventStartsAt, evt.VenueName, evt.City,
+            (evt.SectionName, evt.Row, evt.Number), _timeZone);
+        await SendOnceAsync(db, NotificationType.TicketTransferAccepted, evt.TransferId, evt.FromCustomerId, evt.FromEmail, email, cancellationToken);
+    }
+
     // Biletlerin iptali ve paranın iadesi Ticket ve Order'da yapılır; burada yalnızca bilet sahiplerine yazılır.
     private async Task OnEventCancelledAsync(InboxWorkerDbContext db, EventCancelled evt, CancellationToken cancellationToken)
     {
@@ -215,9 +269,10 @@ public sealed class Worker : BackgroundService
         }
     }
 
-    // Aynı müşterinin aynı etkinlikte birden çok siparişi olabilir; tek e-posta gider.
+    // Aynı müşterinin aynı etkinlikte birden çok siparişi olabilir; tek e-posta gider. Bütün biletlerini aktaran satın alana
+    // yazılmaz.
     private static async Task<IReadOnlyList<TicketHolder>> RecipientsAsync(InboxWorkerDbContext db, Guid eventId, CancellationToken cancellationToken)
-        => (await db.TicketHolders.AsNoTracking().Where(h => h.EventId == eventId).ToListAsync(cancellationToken))
+        => (await db.TicketHolders.AsNoTracking().Where(h => h.EventId == eventId && h.TicketCount > 0).ToListAsync(cancellationToken))
             .GroupBy(h => h.CustomerId)
             .Select(g => g.First())
             .ToList();

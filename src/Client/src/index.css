@@ -486,6 +486,15 @@ a:hover { color: var(--link-hover); }
 .ticket-row__code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; letter-spacing: 0.04em; overflow-wrap: anywhere; }
 .ticket-row__side { display: grid; gap: 6px; justify-items: end; text-align: right; }
 .ticket-row__note { font-size: 13px; }
+.ticket-row__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.ticket-row--incoming { border-left-color: var(--accent); }
+.badge--ticket-incoming { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--link); }
+/* Bilet satırının sağında açılan aktarım formu. */
+.transfer-form { display: grid; gap: 8px; justify-items: stretch; text-align: left; width: min(100%, 340px); }
+.transfer-form label { display: grid; gap: 6px; font-size: 15px; font-weight: 600; }
+.transfer-form input { min-height: 44px; padding: 8px 14px; font: inherit; font-size: 16px; font-weight: 400; border: 2px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
+.transfer-form input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+.transfer-form .ticket-row__actions { justify-content: flex-start; }
 
 /* ---- Kapı ---- */
 .gate { max-width: 720px; }

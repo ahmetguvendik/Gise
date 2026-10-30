@@ -3,6 +3,7 @@
        Web host yalnızca sağlık ucu için. -->
   <ItemGroup>
     <ProjectReference Include="..\..\..\Services\Ticket\Core\Gise.Ticket.Domain\Gise.Ticket.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Services\Ticket\Infrastructure\Gise.Ticket.Infrastructure\Gise.Ticket.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
     <ProjectReference Include="..\..\..\Shared\Gise.HealthChecks\Gise.HealthChecks.csproj" />
   </ItemGroup>

@@ -2,8 +2,9 @@ using Gise.Notification.Domain.Common;
 
 namespace Gise.Notification.Domain.Entities;
 
-// Bir siparişin bilet sahibi; Id = siparişin ID'si. Kafka'daki TicketsIssued'dan yazılır. Etkinlik iptal edilince ya da
-// tarihi değişince kime e-posta gideceği buradan bulunur: Catalog bilet sahiplerini bilmez.
+// Bir etkinlikte bilet tutan kişi. Satın alan için Id = siparişin ID'si (TicketsIssued'dan); aktarımla bilet alan için Id =
+// biletin ID'si (TicketTransferred'dan). Etkinlik iptal edilince ya da tarihi değişince kime e-posta gideceği buradan
+// bulunur: Catalog bilet sahiplerini bilmez.
 public class TicketHolder : BaseEntity
 {
     public Guid EventId { get; set; }
@@ -18,5 +19,6 @@ public class TicketHolder : BaseEntity
     public DateTime EventStartsAt { get; set; }
     public string VenueName { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
+    // Elindeki bilet sayısı; biletini aktaran satın alanınki azalır, sıfırsa ona e-posta gitmez.
     public int TicketCount { get; set; }
 }

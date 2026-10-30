@@ -1,19 +1,22 @@
 using System.Text.Json;
 using Gise.Contracts.Events;
 using Gise.HealthChecks;
+using Gise.Ticket.Application.Interfaces;
 using Gise.Ticket.Domain.Entities;
 using Gise.Ticket.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gise.Ticket.InboxWorker;
 
-// Kafka'dan gelip inbox'a yazılan Catalog olaylarını işler (bkz. tasarım 2.2). Ticket'ı yalnızca iptal ilgilendirir:
-// etkinliğin biletleri geçersiz olur. Ayarlar appsettings'teki Inbox bölümünden okunur.
+// Kafka'dan gelip inbox'a yazılan Catalog olaylarını işler (bkz. tasarım 2.2): iptalde biletler geçersiz olur, etkinlik
+// güncellenince biletlerdeki bilgi ve PDF'ler yenilenir. Ayarlar appsettings'teki Inbox bölümünden okunur.
 public sealed class Worker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<Worker> _logger;
     private readonly WorkerHeartbeat _heartbeat;
+    private readonly ITicketPdfRenderer _pdfRenderer;
+    private readonly ITicketStorage _ticketStorage;
     private readonly int _batchSize;
     private readonly TimeSpan _pollInterval;
     private readonly int _maxRetryCount;
@@ -22,11 +25,19 @@ public sealed class Worker : BackgroundService
 
     private DateTime _lastCleanupAt = DateTime.MinValue;
 
-    public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger, IConfiguration configuration, WorkerHeartbeat heartbeat)
+    public Worker(
+        IServiceScopeFactory scopeFactory,
+        ILogger<Worker> logger,
+        IConfiguration configuration,
+        WorkerHeartbeat heartbeat,
+        ITicketPdfRenderer pdfRenderer,
+        ITicketStorage ticketStorage)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
         _heartbeat = heartbeat;
+        _pdfRenderer = pdfRenderer;
+        _ticketStorage = ticketStorage;
 
         var inbox = configuration.GetRequiredSection("Inbox");
         _batchSize = inbox.GetValue<int>("BatchSize");
@@ -125,8 +136,12 @@ public sealed class Worker : BackgroundService
                 await CancelTicketsAsync(db, Deserialize<EventCancelled>(message), cancellationToken);
                 break;
 
+            case nameof(EventUpdated):
+                await UpdateTicketsAsync(db, Deserialize<EventUpdated>(message), cancellationToken);
+                break;
+
             default:
-                // Catalog'un Ticket'ı ilgilendirmeyen bir olayı (yayınlandı, güncellendi); işlenmiş sayılır.
+                // Catalog'un Ticket'ı ilgilendirmeyen bir olayı (yayınlandı); işlenmiş sayılır.
                 break;
         }
     }
@@ -147,6 +162,38 @@ public sealed class Worker : BackgroundService
                 .SetProperty(t => t.UpdatedAt, DateTime.UtcNow), cancellationToken);
 
         _logger.LogInformation("Etkinlik iptal edildi: {EventId}, {Count} bilet iptal.", evt.EventId, cancelled);
+    }
+
+    // Ad, tarih ya da mekân değiştiyse biletlerdeki kopya güncellenir ve geçerli biletlerin PDF'leri yeni bilgiyle yeniden
+    // çizilir; QR kodu aynı kalır. Aktarımın son anı da biletin tarihinden hesaplandığı için kendiliğinden kayar. Yalnızca
+    // fiyat değiştiyse biletler etkilenmez (fiyat sipariş anındakidir).
+    private async Task UpdateTicketsAsync(InboxWorkerDbContext db, EventUpdated evt, CancellationToken cancellationToken)
+    {
+        var startsAt = DateTime.SpecifyKind(evt.StartsAt, DateTimeKind.Utc);
+        var tickets = await db.Tickets
+            .Where(t => t.EventId == evt.EventId
+                && t.Status != TicketStatus.Cancelled
+                && (t.EventTitle != evt.Title || t.EventStartsAt != startsAt || t.VenueName != evt.VenueName || t.City != evt.City))
+            .ToListAsync(cancellationToken);
+
+        if (tickets.Count == 0)
+            return;
+
+        foreach (var ticket in tickets)
+        {
+            ticket.EventTitle = evt.Title;
+            ticket.EventStartsAt = startsAt;
+            ticket.VenueName = evt.VenueName;
+            ticket.City = evt.City;
+
+            // Aynı anahtarın üzerine yazılır, kayıttan önce: kayıt başarısız olursa mesaj yeniden işlenir, PDF yine çizilir.
+            // Kullanılmış biletin PDF'i artık işe yaramaz, dokunulmaz.
+            if (ticket.Status == TicketStatus.Valid)
+                await _ticketStorage.UploadPdfAsync(ticket.PdfKey, _pdfRenderer.Render(ticket), cancellationToken);
+        }
+
+        // Kayıt mesaj döngüsünde; bu arada bir aktarım kabul edildiyse biletin sürümü (xmin) değişmiştir, mesaj yeniden denenir.
+        _logger.LogInformation("Etkinlik güncellendi: {EventId}, {Count} biletin bilgisi ve PDF'i yenilendi.", evt.EventId, tickets.Count);
     }
 
     private static T Deserialize<T>(InboxMessage message)

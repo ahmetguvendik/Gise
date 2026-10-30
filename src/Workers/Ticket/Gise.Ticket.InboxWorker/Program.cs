@@ -1,4 +1,5 @@
 using Gise.HealthChecks;
+using Gise.Ticket.Infrastructure;
 using Gise.Ticket.InboxWorker;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,9 @@ builder.Services.AddDbContext<InboxWorkerDbContext>(options => options
     .UseSnakeCaseNamingConvention());
 
 // Kafka'dan okuyup inbox'a yazar; Worker inbox'ı işler.
+// Etkinlik güncellenince PDF'ler yeniden çizilip MinIO'ya yazılır.
+builder.Services.AddInfrastructureServices();
+
 builder.Services.AddHostedService<CatalogEventsConsumer>();
 builder.Services.AddHostedService<Worker>();
 

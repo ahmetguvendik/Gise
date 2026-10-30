@@ -137,4 +137,24 @@ public class BusinessException : AppException
         ErrorCodes.Hold.OrderClosed,
         "Sipariş kapandığı için koltuklar tutulmadı.",
         $"'{orderId}' ID'li siparişin koltukları daha önce bırakıldı (vazgeçildi ya da süresi doldu).");
+
+    public static BusinessException TicketNotTransferable(Guid ticketId) => new(
+        ErrorCodes.Ticket.NotTransferable,
+        "Kullanılmış bilet aktarılamaz.",
+        $"'{ticketId}' ID'li bilet girişte okutulmuş.");
+
+    public static BusinessException TicketAlreadyTransferred(Guid ticketId) => new(
+        ErrorCodes.Ticket.AlreadyTransferred,
+        "Bu bilet daha önce aktarıldı; bir bilet yalnızca bir kez aktarılabilir.",
+        $"'{ticketId}' ID'li bilet size aktarımla geldi.");
+
+    public static BusinessException TicketTransferClosed(Guid ticketId, int cutoffHours) => new(
+        ErrorCodes.Ticket.TransferClosed,
+        $"Etkinliğe {cutoffHours} saatten az kaldığı için bilet aktarılamaz.",
+        $"'{ticketId}' ID'li biletin aktarım süresi doldu; bekleyen aktarımlar da bu saatte düşer.");
+
+    public static BusinessException TicketTransferToSelf() => new(
+        ErrorCodes.Ticket.TransferToSelf,
+        "Bileti kendinize aktaramazsınız.",
+        "Alıcının e-posta adresi sizinkiyle aynı.");
 }

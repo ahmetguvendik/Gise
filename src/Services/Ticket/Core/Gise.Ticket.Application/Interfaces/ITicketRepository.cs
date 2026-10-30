@@ -12,6 +12,9 @@ public interface ITicketRepository
     // Salt okunur.
     Task<Domain.Entities.Ticket?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
+    // Değiştirilmek üzere (takip edilir).
+    Task<Domain.Entities.Ticket?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken);
+
     // Salt okunur; kod normalize edilmiş olmalı (bkz. TicketCode).
     Task<Domain.Entities.Ticket?> GetByCodeAsync(string code, CancellationToken cancellationToken);
 

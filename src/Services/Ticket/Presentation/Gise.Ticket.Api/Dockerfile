@@ -1,9 +1,10 @@
 # Build context: repo kökü (deploy/docker-compose.yml böyle derler).
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-# Compose healthcheck'i sağlık ucuna istek atıyor; aspnet imajında HTTP istemcisi yok.
+# Compose healthcheck'i sağlık ucuna istek atıyor; aspnet imajında HTTP istemcisi yok. Aktarımda yeni PDF çizilir;
+# Türkçe karakterli bir yazı tipi ister (TicketPdf:FontPath).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 USER $APP_UID

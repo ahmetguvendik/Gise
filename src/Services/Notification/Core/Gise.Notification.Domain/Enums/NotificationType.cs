@@ -9,5 +9,11 @@ public enum NotificationType
     EventCancelled,
 
     // Etkinliğin tarihi değişti; ReferenceId olayın Kafka mesaj kimliği (her erteleme ayrı bildirim).
-    EventRescheduled
+    EventRescheduled,
+
+    // Bilet bir e-postaya aktarılmak istendi, alıcıya yazıldı; ReferenceId aktarımın ID'si.
+    TicketTransferOffered,
+
+    // Aktarım kabul edildi, gönderene yazıldı; ReferenceId aktarımın ID'si.
+    TicketTransferAccepted
 }

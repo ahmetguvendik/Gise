@@ -28,6 +28,9 @@ public sealed class TicketRepository : ITicketRepository
     public Task<Domain.Entities.Ticket?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         => _context.Tickets.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
+    public Task<Domain.Entities.Ticket?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
+        => _context.Tickets.FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
+
     public Task<Domain.Entities.Ticket?> GetByCodeAsync(string code, CancellationToken cancellationToken)
         => _context.Tickets.AsNoTracking().FirstOrDefaultAsync(t => t.Code == code, cancellationToken);
 

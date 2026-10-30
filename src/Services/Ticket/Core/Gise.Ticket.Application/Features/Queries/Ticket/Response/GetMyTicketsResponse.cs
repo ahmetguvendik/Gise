@@ -20,4 +20,23 @@ public sealed class GetMyTicketsResponse
     // Valid, Used, Cancelled.
     public string Status { get; set; } = string.Empty;
     public DateTime? CheckedInAt { get; set; }
+
+    // Aktarımla geldiyse kabul zamanı; böyle bir bilet yeniden aktarılamaz.
+    public DateTime? TransferredAt { get; set; }
+
+    // Geçerli, aktarımla gelmemiş, bekleyen aktarımı yok ve son an geçmemiş.
+    public bool CanTransfer { get; set; }
+
+    // Aktarım için son an (etkinlikten belli bir süre önce).
+    public DateTime TransferDeadline { get; set; }
+
+    // Kabul bekleyen aktarım; yoksa null.
+    public PendingTransferResponse? PendingTransfer { get; set; }
+}
+
+public sealed class PendingTransferResponse
+{
+    public Guid Id { get; set; }
+    public string ToEmail { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
 }

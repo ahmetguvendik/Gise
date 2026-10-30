@@ -233,6 +233,49 @@ export interface TicketItem {
   code: string
   status: TicketStatus
   checkedInAt: string | null
+  /** Aktarımla geldiyse kabul zamanı; böyle bir bilet yeniden aktarılamaz. */
+  transferredAt: string | null
+  /** Geçerli, aktarımla gelmemiş, bekleyen aktarımı yok ve süre dolmamış. */
+  canTransfer: boolean
+  /** Aktarım için son an (etkinlikten 2 saat önce). */
+  transferDeadline: string
+  /** Alıcının kabulünü bekleyen aktarım. */
+  pendingTransfer: PendingTransfer | null
+}
+
+export interface PendingTransfer {
+  id: string
+  toEmail: string
+  createdAt: string
+}
+
+/** Giriş yapanın e-postasına gönderilmiş, kabul bekleyen bilet. */
+export interface IncomingTransfer {
+  transferId: string
+  ticketId: string
+  fromName: string
+  eventId: string
+  eventTitle: string
+  eventStartsAt: string
+  venueName: string
+  city: string
+  sectionName: string
+  row: string
+  number: number
+  /** Bu andan sonra kabul edilemez. */
+  expiresAt: string
+}
+
+export interface OfferedTransfer {
+  transferId: string
+  toEmail: string
+  expiresAt: string
+}
+
+/** Kabul edilince bilete yeni kod verilir. */
+export interface AcceptedTransfer {
+  ticketId: string
+  code: string
 }
 
 /** PDF API'den geçmez; kısa süreli imzalı adres. */

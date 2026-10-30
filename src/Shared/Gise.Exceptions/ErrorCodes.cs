@@ -7,6 +7,8 @@ public static class ErrorCodes
         public const string ValidationFailed = "VALIDATION_FAILED";
         public const string InternalError = "INTERNAL_SERVER_ERROR";
         public const string ServiceUnavailable = "SERVICE_UNAVAILABLE";
+        // Aynı kaydı aynı anda iki işlem değiştirdi (sürüm çakışması).
+        public const string ConcurrentUpdate = "CONCURRENT_UPDATE";
 
         // Servisler değil APISIX üretir (deploy/apisix/seed.sh): istek sınırı aşıldı, tanımsız API yolu ya da yöntemi.
         public const string RateLimitExceeded = "RATE_LIMIT_EXCEEDED";
@@ -16,6 +18,7 @@ public static class ErrorCodes
     public static class Auth
     {
         public const string MissingClaim = "AUTH_MISSING_CLAIM";
+        public const string EmailNotVerified = "AUTH_EMAIL_NOT_VERIFIED";
     }
 
     public static class Venue
@@ -78,6 +81,16 @@ public static class ErrorCodes
         public const string Cancelled = "TICKET_CANCELLED";
         public const string SeatTaken = "TICKET_SEAT_TAKEN";
         public const string EventCancelled = "TICKET_EVENT_CANCELLED";
+
+        // Aktarım (bkz. tasarım 3.8).
+        public const string NotTransferable = "TICKET_NOT_TRANSFERABLE";
+        public const string AlreadyTransferred = "TICKET_ALREADY_TRANSFERRED";
+        public const string TransferClosed = "TICKET_TRANSFER_CLOSED";
+        public const string TransferToSelf = "TICKET_TRANSFER_TO_SELF";
+        public const string TransferPending = "TICKET_TRANSFER_PENDING";
+        public const string TransferNotFound = "TICKET_TRANSFER_NOT_FOUND";
+        public const string TransferNotRecipient = "TICKET_TRANSFER_NOT_RECIPIENT";
+        public const string TransferNotPending = "TICKET_TRANSFER_NOT_PENDING";
     }
 
     public static class Price

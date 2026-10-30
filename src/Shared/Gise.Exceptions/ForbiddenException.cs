@@ -27,4 +27,14 @@ public class ForbiddenException : AppException
         ErrorCodes.Event.AdminOnly,
         "Yayındaki etkinlikte değişikliği yalnızca admin yapabilir.",
         $"'{eventId}' ID'li etkinlik yayında.");
+
+    public static ForbiddenException EmailNotVerified() => new(
+        ErrorCodes.Auth.EmailNotVerified,
+        "E-posta adresiniz doğrulanmamış.",
+        "Size aktarılan biletleri görmek ve kabul etmek için e-posta adresinizi doğrulayın.");
+
+    public static ForbiddenException NotTransferRecipient(Guid transferId) => new(
+        ErrorCodes.Ticket.TransferNotRecipient,
+        "Bu aktarım size gönderilmedi.",
+        $"'{transferId}' ID'li aktarımı yalnızca alıcı olarak yazılan e-postayla giriş yapan kişi kabul ya da reddedebilir.");
 }

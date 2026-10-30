@@ -8,6 +8,7 @@ namespace Gise.Ticket.Persistence.Contexts;
 public sealed class TicketDbContext(DbContextOptions<TicketDbContext> options) : DbContext(options)
 {
     public DbSet<Domain.Entities.Ticket> Tickets => Set<Domain.Entities.Ticket>();
+    public DbSet<TicketTransfer> TicketTransfers => Set<TicketTransfer>();
     public DbSet<CancelledEvent> CancelledEvents => Set<CancelledEvent>();
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();

@@ -52,6 +52,36 @@ public static class EmailTemplates
         return new Email($"Etkinlik tarihi değişti: {eventTitle}", Wrap(body.ToString()));
     }
 
+    public static Email TicketTransferOffered(
+        string fromName, string eventTitle, DateTime startsAt, string venueName, string city,
+        (string Section, string Row, int Number) seat, DateTime expiresAt, string ticketsUrl, TimeZoneInfo timeZone)
+    {
+        var sender = string.IsNullOrWhiteSpace(fromName) ? "Bir Gişe kullanıcısı" : Encode(fromName);
+        var body = new StringBuilder()
+            .Append(Greeting(string.Empty))
+            .Append($"<p>{sender} size <strong>{Encode(eventTitle)}</strong> için bir bilet gönderdi.</p>")
+            .Append(EventLine(startsAt, venueName, city, timeZone))
+            .Append($"<p>{Encode(seat.Section)} · Sıra {Encode(seat.Row)} · Koltuk {seat.Number}</p>")
+            .Append($"<p>Bileti almak için <a href=\"{Encode(ticketsUrl)}\">Biletlerim</a> sayfasına bu e-posta adresiyle giriş yapıp aktarımı kabul edin; hesabınız yoksa aynı adresle kaydolun. Son an: <strong>{FormatDate(expiresAt, timeZone)}</strong>.</p>")
+            .Append("<p>Kabul ettiğinizde bilete yeni bir QR kodu verilir; gönderenin elindeki eski kod geçersiz olur.</p>");
+
+        return new Email($"Size bilet gönderildi: {eventTitle}", Wrap(body.ToString()));
+    }
+
+    public static Email TicketTransferAccepted(
+        string name, string toEmail, string eventTitle, DateTime startsAt, string venueName, string city,
+        (string Section, string Row, int Number) seat, TimeZoneInfo timeZone)
+    {
+        var body = new StringBuilder()
+            .Append(Greeting(name))
+            .Append($"<p><strong>{Encode(eventTitle)}</strong> biletiniz {Encode(toEmail)} adresine aktarıldı.</p>")
+            .Append(EventLine(startsAt, venueName, city, timeZone))
+            .Append($"<p>{Encode(seat.Section)} · Sıra {Encode(seat.Row)} · Koltuk {seat.Number}</p>")
+            .Append("<p>Bilet artık onun; sizdeki PDF ve QR kodu geçersiz. Etkinlik iptal edilirse ödediğiniz tutar size iade edilir.</p>");
+
+        return new Email($"Biletiniz aktarıldı: {eventTitle}", Wrap(body.ToString()));
+    }
+
     private static string Greeting(string name)
         => string.IsNullOrWhiteSpace(name) ? "<p>Merhaba,</p>" : $"<p>Merhaba {Encode(name)},</p>";
 

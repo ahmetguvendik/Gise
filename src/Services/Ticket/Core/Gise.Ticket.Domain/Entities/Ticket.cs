@@ -33,4 +33,10 @@ public class Ticket : BaseEntity
 
     // Okutan görevlinin Keycloak kimliği (sub).
     public string? CheckedInBy { get; set; }
+
+    // Aktarımla geldiyse kabul zamanı. Bir bilet yalnızca bir kez aktarılır: doluysa yeniden aktarılamaz (bkz. TicketTransfer).
+    public DateTime? TransferredAt { get; set; }
+
+    // PostgreSQL xmin: aktarımın kabulü, kapıda okutma ve etkinlik güncellemesi aynı anda gelirse yalnızca biri geçer.
+    public uint Version { get; set; }
 }

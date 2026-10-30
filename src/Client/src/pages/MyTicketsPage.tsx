@@ -4,22 +4,28 @@ import { useAuth } from 'react-oidc-context'
 import { ApiError, toApiError } from '../api/http'
 import { ticketsApi } from '../api/tickets'
 import { ErrorAlert } from '../components/ErrorAlert'
+import { IncomingTransfers } from '../components/IncomingTransfers'
 import { TicketList } from '../components/TicketList'
-import type { TicketItem } from '../types'
+import type { IncomingTransfer, TicketItem } from '../types'
 
-// Guard'ın arkasında: kullanıcı giriş yapmış. En yakın etkinlik önce.
+// Guard'ın arkasında: kullanıcı giriş yapmış. Üstte e-postasına gönderilmiş biletler, altta kendi biletleri (en yakın
+// etkinlik önce).
 export function MyTicketsPage() {
   const auth = useAuth()
   const token = auth.user?.access_token ?? ''
   const [tickets, setTickets] = useState<TicketItem[] | null>(null)
+  const [incoming, setIncoming] = useState<IncomingTransfer[]>([])
   const [error, setError] = useState<ApiError | null>(null)
+  // Aktarım, kabul ya da ret sonrası iki liste birlikte yenilenir.
+  const [version, setVersion] = useState(0)
 
   useEffect(() => {
     let ignore = false
-    ticketsApi.mine(token).then(
-      (data) => {
+    Promise.all([ticketsApi.mine(token), ticketsApi.incomingTransfers(token)]).then(
+      ([ticketData, incomingData]) => {
         if (ignore) return
-        setTickets(data)
+        setTickets(ticketData)
+        setIncoming(incomingData)
         setError(null)
       },
       (err) => {
@@ -29,13 +35,17 @@ export function MyTicketsPage() {
     return () => {
       ignore = true
     }
-  }, [token])
+  }, [token, version])
+
+  const reload = () => setVersion((current) => current + 1)
 
   return (
     <div className="container page">
       <h1 className="page-title">Biletlerim</h1>
 
       {error && <ErrorAlert error={error} />}
+
+      {incoming.length > 0 && <IncomingTransfers transfers={incoming} onChanged={reload} />}
 
       {tickets === null && !error ? (
         <div className="skeleton skeleton--sm" />
@@ -47,7 +57,7 @@ export function MyTicketsPage() {
           </Link>
         </div>
       ) : (
-        tickets && <TicketList tickets={tickets} />
+        tickets && <TicketList tickets={tickets} allowTransfer onChanged={reload} />
       )}
     </div>
   )
