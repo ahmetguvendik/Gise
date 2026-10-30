@@ -92,7 +92,7 @@ Desen bu projede **bilerek iki farklı şekilde** kullanılır:
 | Ticket | `ticket-outbox-worker` | Kafka outbox'ını gönderir (`TicketsIssued`) |
 | Order | `order-inbox-worker` | Kafka'dan okur, inbox'a yazar ve işler (iptal edilen etkinliğin tamamlanmış siparişlerini iade eder) |
 | Notification | `notification-inbox-worker` | Kafka'dan okur (`catalog.events`, `ticket.events`), inbox'a yazar ve işler (e-postalar) |
-| Search | `search-sync-worker` | Arama dizinini Catalog'dan gRPC ile 5 dakikada bir baştan kurar; Kafka dinlemez |
+| Search | `search-sync-worker` | Arama dizinini Catalog'dan gRPC ile dakikada bir baştan kurar; Kafka dinlemez |
 
 Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 
@@ -108,7 +108,7 @@ Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 | **Payment** | Sahte ödeme sağlayıcısı; iade | PostgreSQL | — | RabbitMQ: `PaymentSucceeded`, `PaymentFailed` (iadenin cevabı beklenmez) | RabbitMQ: `ProcessPayment`, `RefundPayment` |
 | **Ticket** | QR'lı PDF bilet üretimi; kapıda okutma | PostgreSQL + MinIO | REST (biletlerim, PDF indirme, kapı okutma) | RabbitMQ: `TicketsIssued`, `TicketIssueFailed`; Kafka (`ticket.events`): `TicketsIssued` | RabbitMQ: `IssueTickets`; Kafka: `EventCancelled` |
 | **Notification** | E-posta | PostgreSQL (inbox, bilet sahipleri, gönderilenler) | — | — | Kafka: `TicketsIssued`, `EventCancelled`, `EventUpdated` |
-| **Search** | Ana sayfadaki liste, Türkçe tam metin arama, yazarken öneri | Elasticsearch | REST (herkese açık) | — | — (Catalog'dan gRPC ile 5 dakikada bir alır) |
+| **Search** | Ana sayfadaki liste, Türkçe tam metin arama, yazarken öneri | Elasticsearch | REST (herkese açık) | — | — (Catalog'dan gRPC ile dakikada bir alır) |
 | **SeatMap** | Koltuk haritasında anlık güncelleme | Redis (backplane) | SignalR | — | Kafka: `SeatStatusChanged` |
 
 ### 3.1 Mimari
@@ -126,7 +126,7 @@ flowchart LR
     GW --> SRC["Search"]
 
     ORD -- "gRPC: fiyat" --> CAT
-    SRC -- "gRPC: 5 dk'da bir" --> CAT
+    SRC -- "gRPC: dakikada bir" --> CAT
 
     ORD <==> MQ[["RabbitMQ"]]
     MQ <==> RES
@@ -333,11 +333,11 @@ Ana sayfadaki liste, arama kutusu ve öneriler Search'ten gelir; ön yüz Catalo
   - `GET events?q=&city=&from=&to=&page=&pageSize=`: sonuçlar, toplam ve şehirler (sayılarıyla). Şehir sayıları seçili şehirden bağımsızdır (`post_filter`); şehir seçilince filtre listesi daralmaz. `from` verilmezse ya da geçmişse şu an. Sayfa en fazla 48.
   - `GET suggest?q=` (2–50 karakter): en fazla 5 etkinlik, 5 mekân, 5 şehir.
   - Afiş adresi (`posterUrl`, `posterSrcset`) Catalog'unkiyle aynı kuralla üretilir; `Posters` ayarı Catalog'un `Storage` ayarlarıyla aynı olmalı.
-- **Güncel tutma** (`search-sync-worker`): Search Kafka dinlemez. Worker açılışta ve sonra **5 dakikada bir** (`Sync:IntervalSeconds`) yayındaki etkinlikleri Catalog'dan gRPC ile 200'erli sayfalarla alır (`ListPublishedEvents`, bkz. 3.5) ve dizini baştan kurar:
+- **Güncel tutma** (`search-sync-worker`): Search Kafka dinlemez. Worker açılışta ve sonra **dakikada bir** (`Sync:IntervalSeconds`) yayındaki etkinlikleri Catalog'dan gRPC ile 200'erli sayfalarla alır (`ListPublishedEvents`, bkz. 3.5) ve dizini baştan kurar:
   1. Yeni bir dizin açılır (`events-<zaman>`), bütün etkinlikler ona yazılır.
   2. `events` takma adı tek istekte yeni dizine geçer; search-api hep bu takma addan okur, hiçbir an boş ya da yarım dizin görmez.
   3. Eski dizin silinir. İptal edilen ya da başlamış etkinlik yeni dizinde olmadığı için kendiliğinden düşer.
-- **Gecikme:** yayın, değişiklik (ad, tarih, fiyat, afiş, mekân adı) ve iptal aramaya en geç 5 dakikada yansır. İptal edilen etkinlik bu sürede listede görünebilir; detay sayfası "iptal edildi" uyarısını gösterir, satış Reservation'da zaten kapalıdır.
+- **Gecikme:** yayın, değişiklik (ad, tarih, fiyat, afiş, mekân adı) ve iptal ana sayfaya ve aramaya en geç 1 dakikada yansır; etkinlik sayfası Catalog'dan okunduğu için hemen güncellenir. Yönetim ekranındaki mesajlar bunu söyler (yayın, iptal, bilgi, fiyat ve afiş değişikliği). İptal edilen etkinlik bu sürede listede görünebilir; detay sayfası "iptal edildi" uyarısını gösterir, satış Reservation'da zaten kapalıdır.
 - **Hata:** Catalog ya da Elasticsearch'e ulaşılamazsa arama eski dizinle devam eder, worker 30 sn sonra (`Sync:RetryDelaySeconds`) tekrar dener. Yarıda kalan yeni dizin silinir; silinemezse bir sonraki başarılı yenileme siler.
 - **Eşleme değişikliği** (`events-index.json`): ayrı bir adım gerekmez; bir sonraki yenileme yeni eşlemeyle kurulur.
 - **Neden Kafka değil:** Search'ün yazdığı her şey Catalog'dan yeniden üretilebilir; düzenli tam yenileme inbox, sıra, tekrar ve Kafka'nın 7 günlük saklama süresi gibi dertlerin hiçbirini taşımaz. Bedeli dakikalarla ölçülen gecikme ve her turda bütün listenin çekilmesi; bu ölçekte (yüzlerce etkinlik) önemsiz. Etkinlik sayısı çok artarsa yalnızca değişenleri çekmek ya da olaylara dönmek düşünülür.

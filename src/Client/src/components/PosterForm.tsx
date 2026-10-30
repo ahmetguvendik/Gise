@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ApiError, toApiError } from '../api/http'
 import { eventsApi } from '../api/events'
 import { mediaApi } from '../api/media'
+import { LISTING_DELAY_NOTE } from '../lib/listing'
 import type { EventDetail, MediaPolicy } from '../types'
 import { ErrorAlert } from './ErrorAlert'
 import { Poster } from './Poster'
@@ -45,7 +46,7 @@ export function PosterForm({ event, token, onSaved }: Props) {
     setNotice(null)
     try {
       await action()
-      setNotice(message)
+      setNotice(event.status === 'Published' ? `${message} ${LISTING_DELAY_NOTE}` : message)
       onSaved()
     } catch (err) {
       setError(toApiError(err))

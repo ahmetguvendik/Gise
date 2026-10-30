@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { ApiError, toApiError } from '../api/http'
 import { eventsApi } from '../api/events'
+import { LISTING_DELAY_NOTE } from '../lib/listing'
 import type { EventPrice, VenueSection } from '../types'
 import { ErrorAlert } from './ErrorAlert'
 
@@ -10,6 +11,8 @@ interface Props {
   token: string
   sections: VenueSection[]
   prices: EventPrice[]
+  /** Yayındaki etkinlikte ana sayfanın gecikmeyle güncelleneceği yazılır. */
+  published?: boolean
   onSaved: () => void
 }
 
@@ -25,7 +28,7 @@ function withSectionNames(error: ApiError, submitted: VenueSection[]) {
 }
 
 // Her bölüm için bir fiyat. Boş bırakılan bölüm listeye girmez; kayıtlı fiyatı varsa kalkar.
-export function PriceForm({ eventId, token, sections, prices, onSaved }: Props) {
+export function PriceForm({ eventId, token, sections, prices, published = false, onSaved }: Props) {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(sections.map((s) => [s.id, prices.find((p) => p.sectionId === s.id)?.price.toString() ?? ''])),
   )
@@ -56,7 +59,7 @@ export function PriceForm({ eventId, token, sections, prices, onSaved }: Props) 
       <h3>Fiyatlar</h3>
 
       {error && <ErrorAlert error={error} />}
-      {saved && <div className="notice">Fiyatlar kaydedildi.</div>}
+      {saved && <div className="notice">Fiyatlar kaydedildi.{published && ` ${LISTING_DELAY_NOTE}`}</div>}
 
       <div className="form__row">
         {sections.map((section) => (

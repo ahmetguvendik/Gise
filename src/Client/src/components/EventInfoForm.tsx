@@ -4,6 +4,7 @@ import { ApiError, toApiError } from '../api/http'
 import { eventsApi } from '../api/events'
 import { venuesApi } from '../api/venues'
 import { toDateTimeLocal } from '../lib/format'
+import { LISTING_DELAY_NOTE } from '../lib/listing'
 import type { EventDetail, VenueSummary } from '../types'
 import { ErrorAlert } from './ErrorAlert'
 
@@ -71,7 +72,7 @@ export function EventInfoForm({ event, venueName, token, onSaved }: Props) {
       <h3>Bilgiler</h3>
 
       {error && <ErrorAlert error={error} />}
-      {saved && <div className="notice">Bilgiler kaydedildi.</div>}
+      {saved && <div className="notice">Bilgiler kaydedildi.{event.status === 'Published' && ` ${LISTING_DELAY_NOTE}`}</div>}
 
       <div className="form__row">
         <label>

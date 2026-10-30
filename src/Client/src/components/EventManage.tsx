@@ -46,7 +46,8 @@ export function EventManage({ event, venue, token, admin, onChanged, onSaved }: 
     }
   }
 
-  const publish = () => run(() => eventsApi.publish(event.id, token), 'Etkinlik yayınlandı; artık herkese açık listede görünüyor.')
+  const publish = () =>
+    run(() => eventsApi.publish(event.id, token), 'Etkinlik yayınlandı ve satışa açıldı. Ana sayfada ve aramada en geç 1 dakika içinde görünür.')
 
   const remove = async () => {
     if (!window.confirm(`"${event.title}" taslağı fiyatlarıyla birlikte silinsin mi? Bu geri alınamaz.`)) return
@@ -100,6 +101,7 @@ export function EventManage({ event, venue, token, admin, onChanged, onSaved }: 
                 token={token}
                 sections={venue.sections}
                 prices={event.prices}
+                published={event.status === 'Published'}
                 onSaved={onSaved}
               />
             </>
@@ -110,7 +112,7 @@ export function EventManage({ event, venue, token, admin, onChanged, onSaved }: 
               <div className="manage__block">
                 <h3>Yayınla</h3>
                 <p className="muted">
-                  {unpriced.length > 0 ? unpricedText : 'Etkinlik herkese açık listeye düşer ve satışa açılır.'}
+                  {unpriced.length > 0 ? unpricedText : 'Etkinlik satışa açılır; ana sayfada ve aramada en geç 1 dakika içinde görünür.'}
                 </p>
                 <button className="button button--lg" onClick={() => void publish()} disabled={busy || unpriced.length > 0}>
                   {busy ? 'Yayınlanıyor…' : 'Yayınla'}
@@ -190,7 +192,7 @@ export function EventManage({ event, venue, token, admin, onChanged, onSaved }: 
               busyLabel="İptal ediliyor…"
               confirm={`"${event.title}" iptal edilsin mi? Bu geri alınamaz; etkinlik satıştan ve listeden kalkar.`}
               onSubmit={(reason) => eventsApi.cancel(event.id, reason, token)}
-              onDone={() => onChanged('Etkinlik iptal edildi.')}
+              onDone={() => onChanged('Etkinlik iptal edildi. Ana sayfadan ve aramadan en geç 1 dakika içinde kalkar.')}
             />
           )}
         </>
