@@ -157,4 +157,20 @@ public class BusinessException : AppException
         ErrorCodes.Ticket.TransferToSelf,
         "Bileti kendinize aktaramazsınız.",
         "Alıcının e-posta adresi sizinkiyle aynı.");
+
+    // Görevlinin seçtiği etkinlik ile biletin etkinliği farklı; açıklamada biletin asıl etkinliği yazar.
+    public static BusinessException TicketWrongEvent(string eventTitle, string venueName) => new(
+        ErrorCodes.Ticket.WrongEvent,
+        "Bu bilet başka bir etkinliğe ait.",
+        $"Bilet '{eventTitle}' ({venueName}) etkinliği için.");
+
+    public static BusinessException CheckInNotOpen(int opensHoursBefore) => new(
+        ErrorCodes.Ticket.CheckInNotOpen,
+        "Bu etkinlikte giriş henüz başlamadı.",
+        $"Kapılar etkinlikten {opensHoursBefore} saat önce açılır.");
+
+    public static BusinessException CheckInClosed(int closesHoursAfter) => new(
+        ErrorCodes.Ticket.CheckInClosed,
+        "Bu etkinlikte giriş süresi bitti.",
+        $"Kapılar etkinlik başladıktan {closesHoursAfter} saat sonra kapanır.");
 }

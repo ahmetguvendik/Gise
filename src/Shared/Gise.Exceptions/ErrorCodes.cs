@@ -82,6 +82,11 @@ public static class ErrorCodes
         public const string SeatTaken = "TICKET_SEAT_TAKEN";
         public const string EventCancelled = "TICKET_EVENT_CANCELLED";
 
+        // Kapıda okutma (bkz. tasarım 3.8).
+        public const string WrongEvent = "TICKET_WRONG_EVENT";
+        public const string CheckInNotOpen = "TICKET_CHECKIN_NOT_OPEN";
+        public const string CheckInClosed = "TICKET_CHECKIN_CLOSED";
+
         // Aktarım (bkz. tasarım 3.8).
         public const string NotTransferable = "TICKET_NOT_TRANSFERABLE";
         public const string AlreadyTransferred = "TICKET_ALREADY_TRANSFERRED";

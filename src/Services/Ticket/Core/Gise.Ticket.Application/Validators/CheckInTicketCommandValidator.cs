@@ -11,5 +11,8 @@ public sealed class CheckInTicketCommandValidator : AbstractValidator<CheckInTic
         RuleFor(x => x.Code)
             .Must(code => TicketCode.Normalize(code) is not null)
             .WithMessage("Bilet kodu 16 karakter olmalı (ör. ABCD-EFGH-JKMN-PQRS).");
+
+        RuleFor(x => x.EventId)
+            .NotEmpty().WithMessage("Okutmadan önce kapıdaki etkinliği seçin.");
     }
 }

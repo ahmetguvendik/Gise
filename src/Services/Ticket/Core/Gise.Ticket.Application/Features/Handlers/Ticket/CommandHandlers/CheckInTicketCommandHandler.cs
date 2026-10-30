@@ -5,6 +5,7 @@ using Gise.Ticket.Application.Interfaces;
 using Gise.Ticket.Application.Tickets;
 using Gise.Ticket.Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 
 namespace Gise.Ticket.Application.Features.Handlers.Ticket.CommandHandlers;
 
@@ -13,15 +14,18 @@ public sealed class CheckInTicketCommandHandler : IRequestHandler<CheckInTicketC
     private readonly ITicketRepository _ticketRepository;
     private readonly ICancelledEventRepository _cancelledEventRepository;
     private readonly TimeProvider _timeProvider;
+    private readonly CheckInWindow _window;
 
     public CheckInTicketCommandHandler(
         ITicketRepository ticketRepository,
         ICancelledEventRepository cancelledEventRepository,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IConfiguration configuration)
     {
         _ticketRepository = ticketRepository;
         _cancelledEventRepository = cancelledEventRepository;
         _timeProvider = timeProvider;
+        _window = CheckInWindow.FromConfiguration(configuration);
     }
 
     public async Task<CheckInTicketResponse> Handle(CheckInTicketCommand request, CancellationToken cancellationToken)
@@ -30,6 +34,18 @@ public sealed class CheckInTicketCommandHandler : IRequestHandler<CheckInTicketC
         var code = TicketCode.Normalize(request.Code)!;
         var ticket = await _ticketRepository.GetByCodeAsync(code, cancellationToken)
             ?? throw NotFoundException.TicketCode();
+
+        // Aynı saatte başka bir mekândaki etkinliğin bileti bu kapıdan geçmez.
+        if (ticket.EventId != request.EventId)
+            throw BusinessException.TicketWrongEvent(ticket.EventTitle, ticket.VenueName);
+
+        // Erken okutulan bilet "kullanıldı" olur ve sahibi kapıda kalırdı; geçmiş etkinliğin bileti de okutulmaz.
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        if (now < _window.OpensAt(ticket.EventStartsAt))
+            throw BusinessException.CheckInNotOpen(_window.OpensHoursBefore);
+
+        if (now > _window.ClosesAt(ticket.EventStartsAt))
+            throw BusinessException.CheckInClosed(_window.ClosesHoursAfter);
 
         if (ticket.Status == TicketStatus.Cancelled)
             throw BusinessException.TicketCancelled(ticket.Id);
@@ -45,7 +61,6 @@ public sealed class CheckInTicketCommandHandler : IRequestHandler<CheckInTicketC
             throw BusinessException.TicketCancelled(ticket.Id);
         }
 
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
         if (!await _ticketRepository.TryCheckInAsync(ticket.Id, request.StaffId, now, cancellationToken))
         {
             // Bu arada başka bir kapıda okutuldu ya da iptal edildi.

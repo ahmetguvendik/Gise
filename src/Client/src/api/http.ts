@@ -5,13 +5,16 @@ export class ApiError extends Error {
   readonly fieldErrors: Record<string, string[]>
   /** Ayrıntı, ör. "Fiyatı olmayan bölümler: Balkon." */
   readonly detail?: string
+  /** Merkezi hata kodu, ör. "TICKET_WRONG_EVENT"; aynı HTTP durumundaki hataları ayırmak için. */
+  readonly code?: string
 
-  constructor(status: number, message: string, fieldErrors: Record<string, string[]> = {}, detail?: string) {
+  constructor(status: number, message: string, fieldErrors: Record<string, string[]> = {}, detail?: string, code?: string) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.fieldErrors = fieldErrors
     this.detail = detail
+    this.code = code
   }
 }
 
@@ -46,6 +49,7 @@ export async function request<T>(path: string, { method = 'GET', body, token }: 
       problem.title ?? `İstek başarısız oldu (HTTP ${response.status}).`,
       problem.errors,
       problem.detail,
+      problem.errorCode,
     )
   }
 

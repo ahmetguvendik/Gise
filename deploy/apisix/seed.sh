@@ -146,6 +146,7 @@ endpoint orders-cancel POST /api/orders/:id/cancel order orders "Siparişten vaz
 echo "Ticket"
 endpoint tickets-mine     GET  /api/tickets/mine         ticket tickets "Müşterinin biletleri"
 endpoint tickets-download GET  /api/tickets/:id/download ticket tickets "Bilet PDF'i (imzalı adres)"
+endpoint tickets-gate-events GET /api/tickets/gate/events ticket tickets "Girişi açık etkinlikler (görevli)"
 endpoint tickets-check-in POST /api/tickets/check-in     ticket tickets "Kapıda okutma (görevli)"
 # Her teklif alıcıya e-posta gönderir; rastgele adreslere e-posta yağdırmaya karşı dar.
 strict_endpoint tickets-transfer POST /api/tickets/:id/transfer ticket 10 "Çok fazla aktarım isteği gönderdiniz." "Bileti e-postayla aktarma"

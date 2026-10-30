@@ -10,6 +10,9 @@ public sealed class CheckInTicketCommand : IRequest<CheckInTicketResponse>
     // QR'ın içeriği ya da biletteki kod (tireli, küçük harfli de olabilir).
     public string Code { get; set; } = string.Empty;
 
+    // Görevlinin kapıda seçtiği etkinlik; bilet başka bir etkinliğinse reddedilir.
+    public Guid EventId { get; set; }
+
     // Body'den gelmez — controller JWT'den set eder.
     [JsonIgnore]
     public string StaffId { get; set; } = string.Empty;

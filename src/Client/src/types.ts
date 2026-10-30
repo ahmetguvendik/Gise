@@ -284,6 +284,19 @@ export interface TicketDownload {
   expiresInSeconds: number
 }
 
+/** Kapı sayfası: okutması şu an açık etkinlik. */
+export interface GateEvent {
+  eventId: string
+  eventTitle: string
+  eventStartsAt: string
+  venueName: string
+  city: string
+  opensAt: string
+  closesAt: string
+  ticketCount: number
+  checkedInCount: number
+}
+
 /** Kapıda geçerli bilet okutulunca görevliye gösterilir. */
 export interface CheckInResult {
   ticketId: string
@@ -334,4 +347,5 @@ export interface ProblemDetails {
   detail?: string
   status?: number
   errors?: Record<string, string[]>
+  errorCode?: string
 }

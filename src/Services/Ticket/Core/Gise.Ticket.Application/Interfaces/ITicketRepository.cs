@@ -21,9 +21,15 @@ public interface ITicketRepository
     // Müşterinin biletleri, en yakın etkinlik önce; sipariş verilirse yalnızca onunkiler.
     Task<IReadOnlyList<Domain.Entities.Ticket>> GetByCustomerAsync(string customerId, Guid? orderId, CancellationToken cancellationToken);
 
+    // Başlangıcı verilen aralıkta olan, iptal edilmemiş biletli etkinlikler; bilet ve okutulan bilet sayısıyla.
+    Task<IReadOnlyList<GateEvent>> GetGateEventsAsync(DateTime startsFrom, DateTime startsTo, CancellationToken cancellationToken);
+
     // Bilet hâlâ geçerliyse tek komutta "kullanıldı" yapar. Aynı bilet aynı anda iki kapıda okutulursa yalnızca biri true alır.
     Task<bool> TryCheckInAsync(Guid id, string staffId, DateTime checkedInAt, CancellationToken cancellationToken);
 
     // Kapıda yakalanan, etkinliği iptal edilmiş ama hâlâ geçerli görünen bilet.
     Task CancelAsync(Guid id, CancellationToken cancellationToken);
 }
+
+public sealed record GateEvent(
+    Guid EventId, string EventTitle, DateTime EventStartsAt, string VenueName, string City, int TicketCount, int CheckedInCount);

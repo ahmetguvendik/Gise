@@ -1,4 +1,4 @@
-import type { AcceptedTransfer, CheckInResult, IncomingTransfer, OfferedTransfer, TicketDownload, TicketItem } from '../types'
+import type { AcceptedTransfer, CheckInResult, GateEvent, IncomingTransfer, OfferedTransfer, TicketDownload, TicketItem } from '../types'
 import { request } from './http'
 
 export const ticketsApi = {
@@ -9,9 +9,13 @@ export const ticketsApi = {
   // Kısa süreli indirme adresi; tarayıcı PDF'i doğrudan MinIO'dan indirir.
   downloadUrl: (id: string, token: string) => request<TicketDownload>(`/api/tickets/${id}/download`, { token }),
 
-  // Kapı görevlisi ve admin. Kullanılmışsa 409, iptal edilmişse 422, kod yoksa 404.
-  checkIn: (code: string, token: string) =>
-    request<CheckInResult>('/api/tickets/check-in', { method: 'POST', body: { code }, token }),
+  // Kapı görevlisi ve admin: okutması şu an açık etkinlikler.
+  gateEvents: (token: string) => request<GateEvent[]>('/api/tickets/gate/events', { token }),
+
+  // Kapı görevlisi ve admin. Kullanılmışsa 409; iptal edilmiş, başka etkinliğin ya da okutma penceresi dışındaysa 422;
+  // kod yoksa 404.
+  checkIn: (code: string, eventId: string, token: string) =>
+    request<CheckInResult>('/api/tickets/check-in', { method: 'POST', body: { code, eventId }, token }),
 
   // Bileti bir e-posta adresine aktarma teklifi; alıcı o adresle giriş yapıp kabul edince bilet ona geçer.
   transfer: (id: string, email: string, token: string) =>

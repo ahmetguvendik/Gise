@@ -49,7 +49,14 @@ public sealed class TicketsController : ControllerBase
             IsAdmin = User.IsInRole(Roles.Admin)
         }, cancellationToken));
 
-    // Kapıda okutma: geçerliyse 200 ve koltuk bilgisi; kullanılmışsa 409, iptal edilmişse 422, kod yoksa 404.
+    // Kapı sayfası: şu an okutması açık etkinlikler, bilet ve giriş sayılarıyla.
+    [Authorize(Policy = Policies.GateStaff)]
+    [HttpGet("gate/events")]
+    public async Task<ActionResult<IReadOnlyList<GetGateEventsResponse>>> GetGateEvents(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetGateEventsQuery(), cancellationToken));
+
+    // Kapıda okutma: geçerliyse 200 ve koltuk bilgisi; kullanılmışsa 409; iptal edilmiş, başka etkinliğin ya da okutma
+    // penceresi dışındaysa 422; kod yoksa 404.
     [Authorize(Policy = Policies.GateStaff)]
     [HttpPost("check-in")]
     public async Task<ActionResult<CheckInTicketResponse>> CheckIn([FromBody] CheckInTicketCommand command, CancellationToken cancellationToken)

@@ -45,6 +45,17 @@ public sealed class TicketRepository : ITicketRepository
             .ThenBy(t => t.Number)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<GateEvent>> GetGateEventsAsync(DateTime startsFrom, DateTime startsTo, CancellationToken cancellationToken)
+        => await _context.Tickets
+            .AsNoTracking()
+            .Where(t => t.Status != TicketStatus.Cancelled && t.EventStartsAt >= startsFrom && t.EventStartsAt <= startsTo)
+            .GroupBy(t => new { t.EventId, t.EventTitle, t.EventStartsAt, t.VenueName, t.City })
+            .OrderBy(g => g.Key.EventStartsAt)
+            .Select(g => new GateEvent(
+                g.Key.EventId, g.Key.EventTitle, g.Key.EventStartsAt, g.Key.VenueName, g.Key.City,
+                g.Count(), g.Count(t => t.Status == TicketStatus.Used)))
+            .ToListAsync(cancellationToken);
+
     public async Task<bool> TryCheckInAsync(Guid id, string staffId, DateTime checkedInAt, CancellationToken cancellationToken)
         => await _context.Tickets
             .Where(t => t.Id == id && t.Status == TicketStatus.Valid)

@@ -498,6 +498,11 @@ a:hover { color: var(--link-hover); }
 
 /* ---- Kapı ---- */
 .gate { max-width: 720px; }
+.gate__event { display: grid; gap: 8px; font-size: 15px; font-weight: 600; }
+.gate__event select { min-height: 54px; padding: 12px 14px; font: inherit; font-size: 18px; font-weight: 700; border: 2px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
+.gate__event select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+.gate__stats { font-size: 17px; color: var(--muted); }
+.gate__stats strong { font-family: var(--font-display); font-size: 28px; color: var(--text); }
 .gate__form input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 22px; letter-spacing: 0.06em; text-transform: uppercase; }
 .gate-result { display: grid; gap: 8px; justify-items: start; border-radius: var(--radius); padding: 24px 28px; }
 .gate-result__title { font-family: var(--font-display); font-size: clamp(36px, 7vw, 56px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
