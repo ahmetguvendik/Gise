@@ -15,6 +15,9 @@ namespace Gise.Order.Api.Controllers;
 [Route("api/orders")]
 public sealed class OrdersController : ControllerBase
 {
+    // OrderConfiguration'daki CustomerName sütunuyla aynı.
+    private const int MaxCustomerNameLength = 200;
+
     private readonly IMediator _mediator;
 
     public OrdersController(IMediator mediator)
@@ -30,7 +33,10 @@ public sealed class OrdersController : ControllerBase
             ?? throw UnauthorizedException.MissingClaim("sub");
         // Bilet e-postası için; token'da yoksa bildirim gönderilmez, sipariş yine açılır.
         command.CustomerEmail = User.FindFirst("email")?.Value ?? string.Empty;
-        command.CustomerName = User.FindFirst("name")?.Value ?? string.Empty;
+        // Keycloak ad ve soyada 255'er karakter izin veriyor; ad yalnızca e-postadaki selamlamada kullanıldığı için
+        // sütuna (200) sığacak kadarı alınır, uzun adlı kullanıcının siparişi veritabanında reddedilmez.
+        var name = User.FindFirst("name")?.Value ?? string.Empty;
+        command.CustomerName = name.Length > MaxCustomerNameLength ? name[..MaxCustomerNameLength] : name;
 
         var result = await _mediator.Send(command, cancellationToken);
         return AcceptedAtAction(nameof(GetById), new { id = result.OrderId }, result);
