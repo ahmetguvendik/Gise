@@ -214,7 +214,8 @@ export interface CreatedOrder {
 }
 
 /** Valid: girişte okutulabilir; Used: okutuldu; Cancelled: geçersiz (ör. etkinlik iptal edildi). */
-export type TicketStatus = 'Valid' | 'Used' | 'Cancelled'
+/** Transferred: gönderenin listesinde, başkasına aktarılan bilet. */
+export type TicketStatus = 'Valid' | 'Used' | 'Cancelled' | 'Transferred'
 
 /** Etkinlik ve koltuk bilgisi bilet çıkarken siparişten kopyalanır. */
 export interface TicketItem {
@@ -229,12 +230,14 @@ export interface TicketItem {
   row: string
   number: number
   price: number
-  /** Kapıda okutulan kod, okunaklı biçimde: "ABCD-EFGH-JKMN-PQRS". */
+  /** Kapıda okutulan kod, okunaklı biçimde: "ABCD-EFGH-JKMN-PQRS". Aktarılan bilette boş: kod artık alıcının. */
   code: string
   status: TicketStatus
   checkedInAt: string | null
-  /** Aktarımla geldiyse kabul zamanı; böyle bir bilet yeniden aktarılamaz. */
+  /** Aktarımın kabul zamanı: aktarımla gelen bilette geldiği, Transferred'da gittiği an. */
   transferredAt: string | null
+  /** Transferred'da alıcının e-postası. */
+  transferredTo: string | null
   /** Geçerli, aktarımla gelmemiş, bekleyen aktarımı yok ve süre dolmamış. */
   canTransfer: boolean
   /** Aktarım için son an (etkinlikten 2 saat önce). */

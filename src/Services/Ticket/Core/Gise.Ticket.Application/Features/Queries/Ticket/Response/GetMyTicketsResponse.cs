@@ -14,15 +14,19 @@ public sealed class GetMyTicketsResponse
     public int Number { get; set; }
     public decimal Price { get; set; }
 
-    // Okunaklı biçimde: "ABCD-EFGH-JKMN-PQRS".
+    // Okunaklı biçimde: "ABCD-EFGH-JKMN-PQRS". Başkasına aktarılan bilette boş: kod artık alıcının.
     public string Code { get; set; } = string.Empty;
 
-    // Valid, Used, Cancelled.
+    // Valid, Used, Cancelled; gönderenin listesinde başkasına aktarılan bilet için Transferred.
     public string Status { get; set; } = string.Empty;
     public DateTime? CheckedInAt { get; set; }
 
-    // Aktarımla geldiyse kabul zamanı; böyle bir bilet yeniden aktarılamaz.
+    // Aktarımın kabul zamanı: aktarımla gelen bilette geldiği, Transferred'da gittiği an. Aktarımla gelen bilet yeniden
+    // aktarılamaz.
     public DateTime? TransferredAt { get; set; }
+
+    // Transferred'da alıcının e-postası.
+    public string? TransferredTo { get; set; }
 
     // Geçerli, aktarımla gelmemiş, bekleyen aktarımı yok ve son an geçmemiş.
     public bool CanTransfer { get; set; }

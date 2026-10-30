@@ -15,6 +15,10 @@ public interface ITicketTransferRepository
     // Salt okunur; Biletlerim'de biletin yanında gösterilir.
     Task<IReadOnlyList<TicketTransfer>> GetPendingForTicketsAsync(IReadOnlyCollection<Guid> ticketIds, CancellationToken cancellationToken);
 
+    // Salt okunur: müşterinin başkasına aktardığı (kabul edilmiş) biletler; sipariş verilirse yalnızca onunkiler.
+    Task<IReadOnlyList<(TicketTransfer Transfer, Domain.Entities.Ticket Ticket)>> GetAcceptedFromCustomerAsync(
+        string customerId, Guid? orderId, CancellationToken cancellationToken);
+
     // Salt okunur: e-posta adresine gönderilmiş bekleyen aktarımlar ve biletleri, en yakın etkinlik önce.
     Task<IReadOnlyList<(TicketTransfer Transfer, Domain.Entities.Ticket Ticket)>> GetPendingForEmailAsync(string email, CancellationToken cancellationToken);
 }

@@ -31,6 +31,20 @@ public sealed class TicketTransferRepository : ITicketTransferRepository
             .Where(t => ticketIds.Contains(t.TicketId) && t.Status == TicketTransferStatus.Pending)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<(TicketTransfer Transfer, Domain.Entities.Ticket Ticket)>> GetAcceptedFromCustomerAsync(
+        string customerId, Guid? orderId, CancellationToken cancellationToken)
+    {
+        var rows = await _context.TicketTransfers
+            .AsNoTracking()
+            .Where(t => t.FromCustomerId == customerId && t.Status == TicketTransferStatus.Accepted)
+            .Join(_context.Tickets.AsNoTracking(), transfer => transfer.TicketId, ticket => ticket.Id,
+                (transfer, ticket) => new { Transfer = transfer, Ticket = ticket })
+            .Where(x => orderId == null || x.Ticket.OrderId == orderId)
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(x => (x.Transfer, x.Ticket)).ToList();
+    }
+
     public async Task<IReadOnlyList<(TicketTransfer Transfer, Domain.Entities.Ticket Ticket)>> GetPendingForEmailAsync(
         string email, CancellationToken cancellationToken)
     {

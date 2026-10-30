@@ -91,13 +91,20 @@ export function TicketList({ tickets, showEvent = true, allowTransfer = false, o
               <p className="ticket-row__seat">
                 {ticket.sectionName} · Sıra {ticket.row} · Koltuk {ticket.number}
               </p>
-              <p className="ticket-row__code">
-                <span className="muted">Kod</span> {ticket.code}
-              </p>
+              {ticket.status !== 'Transferred' && (
+                <p className="ticket-row__code">
+                  <span className="muted">Kod</span> {ticket.code}
+                </p>
+              )}
             </div>
             <div className="ticket-row__side">
               {ticket.status === 'Cancelled' ? (
                 <span className="muted">Bu bilet geçersiz.</span>
+              ) : ticket.status === 'Transferred' ? (
+                <span className="muted ticket-row__note">
+                  {ticket.transferredTo} adresine aktarıldı
+                  {ticket.transferredAt && ` · ${formatDate(ticket.transferredAt)}`}. Kod ve PDF artık alıcının.
+                </span>
               ) : transferring === ticket.id ? (
                 <form className="transfer-form" onSubmit={(event) => sendTransfer(event, ticket)}>
                   <label>

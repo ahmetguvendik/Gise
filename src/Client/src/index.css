@@ -236,6 +236,7 @@ a:hover { color: var(--link-hover); }
 .badge--ticket-valid { background: var(--success-bg); color: var(--success-text); }
 .badge--ticket-used { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--link); }
 .badge--ticket-cancelled { background: var(--surface-2); color: var(--muted); }
+.badge--ticket-transferred { background: var(--surface); color: var(--muted); border: 1px solid var(--border-strong); }
 .badge--order-cancelled,
 .badge--order-expired,
 .badge--order-refunded { background: var(--surface-2); color: var(--muted); }
@@ -501,6 +502,7 @@ a:hover { color: var(--link-hover); }
 .ticket-row { background: var(--surface); border: 1px solid var(--border); border-left: 6px solid var(--success-text); border-radius: var(--radius); padding: 20px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; }
 .ticket-row--used { border-left-color: var(--link); }
 .ticket-row--cancelled { border-left-color: var(--border-strong); opacity: 0.75; }
+.ticket-row--transferred { border-left-color: var(--border-strong); background: var(--surface-2); }
 .ticket-row__main { display: grid; gap: 6px; justify-items: start; min-width: 0; }
 .ticket-row__main p { margin: 0; }
 .ticket-row__title { font-size: 22px; letter-spacing: -0.02em; }
