@@ -610,15 +610,20 @@ services:
       reservation-api:
         condition: service_healthy
 
-  # Kalıcı verisi yok (yalnızca Redis); migration adımı da yok.
+  # Koltuk haritasının anlık güncellenmesi: Reservation'ın Redis yayınlarını SignalR'la tarayıcılara iletir. Kalıcı verisi yok.
   seatmap-api:
     image: gise/seatmap-api:dev
     build:
       context: ..
       dockerfile: src/Services/SeatMap/Presentation/Gise.SeatMap.Api/Dockerfile
     restart: unless-stopped
+    environment:
+      Redis__Connection: redis:6379,password=${REDIS_PASSWORD}
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/live"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
       interval: 10s
       timeout: 3s
       retries: 5

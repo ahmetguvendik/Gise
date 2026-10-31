@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
 import { ApiError, toApiError } from '../api/http'
 import { ordersApi } from '../api/orders'
 import { reservationApi } from '../api/reservation'
 import { formatPrice } from '../lib/format'
-import type { SeatMap, SeatMapSeat, SeatMapSection } from '../types'
+import { useLiveSeats } from '../lib/useLiveSeats'
+import type { SeatMap, SeatMapSeat, SeatMapSection, SeatsChanged } from '../types'
 import { ErrorAlert } from './ErrorAlert'
 
 // Order'ın kuralıyla aynı (OrderRules:MaxSeatsPerOrder); asıl kontrol backend'de.
@@ -13,6 +14,22 @@ const MAX_SEATS = 10
 
 interface Props {
   eventId: string
+}
+
+const SEAT_CLASS = { Available: 'seat', Held: 'seat seat--held', Sold: 'seat seat--taken' } as const
+const SEAT_LABEL = { Available: '', Held: ', sepette', Sold: ', dolu' } as const
+
+// Anlık değişikliği haritaya uygular; bölümlerin boş koltuk sayısı ve "tükendi" bilgisi yeniden hesaplanır.
+function applyChange(map: SeatMap, change: SeatsChanged): SeatMap {
+  const changed = new Set(change.seatIds)
+  const sections = map.sections.map((section) => {
+    if (!section.seats.some((seat) => changed.has(seat.seatId))) return section
+    const seats = section.seats.map((seat) =>
+      changed.has(seat.seatId) ? { ...seat, state: change.state, isAvailable: change.state === 'Available' } : seat,
+    )
+    return { ...section, seats, availableCount: seats.filter((seat) => seat.isAvailable).length }
+  })
+  return { ...map, sections, soldOut: sections.every((section) => section.seats.every((seat) => seat.state === 'Sold')) }
 }
 
 // API koltukları sıra ve numaraya göre sıralı verir; burada yalnızca sıralara ayrılır, sıra korunur.
@@ -30,6 +47,31 @@ export function SeatPicker({ eventId }: Props) {
   const [selected, setSelected] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  // Anlık güncelleme geri çağrısı en güncel seçimi ve sipariş durumunu görsün.
+  const selectedRef = useRef(selected)
+  const busyRef = useRef(busy)
+  useEffect(() => {
+    selectedRef.current = selected
+    busyRef.current = busy
+  })
+
+  // Başkası seçtiğimiz bir koltuğu aldıysa seçimden çıkar. Sipariş açılırken kendi koltuklarımız da "sepette"ye döner;
+  // o sırada dokunulmaz, sayfa sipariş ekranına geçer.
+  const live = useLiveSeats(
+    eventId,
+    (change) => {
+      setMap((current) => (current ? applyChange(current, change) : current))
+      if (change.state === 'Available' || busyRef.current) return
+      const lost = change.seatIds.filter((id) => selectedRef.current.includes(id))
+      if (lost.length === 0) return
+      setSelected((current) => current.filter((id) => !lost.includes(id)))
+      setNotice('Seçtiğiniz koltuklardan biri az önce başkası tarafından alındı; seçiminizden çıkarıldı.')
+    },
+    () => {
+      reservationApi.seats(eventId).then(setMap, () => undefined)
+    },
+  )
 
   useEffect(() => {
     let ignore = false
@@ -64,6 +106,7 @@ export function SeatPicker({ eventId }: Props) {
 
   const toggle = (seatId: string) => {
     setError(null)
+    setNotice(null)
     setSelected((current) =>
       current.includes(seatId)
         ? current.filter((id) => id !== seatId)
@@ -106,9 +149,15 @@ export function SeatPicker({ eventId }: Props) {
           <span className="seat seat--legend" aria-pressed="true" /> Seçili
         </li>
         <li>
+          <span className="seat seat--legend seat--held" /> Sepette
+        </li>
+        <li>
           <span className="seat seat--legend seat--taken" /> Dolu
         </li>
+        {live && <li className="seat-legend__live">Anlık güncelleniyor</li>}
       </ul>
+
+      {notice && <div className="notice notice--warning">{notice}</div>}
 
       <div className="seat-picker__stage" aria-hidden="true">
         SAHNE
@@ -132,9 +181,9 @@ export function SeatPicker({ eventId }: Props) {
                       <button
                         key={seat.seatId}
                         type="button"
-                        className={seat.isAvailable ? 'seat' : 'seat seat--taken'}
+                        className={SEAT_CLASS[seat.state]}
                         aria-pressed={isSelected}
-                        aria-label={`${section.sectionName}, sıra ${row}, koltuk ${seat.number}, ${formatPrice(section.price)}${seat.isAvailable ? '' : ', dolu'}`}
+                        aria-label={`${section.sectionName}, sıra ${row}, koltuk ${seat.number}, ${formatPrice(section.price)}${SEAT_LABEL[seat.state]}`}
                         disabled={!map.isOnSale || !seat.isAvailable || (!isSelected && selected.length >= MAX_SEATS)}
                         onClick={() => toggle(seat.seatId)}
                       >

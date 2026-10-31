@@ -111,7 +111,6 @@
   </Folder>
   <Folder Name="/src/Services/SeatMap/Infrastructure/">
     <Project Path="src/Services/SeatMap/Infrastructure/Gise.SeatMap.Infrastructure/Gise.SeatMap.Infrastructure.csproj" />
-    <Project Path="src/Services/SeatMap/Infrastructure/Gise.SeatMap.Persistence/Gise.SeatMap.Persistence.csproj" />
   </Folder>
   <Folder Name="/src/Services/SeatMap/Presentation/">
     <Project Path="src/Services/SeatMap/Presentation/Gise.SeatMap.Api/Gise.SeatMap.Api.csproj" />

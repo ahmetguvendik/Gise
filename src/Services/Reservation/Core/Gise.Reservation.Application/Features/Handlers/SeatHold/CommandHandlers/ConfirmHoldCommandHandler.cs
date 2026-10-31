@@ -1,3 +1,4 @@
+using Gise.Contracts.Realtime;
 using Gise.Exceptions;
 using Gise.Reservation.Application.Features.Commands.SeatHold.Request;
 using Gise.Reservation.Application.Interfaces;
@@ -13,6 +14,7 @@ public sealed class ConfirmHoldCommandHandler : IRequestHandler<ConfirmHoldComma
     private readonly IEventStockRepository _eventStockRepository;
     private readonly ISeatHoldRepository _seatHoldRepository;
     private readonly ISeatLockService _seatLockService;
+    private readonly ISeatUpdatePublisher _seatUpdatePublisher;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TimeSpan _holdDuration;
 
@@ -20,9 +22,11 @@ public sealed class ConfirmHoldCommandHandler : IRequestHandler<ConfirmHoldComma
         IEventStockRepository eventStockRepository,
         ISeatHoldRepository seatHoldRepository,
         ISeatLockService seatLockService,
+        ISeatUpdatePublisher seatUpdatePublisher,
         IUnitOfWork unitOfWork,
         IConfiguration configuration)
     {
+        _seatUpdatePublisher = seatUpdatePublisher;
         _eventStockRepository = eventStockRepository;
         _seatHoldRepository = seatHoldRepository;
         _seatLockService = seatLockService;
@@ -63,5 +67,8 @@ public sealed class ConfirmHoldCommandHandler : IRequestHandler<ConfirmHoldComma
 
         // Koltuğun kalıcı durumu artık veritabanında. Kilitler kaldırılır; müşteri aynı etkinlikte yeniden sipariş açabilir.
         await _seatLockService.ReleaseAsync(hold.EventId, hold.CustomerId, hold.SeatIds, hold.OrderId);
+
+        // Haritada sepetteki koltuklar satılmış görünür.
+        await _seatUpdatePublisher.PublishAsync(hold.EventId, hold.SeatIds, SeatState.Sold);
     }
 }

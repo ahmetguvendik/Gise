@@ -28,6 +28,10 @@ public sealed class SeatResponse
     public string Row { get; set; } = string.Empty;
     public int Number { get; set; }
 
-    // Tutulmuş ya da satılmış koltuk ayrımı dışarıya verilmez.
+    // Available, Held (sepette; 10 dakika içinde satılmazsa geri açılır) ya da Sold. Koltuk haritası (SeatMap) değişiklikleri
+    // aynı adlarla anlık gönderir.
+    public string State { get; set; } = string.Empty;
+
+    // Satılmamış ve sepette değil: State == Available.
     public bool IsAvailable { get; set; }
 }

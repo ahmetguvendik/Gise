@@ -103,13 +103,13 @@ Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 | Servis | Sorumluluk | Veri | Dışarıya açtığı | Gönderdiği | Dinlediği |
 |---|---|---|---|---|---|
 | **Catalog** | Etkinlik, mekân, salon/koltuk planı, fiyat kategorisi, afiş | PostgreSQL + MinIO (afişler) | REST (okuma herkese; taslak organizatöre, yayın ve iptal admin'e), gRPC (koltuk ve fiyat) | Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` | — |
-| **Reservation** | Koltuk tutma (10 dk), kesinleştirme, bırakma; çift satışı önleme | PostgreSQL + Redis | REST (koltuk durumu) | RabbitMQ: `SeatsReserved`, `SeatReservationFailed`; Kafka: `SeatStatusChanged` | RabbitMQ: `ReserveSeats`, `ConfirmSeats`, `ReleaseSeats`; Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` |
+| **Reservation** | Koltuk tutma (10 dk), kesinleştirme, bırakma; çift satışı önleme | PostgreSQL + Redis | REST (koltuk durumu) | RabbitMQ: `SeatsReserved`, `SeatReservationFailed`; Redis yayını: `SeatsChanged` (SeatMap) | RabbitMQ: `ReserveSeats`, `ConfirmSeats`, `ReleaseSeats`; Kafka: `EventPublished`, `EventUpdated`, `EventCancelled` |
 | **Order** | Satın alma saga'sı (orkestratör) | PostgreSQL (saga durumu) | REST (sipariş oluştur/sorgula, öde) | RabbitMQ: komutlar | RabbitMQ: komut cevapları; Kafka: `EventCancelled` |
 | **Payment** | Sahte ödeme sağlayıcısı; iade | PostgreSQL | — | RabbitMQ: `PaymentSucceeded`, `PaymentFailed` (iadenin cevabı beklenmez) | RabbitMQ: `ProcessPayment`, `RefundPayment` |
 | **Ticket** | QR'lı PDF bilet üretimi; kapıda okutma | PostgreSQL + MinIO | REST (biletlerim, PDF indirme, kapı okutma) | RabbitMQ: `TicketsIssued`, `TicketIssueFailed`; Kafka (`ticket.events`): `TicketsIssued` | RabbitMQ: `IssueTickets`; Kafka: `EventCancelled` |
 | **Notification** | E-posta | PostgreSQL (inbox, bilet sahipleri, gönderilenler) | — | — | Kafka: `TicketsIssued`, `EventCancelled`, `EventUpdated` |
 | **Search** | Ana sayfadaki liste, Türkçe tam metin arama, yazarken öneri | Elasticsearch | REST (herkese açık) | — | — (Catalog'dan ve Reservation'dan gRPC ile dakikada bir alır) |
-| **SeatMap** | Koltuk haritasında anlık güncelleme | Redis (backplane) | SignalR | — | Kafka: `SeatStatusChanged` |
+| **SeatMap** | Koltuk haritasında anlık güncelleme | — | SignalR (`/hubs/seatmap`) | — | Redis yayını: `SeatsChanged` (Reservation'dan) |
 
 ### 3.1 Mimari
 
@@ -136,7 +136,7 @@ flowchart LR
 
     CAT & RES & ORD & TIC -- "olay" --> K{{"Kafka"}}
     K --> NOT["Notification"]
-    K --> SM
+    RES -. "Redis yayını" .-> SM
 ```
 
 ### 3.2 Test ödeme sağlayıcısı
@@ -276,9 +276,9 @@ Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik 
 | `EventUpdated` | Tarih güncellenir; olay yalnızca en düşük fiyatı taşıdığı için bölüm fiyatları Catalog'dan yeniden okunur. |
 | `EventCancelled` | Satış kapanır (`CancelledAt`); tutulan koltuklar bırakılır. Satılmış koltukların iadesi Order'ın işi (bkz. 4.4). |
 
-- `GET /api/reservation/events/{id}/seats` (herkese açık): bölümler, bölüm fiyatı, boş koltuk sayısı, her koltuğun boş olup olmadığı ve etkinliğin tükenip tükenmediği (`soldOut`: bütün koltuklar satılmış).
-- **gRPC** (`Gise.Contracts/Protos/reservation.proto`, Catalog'unki gibi yalnızca iç ağda 8081): `GetAvailability(event_ids)` etkinlik başına koltuk ve satılmamış koltuk sayısını döndürür (bir istekte en fazla 500); Search ana sayfadaki "Tükendi" ve "Son N bilet" bilgisini bununla kurar (bkz. 3.10). Tutulmuş ya da satılmış ayrımı dışarı verilmez. Stok yoksa 404 `STOCK_NOT_FOUND` (etkinlik yayında değil ya da worker henüz kurmadı). `/api/events` Catalog'un olduğu için Reservation'ın uçları gateway'de `/api/reservation` altında.
-- Koltuk haritasında "boş" = satılmamış ve şu an tutulmuyor (Redis'e bakılır, bkz. 5).
+- `GET /api/reservation/events/{id}/seats` (herkese açık): bölümler, bölüm fiyatı, boş koltuk sayısı, her koltuğun durumu (`Available`, `Held` sepette, `Sold`) ve etkinliğin tükenip tükenmediği (`soldOut`: bütün koltuklar satılmış). Stok yoksa 404 `STOCK_NOT_FOUND` (etkinlik yayında değil ya da worker henüz kurmadı). `/api/events` Catalog'un olduğu için Reservation'ın uçları gateway'de `/api/reservation` altında.
+- **gRPC** (`Gise.Contracts/Protos/reservation.proto`, Catalog'unki gibi yalnızca iç ağda 8081): `GetAvailability(event_ids)` etkinlik başına koltuk ve satılmamış koltuk sayısını döndürür (bir istekte en fazla 500); Search ana sayfadaki "Tükendi" ve "Son N bilet" bilgisini bununla kurar (bkz. 3.10).
+- Koltuk haritasında "boş" = satılmamış ve şu an tutulmuyor (Redis'e bakılır, bkz. 5). Tutma, bırakma ve satış anında koltuk haritasına (SeatMap) yayın yapılır (bkz. 3.11).
 - Satış (`ConfirmSeats`) ödeme alınınca yapılır (bkz. 4.5).
 - **Henüz yok:** gRPC çağrısında servisler arası kimlik doğrulama.
 
@@ -348,6 +348,28 @@ Ana sayfadaki liste, arama kutusu ve öneriler Search'ten gelir; ön yüz Catalo
 - **Sağlık:** search-api `/health/ready`: Elasticsearch. Worker: heartbeat (eşik aralığın 2 katı) ve Elasticsearch.
 - **Ön yüz:** ana sayfanın üstünde arama kutusu. Yazarken (200 ms bekleyip) öneriler gelir: etkinliğe tıklanınca sayfası açılır, mekâna tıklanınca o adla aranır, şehre tıklanınca şehir filtresi olur. Ok tuşları ve Enter ile seçilir, Esc kapatır. Filtreler: şehir (sonuçtaki şehirler) ve tarih (Bugün, Bu hafta sonu, Bu ay, Tarih seç). Filtreler adreste durur (`?q=&sehir=&tarih=&bas=&bit=`); paylaşılabilir, geri tuşu önceki aramaya döner. Sonuçlar 24'erli, "Daha fazla göster" ile.
 - **Henüz yok:** sonuç cache'i (Redis; yük artınca ölçülüp karar verilecek), fiyat ve tür filtresi, arama istatistikleri.
+
+
+### 3.11 SeatMap: anlık koltuk haritası
+
+Aynı etkinliğin koltuk haritasına bakan herkes, bir koltuk sepete girdiğinde, satıldığında ya da geri açıldığında bunu sayfayı yenilemeden görür. Satış anında "koltuk artık müsait değil" hatası azalır.
+
+```
+reservation-command-worker (tutma / bırakma / satış, kayıttan sonra)
+  → Redis yayını, kanal "seatmap:seats-changed": SeatsChanged {etkinlik, durum, koltuklar}
+  → seatmap-api (her kopya kanala kendisi abone) → SignalR hub, "event:{id}" grubu
+  → o etkinliğin haritasına bakan tarayıcılar
+```
+
+- **Durumlar:** `Available`, `Held` (sepette; 10 dakika içinde satılmazsa geri açılır), `Sold`. Haritada sepetteki koltuk çizgili, satılan dolu görünür. Reservation'ın koltuk yanıtı da her koltuğun durumunu (`state`) verir.
+- **Yayın:** `HoldSeats` sonrası `Held`, `ReleaseHold` sonrası `Available`, `ConfirmHold` sonrası `Sold`. Kayıt başarılı olduktan sonra yapılır. Redis o an yoksa yayın loglanıp atlanır, iş bozulmaz.
+- **Neden Kafka değil:** mesajlar kalıcı olması gerekmeyen anlık ipuçlarıdır; asıl durum Reservation'da. Redis yayını kalıcı değildir: Redis yoksa ya da tarayıcının bağlantısı koptuysa mesaj kaybolur. Tarayıcı izlemeye başlayınca ve yeniden bağlanınca haritayı Reservation'dan baştan yükleyerek bunu telafi eder. Süresi dolan tutma için ayrı mesaj yoktur; saga'nın zaman aşımı aynı anda `ReleaseSeats` gönderir.
+- **Mesajlaşma kuralının istisnası:** seatmap-api Redis kanalını kendisi dinler (`SeatUpdatesRelay`). Anlık iletim, WebSocket bağlantılarının durduğu process'te yapılmak zorunda; dinlenen şey de Kafka ya da RabbitMQ değil, kalıcı olmayan bir kanal.
+- **Ölçek:** SignalR Redis backplane'i kullanılmaz. Her seatmap-api kopyası kanala abone olur ve mesajı yalnızca kendi bağlantılarına iletir. Kanal mesajı bütün kopyalara dağıtır; backplane eklenseydi her mesaj kopya sayısı kadar tekrarlanırdı.
+- **Hub** (`/hubs/seatmap`, gateway'de WebSocket route'u, giriş gerekmez): `Watch(eventId)`, `Unwatch(eventId)`; bir bağlantı en fazla 3 etkinlik izler. Sunucudan `SeatsChanged` gelir. İstemci yalnızca WebSocket kullanır (`skipNegotiation`).
+- **Ön yüz:** etkinlik sayfasının koltuk seçicisi değişiklikleri anında uygular; bölümlerin boş koltuk sayısı ve "tükendi" bilgisi yeniden hesaplanır. Seçtiğin koltuk başkasının sepetine girerse seçimden çıkarılır ve uyarı gösterilir. Bağlantı varken haritanın üstünde "Anlık güncelleniyor" yazar. Bağlantı kurulamazsa harita eskisi gibi yalnızca açılışta yüklenir.
+- **Veri:** veritabanı yok. Redis parolası compose'dan ortam değişkeniyle gelir. Sağlık: Redis.
+- **Henüz yok:** "şu an N kişi bakıyor" sayacı, etkinlik iptalinin haritaya anlık yansıması (sayfa yenilenince görünür).
 
 ---
 
@@ -562,6 +584,7 @@ stateDiagram-v2
 | `orders` | siparişlerim, sipariş durumu, ödeme, vazgeçme | 300 |
 | `tickets` | biletlerim, PDF, kapı etkinlikleri, kapıda okutma, aktarımı geri alma, kabul, ret | 300 |
 | `search` | arama, yazarken öneri | 600 |
+| `seatmap` | `GET /hubs/seatmap` (koltuk haritası, WebSocket; her bağlantı kurulurken bir istek) | 120 |
 | kendi sayacı | `POST /api/media/upload-url` (depoya dosya yükletir) | 20 |
 | kendi sayacı | `POST /api/orders` (koltuk tutar) | 10 |
 | kendi sayacı | `POST /api/tickets/:id/transfer` (alıcıya e-posta gönderir) | 10 |
@@ -651,7 +674,7 @@ Her servis aynı düzendedir:
 - İş kuralları handler'larda uygulanır. Hatalar merkezidir (`src/Shared/Gise.Exceptions`): `AppException` tabanından türeyen `ValidationException` (400), `UnauthorizedException` (401), `ForbiddenException` (403), `NotFoundException` (404), `ConflictException` (409), `BusinessException` (422). Her hata bir `ErrorCode` taşır (`ErrorCodes`); hazır fabrika metotlarıyla atılır, ör. `throw NotFoundException.Event(id)`.
 - `GlobalExceptionHandler` her `AppException`'ı aynı biçimde ProblemDetails'e çevirir: `title` = mesaj, `detail` = açıklama, `errorCode` = kod. Tanınmayan hata 500 olur ve loglanır.
 - Hatalar RFC 7807 **ProblemDetails** biçiminde ve Türkçe döner.
-- Payment ve Notification'ın dışarıya açık API'si yoktur. SeatMap controller yerine SignalR **hub**'ı (`Hubs/`) kullanır.
+- Payment ve Notification'ın dışarıya açık API'si yoktur. SeatMap controller yerine SignalR **hub**'ı (`Hubs/`) kullanır; veritabanı olmadığı için Persistence projesi yoktur.
 
 Kodda ve konteyner adlarında ASCII **`gise`** kullanılır; klasör adındaki `ş` bazı araçlarda sorun çıkarabiliyor.
 

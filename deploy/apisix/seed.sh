@@ -100,6 +100,7 @@ upstream reservation reservation-api:8080
 upstream order order-api:8080
 upstream ticket ticket-api:8080
 upstream search search-api:8080
+upstream seatmap seatmap-api:8080
 upstream client client:80
 
 echo "Catalog: etkinlikler"
@@ -158,6 +159,20 @@ endpoint tickets-transfer-decline POST /api/tickets/transfers/:id/decline       
 echo "Search"
 endpoint search-events  GET /api/search/events  search search "Ana sayfa listesi ve arama"
 endpoint search-suggest GET /api/search/suggest search search "Yazarken öneri"
+
+echo "SeatMap"
+# Koltuk haritasının anlık güncellenmesi: SignalR, yalnızca WebSocket (istemci negotiate adımını atlar). Her bağlantı
+# kurulurken bir istek sayılır.
+put routes/seatmap-hub "{
+  \"name\": \"GET /hubs/seatmap\",
+  \"desc\": \"Koltuk haritası, anlık (SignalR WebSocket)\",
+  \"methods\": [\"GET\"],
+  \"uri\": \"/hubs/seatmap\",
+  \"upstream_id\": \"seatmap\",
+  \"enable_websocket\": true,
+  \"priority\": 10,
+  \"plugins\": $(limits seatmap 120 "Çok fazla bağlantı denemesi.")
+}"
 
 echo "Diğer"
 # Tanımlı olmayan API yolu ya da yöntemi istemciye (index.html) düşmesin: 404 ProblemDetails.

@@ -3,6 +3,7 @@ using Gise.Reservation.Application.Features.Commands.SeatHold.Response;
 using Gise.Reservation.Application.Interfaces;
 using Gise.Reservation.Application.UnitOfWorks;
 using Gise.Reservation.Domain.Enums;
+using Gise.Contracts.Realtime;
 using Gise.Exceptions;
 using MediatR;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +15,7 @@ public sealed class HoldSeatsCommandHandler : IRequestHandler<HoldSeatsCommand, 
     private readonly IEventStockRepository _eventStockRepository;
     private readonly ISeatHoldRepository _seatHoldRepository;
     private readonly ISeatLockService _seatLockService;
+    private readonly ISeatUpdatePublisher _seatUpdatePublisher;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _holdDuration;
@@ -22,10 +24,12 @@ public sealed class HoldSeatsCommandHandler : IRequestHandler<HoldSeatsCommand, 
         IEventStockRepository eventStockRepository,
         ISeatHoldRepository seatHoldRepository,
         ISeatLockService seatLockService,
+        ISeatUpdatePublisher seatUpdatePublisher,
         IUnitOfWork unitOfWork,
         TimeProvider timeProvider,
         IConfiguration configuration)
     {
+        _seatUpdatePublisher = seatUpdatePublisher;
         _eventStockRepository = eventStockRepository;
         _seatHoldRepository = seatHoldRepository;
         _seatLockService = seatLockService;
@@ -90,6 +94,9 @@ public sealed class HoldSeatsCommandHandler : IRequestHandler<HoldSeatsCommand, 
             await _seatLockService.ReleaseAsync(stock.Id, request.CustomerId, request.SeatIds, request.OrderId);
             throw;
         }
+
+        // Haritaya bakan herkes koltukları "sepette" görür.
+        await _seatUpdatePublisher.PublishAsync(stock.Id, request.SeatIds, SeatState.Held);
 
         return ToResponse(hold, seats);
     }

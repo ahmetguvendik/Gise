@@ -1,8 +1,9 @@
+using Gise.Contracts.Realtime;
+using Gise.Exceptions;
 using Gise.Reservation.Application.Features.Queries.EventSeat.Request;
 using Gise.Reservation.Application.Features.Queries.EventSeat.Response;
 using Gise.Reservation.Application.Interfaces;
 using Gise.Reservation.Domain.Enums;
-using Gise.Exceptions;
 using MediatR;
 
 namespace Gise.Reservation.Application.Features.Handlers.EventSeat.QueryHandlers;
@@ -29,6 +30,8 @@ public sealed class GetEventSeatsQueryHandler : IRequestHandler<GetEventSeatsQue
         // Boş koltuk: satılmamış ve şu an kimse tarafından tutulmuyor.
         var locked = await _seatLockService.GetLockedSeatIdsAsync(stock.Id, stock.Seats.Select(s => s.SeatId).ToList());
         bool IsAvailable(Domain.Entities.EventSeat seat) => seat.Status == SeatStatus.Available && !locked.Contains(seat.SeatId);
+        SeatState StateOf(Domain.Entities.EventSeat seat)
+            => seat.Status == SeatStatus.Sold ? SeatState.Sold : locked.Contains(seat.SeatId) ? SeatState.Held : SeatState.Available;
 
         return new GetEventSeatsResponse
         {
@@ -56,7 +59,8 @@ public sealed class GetEventSeatsQueryHandler : IRequestHandler<GetEventSeatsQue
                             SeatId = s.SeatId,
                             Row = s.Row,
                             Number = s.Number,
-                            IsAvailable = IsAvailable(s)
+                            IsAvailable = IsAvailable(s),
+                            State = StateOf(s).ToString()
                         })
                         .ToList()
                 })

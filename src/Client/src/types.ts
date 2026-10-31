@@ -160,12 +160,23 @@ export interface SeatMapSection {
   seats: SeatMapSeat[]
 }
 
+/** Held: sepette, 10 dakika içinde satılmazsa geri açılır. */
+export type SeatState = 'Available' | 'Held' | 'Sold'
+
 export interface SeatMapSeat {
   seatId: string
   row: string
   number: number
-  /** Tutulmuş ya da satılmış koltuk ayrımı dışarıya verilmez. */
+  state: SeatState
+  /** Satılmamış ve sepette değil: state === 'Available'. */
   isAvailable: boolean
+}
+
+/** Koltuk haritasının anlık güncellemesi (SeatMap). */
+export interface SeatsChanged {
+  eventId: string
+  state: SeatState
+  seatIds: string[]
 }
 
 /**

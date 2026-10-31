@@ -1,3 +1,4 @@
+using Gise.Contracts.Realtime;
 using Gise.Reservation.Application.Features.Commands.SeatHold.Request;
 using Gise.Reservation.Application.Interfaces;
 using Gise.Reservation.Application.UnitOfWorks;
@@ -11,6 +12,7 @@ public sealed class ReleaseHoldCommandHandler : IRequestHandler<ReleaseHoldComma
     private readonly IEventStockRepository _eventStockRepository;
     private readonly ISeatHoldRepository _seatHoldRepository;
     private readonly ISeatLockService _seatLockService;
+    private readonly ISeatUpdatePublisher _seatUpdatePublisher;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TimeProvider _timeProvider;
 
@@ -18,9 +20,11 @@ public sealed class ReleaseHoldCommandHandler : IRequestHandler<ReleaseHoldComma
         IEventStockRepository eventStockRepository,
         ISeatHoldRepository seatHoldRepository,
         ISeatLockService seatLockService,
+        ISeatUpdatePublisher seatUpdatePublisher,
         IUnitOfWork unitOfWork,
         TimeProvider timeProvider)
     {
+        _seatUpdatePublisher = seatUpdatePublisher;
         _eventStockRepository = eventStockRepository;
         _seatHoldRepository = seatHoldRepository;
         _seatLockService = seatLockService;
@@ -55,7 +59,8 @@ public sealed class ReleaseHoldCommandHandler : IRequestHandler<ReleaseHoldComma
             // Koltuklar satılmıştı ama bilet çıkarılamadı; para iade ediliyor, koltuklar yeniden satışa açılır
             // (bkz. tasarım 4.5). Redis kilitleri satışta zaten kaldırılmıştı.
             var seats = await _eventStockRepository.GetSeatsForUpdateAsync(hold.EventId, hold.SeatIds, cancellationToken);
-            foreach (var seat in seats.Where(s => s.HoldId == hold.Id))
+            var reopened = seats.Where(s => s.HoldId == hold.Id).ToList();
+            foreach (var seat in reopened)
             {
                 seat.Status = SeatStatus.Available;
                 seat.HoldId = null;
@@ -63,6 +68,7 @@ public sealed class ReleaseHoldCommandHandler : IRequestHandler<ReleaseHoldComma
 
             hold.Status = HoldStatus.Released;
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _seatUpdatePublisher.PublishAsync(hold.EventId, reopened.Select(s => s.SeatId).ToList(), SeatState.Available);
             return;
         }
 
@@ -71,5 +77,8 @@ public sealed class ReleaseHoldCommandHandler : IRequestHandler<ReleaseHoldComma
 
         hold.Status = HoldStatus.Released;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Koltuklar haritada yeniden boş görünür.
+        await _seatUpdatePublisher.PublishAsync(hold.EventId, hold.SeatIds, SeatState.Available);
     }
 }
