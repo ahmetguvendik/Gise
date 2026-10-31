@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Gise.Catalog.Application.Features.Commands.Event.Response;
+using Gise.Catalog.Application.Features.Commands.Venue.Response;
 using Gise.Catalog.Application.Features.Queries.Event.Response;
 using Gise.Catalog.IntegrationTests.Fixtures;
 using Microsoft.AspNetCore.Mvc;
@@ -9,28 +10,45 @@ namespace Gise.Catalog.IntegrationTests.Controllers;
 
 public sealed class EventsControllerTests(CatalogApiFactory factory) : IClassFixture<CatalogApiFactory>
 {
-    private static object NewEvent(string title = "Duman Konseri") => new
+    // Yetki testleri doğrulamaya ulaşmadan döner; mekânın gerçekten var olması gerekmez.
+    private static object NewEvent(string title = "Duman Konseri", Guid? venueId = null) => new
     {
         title,
-        venue = "Harbiye Açıkhava",
+        venueId = venueId ?? Guid.NewGuid(),
         startsAt = DateTimeOffset.UtcNow.AddDays(30)
     };
 
+    // Etkinlik bir mekânda açılır; mekânı admin oluşturur.
+    private async Task<Guid> CreateVenueAsync()
+    {
+        var admin = factory.CreateClientAs("admin-1", "admin");
+        var response = await admin.PostAsJsonAsync("/api/venues", new
+        {
+            name = "Test Sahnesi",
+            city = "Ankara",
+            sections = new[] { new { name = "Salon", rows = new[] { new { row = "A", seatCount = 4 } } } }
+        }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<CreateVenueResponse>(TestContext.Current.CancellationToken))!.Id;
+    }
+
+    // Herkese açık liste Search'te (bkz. tasarım 3.10); taslağı yalnızca sahibi ve admin görür.
     [Fact]
-    public async Task Organizator_etkinlik_olusturur_ve_herkes_listede_gorur()
+    public async Task Organizator_etkinlik_olusturur_ve_taslagi_yalnizca_kendisi_gorur()
     {
         var organizer = factory.CreateClientAs("organizator-1", "organizer");
 
-        var created = await organizer.PostAsJsonAsync("/api/events", NewEvent("Liste Testi"), TestContext.Current.CancellationToken);
+        var created = await organizer.PostAsJsonAsync("/api/events", NewEvent("Taslak Testi", await CreateVenueAsync()), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var body = await created.Content.ReadFromJsonAsync<CreateEventResponse>(TestContext.Current.CancellationToken);
 
-        var anonymous = factory.CreateClient();
-        var list = await anonymous.GetFromJsonAsync<List<GetAllEventsResponse>>("/api/events", TestContext.Current.CancellationToken);
-        Assert.Contains(list!, e => e.Id == body!.Id && e.Title == "Liste Testi");
-
-        var detail = await anonymous.GetFromJsonAsync<GetEventByIdResponse>($"/api/events/{body!.Id}", TestContext.Current.CancellationToken);
+        var detail = await organizer.GetFromJsonAsync<GetEventByIdResponse>($"/api/events/{body!.Id}", TestContext.Current.CancellationToken);
         Assert.Equal("organizator-1", detail!.OrganizerId);
+        Assert.Equal("Taslak Testi", detail.Title);
+
+        var anonymous = await factory.CreateClient().GetAsync($"/api/events/{body.Id}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, anonymous.StatusCode);
     }
 
     [Fact]
@@ -59,7 +77,7 @@ public sealed class EventsControllerTests(CatalogApiFactory factory) : IClassFix
         var organizer = factory.CreateClientAs("organizator-1", "organizer");
 
         var response = await organizer.PostAsJsonAsync("/api/events",
-            new { title = "", venue = "Harbiye", startsAt = DateTimeOffset.UtcNow.AddDays(-1) },
+            new { title = "", venueId = Guid.NewGuid(), startsAt = DateTimeOffset.UtcNow.AddDays(-1) },
             TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

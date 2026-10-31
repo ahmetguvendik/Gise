@@ -164,8 +164,8 @@ Fiyat **bölüm başına** belirlenir: her bölümün bir etkinlikte tek fiyatı
 - Yayındaki etkinliğin fiyatı da değişebilir; yalnızca bundan sonraki satışları etkiler. Satılmış biletler için fark iadesi ya da ek ücret olmaz, çünkü Order fiyatı sipariş anında kendine kaydeder. Reservation fiyatları yayın anında gRPC ile alır; `EventUpdated` gelince yeniden okumalıdır.
 - **Yayınlama** (`POST /api/events/{id}/publish`): yalnızca admin; taslak ya da onay bekleyen, henüz başlamamış etkinlik. Mekânın **her bölümünün** fiyatı girilmiş olmalıdır, yoksa satılamayan koltuk kalır (422, eksik bölümler `detail`'de). Yayındaki etkinlik tekrar yayınlanamaz (409).
 - Yayındaki etkinlikte fiyat değişebilir ama listeden bölüm çıkarılamaz; her bölüm yine fiyatlı kalmalıdır.
-- **Taslak görünürlüğü:** Taslak ve onay bekleyen etkinliğin detayını (`GET /api/events/{id}`) yalnızca sahibi olan organizatör ve admin görür; diğer herkes 404 alır. 403 dönülmez, çünkü etkinliğin var olduğunu ele verirdi. Liste ve gRPC zaten yalnızca yayındaki etkinlikleri döndürür.
-- Etkinlik listesi her etkinliğin en düşük fiyatını döndürür (`minPrice`).
+- **Taslak görünürlüğü:** Taslak ve onay bekleyen etkinliğin detayını (`GET /api/events/{id}`) yalnızca sahibi olan organizatör ve admin görür; diğer herkes 404 alır. 403 dönülmez, çünkü etkinliğin var olduğunu ele verirdi. gRPC zaten yalnızca yayındaki etkinlikleri döndürür.
+- Herkese açık etkinlik listesi Catalog'da değil, Search'tedir (bkz. 3.10); en düşük fiyat (`minPrice`) oraya Catalog'dan gRPC ile gelir.
 - `GET /api/events/mine`: organizatörün kendi etkinlikleri, taslaklar dahil. Ön yüzde "Etkinliklerim" sayfası bunu kullanır; fiyat girme, onaya gönderme ve yayınlama etkinlik detay sayfasındadır.
 - Yayınlanınca `EventPublished` olayı aynı transaction'da outbox'a yazılır (bkz. 3.5).
 
@@ -326,7 +326,7 @@ Reservation, Catalog'un olaylarını Kafka'dan alır ve her yayındaki etkinlik 
 
 ### 3.10 Search: arama
 
-Ana sayfadaki liste, arama kutusu ve öneriler Search'ten gelir; ön yüz Catalog'un listesini (`GET /api/events`) artık kullanmaz.
+Ana sayfadaki liste, arama kutusu ve öneriler Search'ten gelir. Herkese açık etkinlik listesinin tek kaynağı burasıdır; Catalog'da ayrı bir liste ucu yoktur (eskiden `GET /api/events` vardı, kaldırıldı).
 
 - **Dizin:** Elasticsearch 9. Belge başına etkinlik, mekân, başlık, tarih, mekân adı, şehir, en düşük fiyat ve afiş anahtarı. Yalnızca yayındaki, henüz başlamamış etkinlikler. Eşleme `dynamic: strict` (`Gise.Search.Infrastructure/Elasticsearch/events-index.json`).
 - **Türkçe:** başlık, mekân ve şehir Türkçe analizörle dizinlenir: kesme işareti atılır (İstanbul'da → İstanbul), Türkçe küçük harf (I → ı, İ → i), Türkçe stop words, kök bulma, `asciifolding` (kadıköy = kadikoy). Küçük yazım hataları `fuzziness: AUTO` ile tolere edilir; yarım yazılan kelime edge n-gram alt alanlarıyla bulunur.
@@ -571,13 +571,13 @@ stateDiagram-v2
 - Dışarıya açık tek uygulama portu gateway'dir (`localhost:8000`). İstemci de gateway'in arkasından sunulur; tarayıcı tek bir adresle konuşur, CORS gerekmez.
 - APISIX **etcd ile** çalışır (`deploy/apisix/config.yaml`): route'lar, upstream'ler ve eklentiler etcd'de durur ve **dashboard**'dan yönetilir: `http://127.0.0.1:9180/ui/`. Dashboard ile yönetim API'si aynı porttadır. Port yalnızca makinenin `127.0.0.1`'ine açıktır ve `deploy/.env`'deki `APISIX_ADMIN_KEY` olmadan açılmaz.
 - **Başlangıç route'ları** `deploy/apisix/seed.sh`'tadır; yeni kurulumda bir kez yüklenir: `docker compose -f deploy/docker-compose.yml --profile setup up apisix-init`. Script tekrar çalıştırılırsa aynı id'li route'lar script'teki hâline döner. Dashboard'dan yapılan değişiklik koda yansımaz; kalıcı olması istenen değişiklik script'e de yazılır.
-- **Her API ucu ayrı bir route'tur**, yöntem ve yoluyla: ör. `POST /api/events/:id/publish` (40 uç). Yol parametreleri `:ad` biçimindedir (router `radixtree_uri_with_parameter`). Serviste yeni bir uç açılınca `seed.sh`'a da route eklenir; eklenmezse gateway 404 döner.
+- **Her API ucu ayrı bir route'tur**, yöntem ve yoluyla: ör. `POST /api/events/:id/publish` (39 uç). Yol parametreleri `:ad` biçimindedir (router `radixtree_uri_with_parameter`). Serviste yeni bir uç açılınca `seed.sh`'a da route eklenir; eklenmezse gateway 404 döner.
 - **Tanımsız yol ya da yöntem** (`/api/*`, öncelik 1) istemciye (index.html) düşmez: 404 ProblemDetails, `ROUTE_NOT_FOUND`. İstemci route'u (`/*`) en düşük önceliktedir.
 - **İstek sınırı** IP başına, dakikalıktır. Aynı gruptaki uçlar tek sayacı paylaşır (limit-count `group`); sınır kaynağın bütün uçları için toplamdır. Kötüye kullanıma açık uçların kendi sayacı ve daha dar sınırı vardır:
 
 | Sayaç | Uçlar | Sınır |
 |---|---|---|
-| `events` | etkinliklerin 14 ucu | 300 |
+| `events` | etkinliklerin 13 ucu | 300 |
 | `venues` | mekânların 6 ucu | 300 |
 | `media` | `POST /api/media/commit`, `GET /api/media/policy` | 300 |
 | `reservation` | koltuk durumu | 300 |

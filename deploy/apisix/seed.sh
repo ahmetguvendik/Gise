@@ -104,7 +104,6 @@ upstream seatmap seatmap-api:8080
 upstream client client:80
 
 echo "Catalog: etkinlikler"
-endpoint events-list     GET    /api/events                catalog events "Yayındaki etkinlikler"
 endpoint events-mine     GET    /api/events/mine           catalog events "Organizatörün etkinlikleri, taslaklar dahil"
 endpoint events-pending  GET    /api/events/pending        catalog events "Onay bekleyenler (admin)"
 endpoint events-get      GET    /api/events/:id            catalog events "Etkinlik detayı"

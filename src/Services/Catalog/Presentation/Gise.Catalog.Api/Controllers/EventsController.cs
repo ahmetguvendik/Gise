@@ -22,10 +22,6 @@ public sealed class EventsController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<GetAllEventsResponse>>> GetAll(CancellationToken cancellationToken)
-        => Ok(await _mediator.Send(new GetAllEventsQuery(), cancellationToken));
-
     [Authorize(Policy = Policies.Organizer)]
     [HttpGet("mine")]
     public async Task<ActionResult<IReadOnlyList<GetMyEventsResponse>>> GetMine(CancellationToken cancellationToken)
