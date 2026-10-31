@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <!-- Ayrı process: arama dizinini Catalog'dan gRPC ile düzenli olarak baştan kurar. Web host yalnızca sağlık ucu için. -->
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Gise.Logging\Gise.Logging.csproj" />
     <ProjectReference Include="..\..\..\Services\Search\Core\Gise.Search.Application\Gise.Search.Application.csproj" />
     <ProjectReference Include="..\..\..\Services\Search\Infrastructure\Gise.Search.Infrastructure\Gise.Search.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />

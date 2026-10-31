@@ -1,0 +1,31 @@
+# APM Server: .NET ajanlarından iz verisini alır, Elasticsearch'e yazar (bkz. tasarım 8).
+#
+# Loglardan ayrı yol: loglar Kafka ve Logstash'ten geçer, iz verisi doğrudan buraya gelir. İz verisi çok daha yoğun ve
+# APM Server'ın kendi örnekleme ve tamponlaması var. İkisini birbirine bağlayan trace.id: loglar ECS biçiminde aynı alanı
+# taşıyor, Kibana'da "bu izin logları" bu sayede çalışıyor.
+
+apm-server:
+  host: "0.0.0.0:8200"
+
+  # Tarayıcıdan iz kapalı: yalnızca sunucu tarafı izlenir.
+  rum:
+    enabled: false
+
+  # Kimlik doğrulama kapalı: port compose ağının dışına açık değil, yalnızca servisler ulaşır. Canlıda secret token ya
+  # da API key zorunlu; uç açıkta olursa herkes sahte iz yazabilir.
+  auth:
+    anonymous:
+      enabled: true
+
+# İndeks şablonları Elasticsearch'ün apm-data eklentisiyle kendiliğinden kurulur (Elasticsearch 8.15'ten beri); Telgraf'ta
+# gereken Fleet kurulumuna gerek yok.
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  # Kendi hesabı: yalnızca APM veri akışlarına yazabilir (bkz. deploy/elasticsearch/setup.sh).
+  username: "apm_writer"
+  password: "${APM_PASSWORD}"
+
+# Kendi logları stdout'a; docker compose logs ile okunur.
+logging:
+  level: warning
+  to_files: false

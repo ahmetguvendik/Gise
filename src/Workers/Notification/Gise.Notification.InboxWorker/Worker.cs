@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Gise.Contracts.Events;
 using Gise.HealthChecks;
+using Gise.Logging;
 using Gise.Notification.Application.Emails;
 using Gise.Notification.Application.Interfaces;
 using Gise.Notification.Domain.Entities;
@@ -109,6 +111,10 @@ public sealed class Worker : BackgroundService
 
             if (message is null)
                 break;
+
+            // Olayı gönderen isteğin izine bağlanır: APM'de API'den bu işleme kadar tek iz.
+            using var activity = AppTracing.StartLinked("inbox.process", message.TraceParent, ActivityKind.Consumer);
+            activity.SetTag("message.type", message.Type);
 
             try
             {

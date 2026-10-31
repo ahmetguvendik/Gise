@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Gise.Authentication;
+using Gise.Logging;
 using Gise.Order.Api.ErrorHandling;
 using Gise.Order.Application;
 using Gise.Order.Infrastructure;
@@ -9,6 +10,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("order-api");
+builder.UseAppApm("order-api");
 
 builder.Services.AddControllers();
 

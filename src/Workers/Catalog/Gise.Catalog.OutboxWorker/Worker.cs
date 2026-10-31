@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using System.Text;
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using Gise.Catalog.Domain.Entities;
 using Gise.Contracts.Events;
 using Gise.HealthChecks;
+using Gise.Logging;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gise.Catalog.OutboxWorker;
@@ -145,6 +147,10 @@ public sealed class Worker : BackgroundService
 
         foreach (var message in messages)
         {
+            // İsteğin izi (traceparent) Kafka'ya geçerken APM'de bu span'le görünür; başlıkta yine isteğinki gider.
+            using var activity = AppTracing.StartLinked("outbox.publish", message.TraceParent, ActivityKind.Producer);
+            activity.SetTag("message.type", message.Type);
+
             try
             {
                 await producer.ProduceAsync(message.Topic, ToKafkaMessage(message), cancellationToken);

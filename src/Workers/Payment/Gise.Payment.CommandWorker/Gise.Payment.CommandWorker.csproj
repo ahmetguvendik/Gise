@@ -2,6 +2,7 @@
   <!-- Ayrı process: Order saga'sının ödeme komutları (ProcessPayment, RefundPayment). Parayı test sağlayıcısından çeker
        ve iade eder, cevabı outbox'tan gönderir. Web host yalnızca sağlık ucu için. -->
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Gise.Logging\Gise.Logging.csproj" />
     <ProjectReference Include="..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
     <ProjectReference Include="..\..\..\Services\Payment\Core\Gise.Payment.Application\Gise.Payment.Application.csproj" />
     <ProjectReference Include="..\..\..\Services\Payment\Infrastructure\Gise.Payment.Infrastructure\Gise.Payment.Infrastructure.csproj" />

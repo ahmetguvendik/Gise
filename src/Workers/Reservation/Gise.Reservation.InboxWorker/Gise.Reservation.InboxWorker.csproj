@@ -2,6 +2,7 @@
   <!-- Ayrı process: Catalog'un olaylarını Kafka'dan okur, inbox'a yazar ve işler. reservation-api çökse de stok güncel kalır.
        Web host yalnızca sağlık ucu için. -->
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Gise.Logging\Gise.Logging.csproj" />
     <ProjectReference Include="..\..\..\Services\Reservation\Core\Gise.Reservation.Domain\Gise.Reservation.Domain.csproj" />
     <ProjectReference Include="..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
     <ProjectReference Include="..\..\..\Shared\Gise.Exceptions\Gise.Exceptions.csproj" />

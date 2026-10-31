@@ -1,8 +1,13 @@
+using Gise.Logging;
 using Gise.SeatMap.Api.Hubs;
 using Gise.SeatMap.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("seatmap-api");
+builder.UseAppApm("seatmap-api");
 
 builder.Services.AddSignalR();
 builder.Services.AddInfrastructureServices(builder.Configuration);

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Gise.Logging;
 using Gise.Search.Api.ErrorHandling;
 using Gise.Search.Application;
 using Gise.Search.Infrastructure;
@@ -6,6 +7,10 @@ using Gise.Search.Infrastructure.Elasticsearch;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("search-api");
+builder.UseAppApm("search-api");
 
 builder.Services.AddControllers();
 

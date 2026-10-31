@@ -599,10 +599,40 @@ stateDiagram-v2
 
 ## 8. Gözlemlenebilirlik
 
-- Tüm servisler **OpenTelemetry** ile trace, metrik ve log üretir.
-- Tek bir satın alma, RabbitMQ ve Kafka üzerinden geçse bile **tek bir trace** olarak izlenebilmelidir.
-- Sağlık uçları: `/health/live`, `/health/ready` (yalnızca vazgeçilmez bağımlılıklar).
-- Sağlık yoklamaları trace'e yazılmaz; Cookie ve Authorization başlıkları kaydedilmez.
+Telgraf'taki düzen: loglar Serilog'dan Kafka'ya, oradan Logstash'le Elasticsearch'e; izler Elastic APM'le Elasticsearch'e. İkisini Kibana gösterir.
+
+```
+Bütün API ve worker'lar (Gise.Logging)
+  ├─ loglar: Serilog, ECS JSON → bellekte kuyruk, toplu → Kafka "logs" → Logstash (alan temizliği) → logs-gise-default
+  └─ izler:  Elastic APM .NET ajanı → APM Server → traces-apm*, metrics-apm*
+                                                         ↓
+                                          Kibana (127.0.0.1:5601): Discover, APM
+```
+
+- **`Gise.Logging`** (`src/Shared`, Telgraf'taki `Logging.Registration`): her process `Program.cs`'te `UseAppLogging("<servis>")` ve `UseAppApm("<servis>")` çağırır; servis adı compose'daki adla aynıdır.
+- **Loglar:**
+  - ECS biçiminde: konsola ve Kafka'nın `logs` topic'ine yazılır.
+  - Her log `service.name`, `trace.id` ve `span.id` taşır; API'lerde `actor.id` (Keycloak `sub`) ve `client.ip` de eklenir. Ad ve e-posta loga girmez.
+  - Seviyeler appsettings'teki `Serilog` bölümünden, Kafka ayarları `Logging:Kafka`'dan okunur.
+- **Kafka'ya yazma isteği bekletmez:** loglar bellekte kuyruğa alınıp 2 saniyede bir ya da 500'lük toplu olarak gönderilir (`acks=0`, lz4). Kuyruk (10.000) dolarsa yeni loglar düşürülür: log kaybı, isteklerin yavaşlamasından iyidir. Sink hata fırlatmaz. Kafka, Logstash ya da Elasticsearch çökse de konsol çalışır (`docker compose logs`).
+- **`logs` topic'i:** 3 bölüm, 24 saat saklama. Kafka'da otomatik oluşturma kapalı olduğu için her process açılışta oluşturmayı dener, uygulamayı bekletmez.
+- **Logstash** (`deploy/logstash`):
+  - `logs-gise-default` veri akışına yazar; servisler `service.name` alanıyla ayrılır.
+  - ECS'nin ürettiği gereksiz alanlar (ham mesajın kopyası, şema sürümü, süreç ve makine ayrıntıları) atılır; `actor.*` ve `client.*` üst düzeye taşınır.
+  - Kendi hesabı (`logstash_writer`) yalnızca bu akışa yazabilir. Reddedilen belgeler ölü mektup kuyruğuna gider.
+- **Saklama:** loglar **7 gün** (veri akışı yaşam döngüsü, `logs-gise` şablonu); APM verisi Elasticsearch'ün APM varsayılanlarıyla.
+- **İzler (Elastic APM):**
+  - Ajan ASP.NET Core isteklerini, EF Core/Npgsql sorgularını, HttpClient ve gRPC çağrılarını kendiliğinden izler.
+  - Kafka kendiliğinden izlenmez: outbox gönderimi (`outbox.publish`) ve inbox işlemesi (`inbox.process`), mesajın taşıdığı `traceparent`'a bağlı bir span'le başlar (`AppTracing.StartLinked`). Böylece bir istek API'den Kafka'ya, oradan worker'a kadar tek iz olarak görünür.
+  - Sağlık yoklamaları (`/health*`) kaydedilmez; Cookie, Authorization ve parola, anahtar, token benzeri alanlar maskelenir.
+- **APM Server** (`deploy/apm-server`):
+  - Ajanlar için kimlik doğrulaması kapalıdır, port compose ağının dışına açık değildir.
+  - Kendi hesabı (`apm_writer`) yalnızca APM veri akışlarına yazar ve ajan ayarlarını okur. Telgraf'ta `elastic` süper kullanıcısıydı.
+  - İndeks şablonlarını Elasticsearch'ün apm-data eklentisi kurar; Fleet gerekmez.
+- **Kibana:** yalnızca `127.0.0.1:5601`'den erişilir; giriş `elastic` kullanıcısıyla (parola `deploy/.env`'deki `ELASTIC_PASSWORD`). Kendisi Elasticsearch'e `kibana_system` hesabıyla bağlanır. "Gişe logları" veri görünümü (`logs-gise-*`) varsayılandır; izler Observability → APM'dedir.
+- **Kurulum:** hesaplar, saklama süresi ve veri görünümü `deploy/elasticsearch/setup.sh`'ta; yeni kurulumda bir kez `docker compose -f deploy/docker-compose.yml --profile setup up elastic-init`. Tekrar çalıştırılabilir. Parolalar `deploy/.env`'de (`KIBANA_PASSWORD`, `KIBANA_ENCRYPTION_KEY`, `LOGSTASH_PASSWORD`, `APM_PASSWORD`).
+- **Sağlık uçları:** `/health/live`, `/health/ready` (yalnızca vazgeçilmez bağımlılıklar). Log ve iz altyapısı vazgeçilmez değildir: çökmesi hiçbir servisi "hazır değil" yapmaz.
+- **Henüz yok:** metrik panoları ve uyarılar (hata oranı, takılan saga), canlıda APM Server için secret token ve TLS.
 
 ---
 

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Gise.Logging;
 using Gise.Reservation.Api.ErrorHandling;
 using Gise.Reservation.Api.GrpcServices;
 using Gise.Reservation.Application;
@@ -9,6 +10,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("reservation-api");
+builder.UseAppApm("reservation-api");
 
 builder.Services.AddControllers();
 builder.Services.AddGrpc();

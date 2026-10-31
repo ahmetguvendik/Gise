@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Loglama (Serilog → Kafka → Logstash → Elasticsearch) ve izleme (Elastic APM). Web tiplerine bağlı olduğu için
+       yalnızca çalıştırılabilir projeler (API'ler ve worker'lar) başvurur. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Kafka sink'i elle yazıldı: Serilog.Sinks.Kafka yıllardır ön sürümde (Telgraf'taki gibi). -->
+    <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="Elastic.Apm.NetCoreAll" />
+    <!-- ECS: alan adları Elasticsearch'ün ve APM'in beklediği şemada (trace.id, service.name…). -->
+    <PackageReference Include="Elastic.CommonSchema.Serilog" />
+    <PackageReference Include="Serilog.AspNetCore" />
+  </ItemGroup>
+</Project>

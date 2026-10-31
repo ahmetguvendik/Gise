@@ -1,3 +1,4 @@
+using Gise.Logging;
 using Gise.Order.Application.Sagas;
 using Gise.Order.Persistence;
 using Gise.Order.Persistence.Contexts;
@@ -6,6 +7,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("order-saga-worker");
+builder.UseAppApm("order-saga-worker");
 
 // Saga'nın güncellediği siparişler (IOrderRepository) ve saga durumu aynı OrderDbContext'te. Tabloları order-api'nin
 // migration'ları kurar; worker migration çalıştırmaz.

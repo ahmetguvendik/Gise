@@ -7,10 +7,15 @@ using Gise.Catalog.Application;
 using Gise.Catalog.Infrastructure;
 using Gise.Catalog.Persistence;
 using Gise.Catalog.Persistence.Contexts;
+using Gise.Logging;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("catalog-api");
+builder.UseAppApm("catalog-api");
 
 builder.Services.AddControllers();
 builder.Services.AddGrpc();

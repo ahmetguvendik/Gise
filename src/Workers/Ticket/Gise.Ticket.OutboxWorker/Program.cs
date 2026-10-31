@@ -1,3 +1,4 @@
+using Gise.Logging;
 using Gise.Ticket.OutboxWorker;
 using Gise.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -5,6 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("ticket-outbox-worker");
+builder.UseAppApm("ticket-outbox-worker");
 
 builder.Services.AddDbContext<OutboxWorkerDbContext>(options => options
     .UseNpgsql(builder.Configuration.GetConnectionString("Ticket"))

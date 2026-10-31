@@ -1,4 +1,5 @@
 using Gise.Contracts.Commands;
+using Gise.Logging;
 using Gise.Payment.Application;
 using Gise.Payment.CommandWorker.Messaging;
 using Gise.Payment.Infrastructure;
@@ -8,6 +9,10 @@ using MassTransit;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("payment-command-worker");
+builder.UseAppApm("payment-command-worker");
 
 // Tüketiciler MediatR komutlarını (ProcessPaymentCommand, RefundPaymentCommand) çağırır. Tabloları payment-api'nin
 // migration'ları kurar; worker migration çalıştırmaz.

@@ -1,4 +1,5 @@
 using Gise.Contracts.Commands;
+using Gise.Logging;
 using Gise.Ticket.Application;
 using Gise.Ticket.CommandWorker.Messaging;
 using Gise.Ticket.Infrastructure;
@@ -8,6 +9,10 @@ using MassTransit;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("ticket-command-worker");
+builder.UseAppApm("ticket-command-worker");
 
 // Tüketici MediatR komutunu (IssueTicketsCommand) çağırır. Tabloları ticket-api'nin migration'ları kurar; worker migration
 // çalıştırmaz.

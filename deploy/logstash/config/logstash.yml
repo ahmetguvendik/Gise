@@ -1,0 +1,8 @@
+# Sağlık kontrolü için izleme API'si (9600); Logstash 9'da eski adı http.host kaldırıldı.
+api.http.host: "0.0.0.0"
+
+# Tek düğümlü yerel kurulumda kendi kendini izlemesine gerek yok; RAM ve gereksiz indeks tasarrufu.
+xpack.monitoring.enabled: false
+
+# Elasticsearch'ün reddettiği belgeler kaybolmasın: ölü mektup kuyruğu.
+dead_letter_queue.enable: true

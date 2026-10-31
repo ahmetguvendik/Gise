@@ -2,6 +2,7 @@
   <!-- Ayrı process: Catalog'un ve Ticket'ın olaylarını Kafka'dan okur, inbox'a yazar ve işler (e-posta bildirimleri).
        Web host yalnızca sağlık ucu için. -->
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Gise.Logging\Gise.Logging.csproj" />
     <ProjectReference Include="..\..\..\Services\Notification\Core\Gise.Notification.Application\Gise.Notification.Application.csproj" />
     <ProjectReference Include="..\..\..\Services\Notification\Infrastructure\Gise.Notification.Infrastructure\Gise.Notification.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />

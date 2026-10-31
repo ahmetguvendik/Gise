@@ -1,10 +1,15 @@
 using Gise.Catalog.OutboxWorker;
 using Gise.HealthChecks;
+using Gise.Logging;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("catalog-outbox-worker");
+builder.UseAppApm("catalog-outbox-worker");
 
 builder.Services.AddDbContext<OutboxWorkerDbContext>(options => options
     .UseNpgsql(builder.Configuration.GetConnectionString("Catalog"))

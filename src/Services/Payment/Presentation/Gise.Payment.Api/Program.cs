@@ -1,9 +1,14 @@
+using Gise.Logging;
 using Gise.Payment.Persistence;
 using Gise.Payment.Persistence.Contexts;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("payment-api");
+builder.UseAppApm("payment-api");
 
 builder.Services.AddPersistenceServices(builder.Configuration);
 

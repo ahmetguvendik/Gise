@@ -180,6 +180,93 @@ services:
       retries: 30
       start_period: 30s
 
+  # Gözlemlenebilirlik (bkz. tasarım 8): loglar Kafka'nın "logs" topic'inden Logstash'le Elasticsearch'e, izler .NET
+  # ajanlarından APM Server'la Elasticsearch'e gider; Kibana ikisini gösterir. Hesaplar ve saklama süresi elastic-init ile.
+  logstash:
+    image: logstash:9.5.5
+    restart: unless-stopped
+    environment:
+      LS_JAVA_OPTS: -Xms256m -Xmx256m
+      # Pipeline bu değişkenleri okur; hesap yalnızca logs-gise-* üzerine yazabilir.
+      LOGSTASH_USERNAME: logstash_writer
+      LOGSTASH_PASSWORD: ${LOGSTASH_PASSWORD:?deploy/.env içinde LOGSTASH_PASSWORD tanımlı olmalı}
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9600/_node/pipelines"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    depends_on:
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:9.5.5
+    restart: unless-stopped
+    environment:
+      APM_PASSWORD: ${APM_PASSWORD:?deploy/.env içinde APM_PASSWORD tanımlı olmalı}
+    volumes:
+      - ./apm-server/apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
+    healthcheck:
+      # İmajda curl, wget ve grep yok; bash'in /dev/tcp'siyle kök uca istek atılır, ilk satırda 200 aranır.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8200 && printf 'GET / HTTP/1.0\\r\\n\\r\\n' >&3 && read -r status <&3 && [[ $$status == *' 200 '* ]]"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  kibana:
+    image: kibana:9.5.5
+    restart: unless-stopped
+    ports:
+      # Yalnızca bu makineden; giriş elastic kullanıcısıyla (parola deploy/.env'deki ELASTIC_PASSWORD).
+      - "127.0.0.1:5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+      # Kibana'nın kendi kimliği, elastic süper kullanıcısı değil; parolasını elastic-init atar.
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_PASSWORD:?deploy/.env içinde KIBANA_PASSWORD tanımlı olmalı}
+      # Kayıtlı nesneleri şifreler; sabit olmalı, değişirse mevcut şifreli kayıtlar okunamaz.
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY:?deploy/.env içinde KIBANA_ENCRYPTION_KEY tanımlı olmalı}
+    healthcheck:
+      # Güvenlik açık: girişsiz istek 401 alır, yine de Kibana'nın ayakta olduğunu gösterir.
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:5601/api/status | grep -qE '200|401'"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  # Elasticsearch hesapları (Kibana, Logstash, APM Server), 7 günlük log saklama ve Kibana'daki log görünümü
+  # (bkz. deploy/elasticsearch/setup.sh).
+  elastic-init:
+    profiles: ["setup"]
+    image: curlimages/curl:8.11.1
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_started
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      KIBANA_PASSWORD: ${KIBANA_PASSWORD}
+      LOGSTASH_PASSWORD: ${LOGSTASH_PASSWORD}
+      APM_PASSWORD: ${APM_PASSWORD}
+    entrypoint: ["/bin/sh", "/setup.sh"]
+    volumes:
+      - ./elasticsearch/setup.sh:/setup.sh:ro
+    restart: "no"
+
   catalog-api:
     image: gise/catalog-api:dev
     build:

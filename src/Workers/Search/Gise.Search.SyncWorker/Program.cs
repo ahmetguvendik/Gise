@@ -1,12 +1,17 @@
 using Gise.Contracts.Grpc.Catalog;
 using Gise.Contracts.Grpc.Reservation;
 using Gise.HealthChecks;
+using Gise.Logging;
 using Gise.Search.Infrastructure;
 using Gise.Search.Infrastructure.Elasticsearch;
 using Gise.Search.SyncWorker;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("search-sync-worker");
+builder.UseAppApm("search-sync-worker");
 
 // Catalog'un gRPC ucu: yalnızca Docker ağının içinden, 8081 (HTTP/2, TLS'siz).
 var catalogGrpcUrl = builder.Configuration.GetRequiredSection("Catalog")["GrpcUrl"]

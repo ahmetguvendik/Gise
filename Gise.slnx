@@ -5,6 +5,7 @@
     <Project Path="src/Shared/Gise.Contracts/Gise.Contracts.csproj" />
     <Project Path="src/Shared/Gise.Exceptions/Gise.Exceptions.csproj" />
     <Project Path="src/Shared/Gise.HealthChecks/Gise.HealthChecks.csproj" />
+    <Project Path="src/Shared/Gise.Logging/Gise.Logging.csproj" />
   </Folder>
   <Folder Name="/src/Workers/" />
   <Folder Name="/src/Workers/Catalog/">

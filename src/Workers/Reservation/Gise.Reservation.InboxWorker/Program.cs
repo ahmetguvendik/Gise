@@ -1,11 +1,16 @@
 using Gise.Contracts.Grpc.Catalog;
 using Gise.HealthChecks;
+using Gise.Logging;
 using Gise.Reservation.InboxWorker;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("reservation-inbox-worker");
+builder.UseAppApm("reservation-inbox-worker");
 
 builder.Services.AddDbContext<InboxWorkerDbContext>(options => options
     .UseNpgsql(builder.Configuration.GetConnectionString("Reservation"))

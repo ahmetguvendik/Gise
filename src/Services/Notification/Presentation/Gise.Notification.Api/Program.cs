@@ -1,9 +1,14 @@
+using Gise.Logging;
 using Gise.Notification.Persistence;
 using Gise.Notification.Persistence.Contexts;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("notification-api");
+builder.UseAppApm("notification-api");
 
 builder.Services.AddPersistenceServices(builder.Configuration);
 

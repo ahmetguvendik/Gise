@@ -1,5 +1,6 @@
 using Gise.Contracts.Events;
 using Gise.HealthChecks;
+using Gise.Logging;
 using Gise.Notification.Infrastructure;
 using Gise.Notification.InboxWorker;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -7,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("notification-inbox-worker");
+builder.UseAppApm("notification-inbox-worker");
 
 builder.Services.AddDbContext<InboxWorkerDbContext>(options => options
     .UseNpgsql(builder.Configuration.GetConnectionString("Notification"))

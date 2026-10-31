@@ -1,4 +1,5 @@
 using Gise.HealthChecks;
+using Gise.Logging;
 using Gise.Order.Application;
 using Gise.Order.InboxWorker;
 using Gise.Order.Persistence;
@@ -9,6 +10,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("order-inbox-worker");
+builder.UseAppApm("order-inbox-worker");
 
 // İade MediatR komutuyla yapılır (RefundEventOrdersCommand). Tabloları order-api'nin migration'ları kurar; worker
 // migration çalıştırmaz.

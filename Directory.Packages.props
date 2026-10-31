@@ -6,7 +6,9 @@
   <ItemGroup>
     <PackageVersion Include="AWSSDK.S3" Version="4.0.104.6" />
     <PackageVersion Include="Confluent.Kafka" Version="2.15.1" />
+    <PackageVersion Include="Elastic.Apm.NetCoreAll" Version="1.36.0" />
     <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="9.5.2" />
+    <PackageVersion Include="Elastic.CommonSchema.Serilog" Version="9.0.0" />
     <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
     <PackageVersion Include="FluentValidation" Version="12.2.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
@@ -35,6 +37,7 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.22.9" />
     <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="3.22.9" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="QRCoder" Version="1.8.1" />
     <PackageVersion Include="SkiaSharp" Version="4.153.1" />
     <PackageVersion Include="StackExchange.Redis" Version="3.3.1" />

@@ -1,4 +1,5 @@
 using Gise.Contracts.Commands;
+using Gise.Logging;
 using Gise.Reservation.Application;
 using Gise.Reservation.CommandWorker.Messaging;
 using Gise.Reservation.Infrastructure;
@@ -8,6 +9,10 @@ using MassTransit;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("reservation-command-worker");
+builder.UseAppApm("reservation-command-worker");
 
 // Tüketiciler MediatR komutlarını (HoldSeatsCommand, ReleaseHoldCommand, ConfirmHoldCommand) çağırır. Tabloları reservation-api'nin
 // migration'ları kurar; worker migration çalıştırmaz.

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Gise.Authentication;
+using Gise.Logging;
 using Gise.Ticket.Api.Authentication;
 using Gise.Ticket.Api.ErrorHandling;
 using Gise.Ticket.Application;
@@ -10,6 +11,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
+builder.UseAppLogging("ticket-api");
+builder.UseAppApm("ticket-api");
 
 builder.Services.AddControllers();
 
