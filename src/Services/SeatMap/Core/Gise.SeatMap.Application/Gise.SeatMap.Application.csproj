@@ -2,6 +2,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\Shared\Gise.Contracts\Gise.Contracts.csproj" />
     <ProjectReference Include="..\..\..\..\Shared\Gise.Exceptions\Gise.Exceptions.csproj" />
-    <ProjectReference Include="..\Gise.SeatMap.Domain\Gise.SeatMap.Domain.csproj" />
   </ItemGroup>
 </Project>

@@ -107,7 +107,6 @@
   <Folder Name="/src/Services/SeatMap/" />
   <Folder Name="/src/Services/SeatMap/Core/">
     <Project Path="src/Services/SeatMap/Core/Gise.SeatMap.Application/Gise.SeatMap.Application.csproj" />
-    <Project Path="src/Services/SeatMap/Core/Gise.SeatMap.Domain/Gise.SeatMap.Domain.csproj" />
   </Folder>
   <Folder Name="/src/Services/SeatMap/Infrastructure/">
     <Project Path="src/Services/SeatMap/Infrastructure/Gise.SeatMap.Infrastructure/Gise.SeatMap.Infrastructure.csproj" />

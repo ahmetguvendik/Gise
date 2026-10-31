@@ -667,6 +667,8 @@ Her servis aynı düzendedir:
     └── Gise.<Servis>.Api/             Controllers/, Authentication/, ErrorHandling/
 ```
 
+- Klasör ve proje yalnızca içinde kod varsa bulunur; boş yer tutucu (`.gitkeep`) tutulmaz, ihtiyaç olunca açılır. Veritabanı olmayan Search ile SeatMap'te Persistence, SeatMap'te Domain yoktur.
+
 - `Features` düzeni Telgraf'taki gibidir: `Commands/<Varlık>/Request|Response`, `Queries/<Varlık>/Request|Response`, `Handlers/<Varlık>/CommandHandlers|QueryHandlers`.
 - Komut ve sorgular Telgraf'taki gibi MediatR (14.1.0) üzerinden gider: controller'lar yalnızca `_mediator.Send(...)` çağırır, handler'lar `IRequestHandler<,>` uygular. Kayıt Application'daki `ServiceRegistration` içindedir (`AddMediatR` + `RegisterServicesFromAssembly`).
 - Girdi doğrulaması FluentValidation ile `Application/Behaviors/ValidationBehavior` (`IPipelineBehavior<,>`) içinde, handler'dan önce yapılır; hata `GlobalExceptionHandler`'da 400 ValidationProblemDetails'e çevrilir.
