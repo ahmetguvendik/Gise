@@ -622,8 +622,10 @@ Bütün API ve worker'lar (Gise.Logging)
   - Kendi hesabı (`logstash_writer`) yalnızca bu akışa yazabilir. Reddedilen belgeler ölü mektup kuyruğuna gider.
 - **Saklama:** loglar **7 gün** (veri akışı yaşam döngüsü, `logs-gise` şablonu); APM verisi Elasticsearch'ün APM varsayılanlarıyla.
 - **İzler (Elastic APM):**
-  - Ajan ASP.NET Core isteklerini, EF Core/Npgsql sorgularını, HttpClient ve gRPC çağrılarını kendiliğinden izler.
-  - Kafka kendiliğinden izlenmez: outbox gönderimi (`outbox.publish`) ve inbox işlemesi (`inbox.process`), mesajın taşıdığı `traceparent`'a bağlı bir span'le başlar (`AppTracing.StartLinked`). Böylece bir istek API'den Kafka'ya, oradan worker'a kadar tek iz olarak görünür.
+  - Ajan ASP.NET Core isteklerini, EF Core sorgularını, HttpClient ve gRPC çağrılarını kendiliğinden izler. MassTransit (RabbitMQ) ve Elasticsearch istemcisi ajanın OpenTelemetry köprüsüyle görünür.
+  - Npgsql köprüden çıkarılmıştır (`OpenTelemetryBridgeDeniedActivitySources`): kendi izleri EF Core span'lerinin kopyasıydı, üst işlem olmayan her yoklama ve sağlık kontrolü sorgusu ayrı işlem açıyordu (APM verisinin %95'i). EF Core dışındaki sorgular (Quartz) izlerde görünmez.
+  - Kafka kendiliğinden izlenmez: outbox gönderimi (`outbox.publish`) ve inbox işlemesi (`inbox.process`), mesajın taşıdığı `traceparent`'a bağlı bir span'le başlar (`AppTracing.StartLinked`). Böylece bir istek API'den Kafka'ya, oradan worker'a kadar tek iz olarak görünür. Arama dizininin her turu da tek işlemdir (`search.sync`).
+  - RabbitMQ'da iz MassTransit'in kendi `traceparent` başlığıyla taşınır. Köprü Activity'lere "örneklendi" bayrağını koymadığı için saga'nın gönderdiği komutlar "örneklenmedi" (`…-00`) gidiyor, komut worker'ları APM'de görünmüyordu; `ApmExtensions` her MassTransit Activity'sini örneklenmiş işaretler. Ajan her işlemi örnekliyor (`TransactionSampleRate` 1); oran düşürülürse bu yeniden düşünülmeli.
   - Sağlık yoklamaları (`/health*`) kaydedilmez; Cookie, Authorization ve parola, anahtar, token benzeri alanlar maskelenir.
 - **APM Server** (`deploy/apm-server`):
   - Ajanlar için kimlik doğrulaması kapalıdır, port compose ağının dışına açık değildir.
@@ -632,6 +634,7 @@ Bütün API ve worker'lar (Gise.Logging)
 - **Kibana:** yalnızca `127.0.0.1:5601`'den erişilir; giriş `elastic` kullanıcısıyla (parola `deploy/.env`'deki `ELASTIC_PASSWORD`). Kendisi Elasticsearch'e `kibana_system` hesabıyla bağlanır. "Gişe logları" veri görünümü (`logs-gise-*`) varsayılandır; izler Observability → APM'dedir.
 - **Kurulum:** hesaplar, saklama süresi ve veri görünümü `deploy/elasticsearch/setup.sh`'ta; yeni kurulumda bir kez `docker compose -f deploy/docker-compose.yml --profile setup up elastic-init`. Tekrar çalıştırılabilir. Parolalar `deploy/.env`'de (`KIBANA_PASSWORD`, `KIBANA_ENCRYPTION_KEY`, `LOGSTASH_PASSWORD`, `APM_PASSWORD`).
 - **Sağlık uçları:** `/health/live`, `/health/ready` (yalnızca vazgeçilmez bağımlılıklar). Log ve iz altyapısı vazgeçilmez değildir: çökmesi hiçbir servisi "hazır değil" yapmaz.
+- **Çöken servisin yeniden başlaması:** compose'daki her .NET servisinde `init: true` vardır. .NET süreci konteynerin PID 1'i olunca yakalanmamış bir hatada kapanamıyor (çekirdek PID 1'e gelen SIGABRT'yi yok sayar), asılı kalıyor ve `restart` devreye girmiyordu: Docker yeniden başlayınca Postgres'ten önce açılan order-api migration'da hata alıp takılı kalmıştı. Init süreciyle çöken servis kapanır, Docker yeniden başlatır.
 - **Henüz yok:** metrik panoları ve uyarılar (hata oranı, takılan saga), canlıda APM Server için secret token ve TLS.
 
 ---

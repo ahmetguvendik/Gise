@@ -3,7 +3,8 @@ using System.Diagnostics;
 namespace Gise.Logging;
 
 // Kafka mesajları kendiliğinden izlenmez: outbox gönderimi ve inbox işlemesi, mesajın taşıdığı traceparent'a bağlı bir
-// span'le başlatılır. Böylece bir istek API'den Kafka'ya, oradan worker'a kadar APM'de tek iz olarak görünür.
+// span'le başlatılır. Böylece bir istek API'den Kafka'ya, oradan worker'a kadar APM'de tek iz olarak görünür. Mesajsız
+// arka plan işleri (arama dizini turu) traceParent vermeden çağırır; her tur yeni bir iz başlatır.
 public static class AppTracing
 {
     public const string SourceName = "Gise";

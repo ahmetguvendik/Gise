@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Gise.Contracts.Grpc.Catalog;
 using Gise.Contracts.Grpc.Reservation;
 using Gise.HealthChecks;
+using Gise.Logging;
 using Gise.Search.Application.Interfaces;
 using Gise.Search.Domain.Documents;
 
@@ -53,6 +54,8 @@ public sealed class Worker : BackgroundService
             var delay = _interval;
             try
             {
+                // Her tur APM'de tek işlem: gRPC ve Elasticsearch çağrıları onun altında görünür, ayrı ayrı işlem açmaz.
+                using var activity = AppTracing.StartLinked("search.sync", traceParent: null);
                 var count = await _eventIndex.ReplaceAllAsync(FetchPublishedEventsAsync(stoppingToken), stoppingToken);
                 _logger.LogInformation("Arama dizini yenilendi: {Count} etkinlik.", count);
             }

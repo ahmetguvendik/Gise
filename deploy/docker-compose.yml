@@ -273,6 +273,9 @@ services:
       context: ..
       dockerfile: src/Services/Catalog/Presentation/Gise.Catalog.Api/Dockerfile
     restart: unless-stopped
+    # .NET süreci PID 1 olunca yakalanmamış bir hatada kapanamıyor (çekirdek PID 1'e gelen SIGABRT'yi yok sayar),
+    # asılı kalıyor ve yeniden başlatılmıyor. init: true başa küçük bir init süreci koyar.
+    init: true
     environment:
       ConnectionStrings__Catalog: Host=postgres;Database=gise_catalog;Username=gise;Password=${POSTGRES_PASSWORD}
       Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
@@ -298,6 +301,7 @@ services:
       context: ..
       dockerfile: src/Workers/Catalog/Gise.Catalog.OutboxWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Catalog: Host=postgres;Database=gise_catalog;Username=gise;Password=${POSTGRES_PASSWORD}
     healthcheck:
@@ -322,6 +326,7 @@ services:
       context: ..
       dockerfile: src/Services/Reservation/Presentation/Gise.Reservation.Api/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
       # Koltuk haritası tutulan koltukları Redis'ten okur.
@@ -345,6 +350,7 @@ services:
       context: ..
       dockerfile: src/Workers/Reservation/Gise.Reservation.InboxWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
     healthcheck:
@@ -370,6 +376,7 @@ services:
       context: ..
       dockerfile: src/Workers/Reservation/Gise.Reservation.CommandWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Reservation: Host=postgres;Database=gise_reservation;Username=gise;Password=${POSTGRES_PASSWORD}
       Redis__Connection: redis:6379,password=${REDIS_PASSWORD}
@@ -396,6 +403,7 @@ services:
       context: ..
       dockerfile: src/Services/Order/Presentation/Gise.Order.Api/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
       Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
@@ -422,6 +430,7 @@ services:
       context: ..
       dockerfile: src/Workers/Order/Gise.Order.InboxWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
       # İade komutunu outbox'a yazar; RabbitMQ'ya order-saga-worker gönderir. Bağlantı, hedef adresleri doğru olsun diye.
@@ -449,6 +458,7 @@ services:
       context: ..
       dockerfile: src/Workers/Order/Gise.Order.SagaWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
       RabbitMq__Password: ${RABBITMQ_PASSWORD}
@@ -472,6 +482,7 @@ services:
       context: ..
       dockerfile: src/Services/Payment/Presentation/Gise.Payment.Api/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Payment: Host=postgres;Database=gise_payment;Username=gise;Password=${POSTGRES_PASSWORD}
     healthcheck:
@@ -491,6 +502,7 @@ services:
       context: ..
       dockerfile: src/Workers/Payment/Gise.Payment.CommandWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Payment: Host=postgres;Database=gise_payment;Username=gise;Password=${POSTGRES_PASSWORD}
       RabbitMq__Password: ${RABBITMQ_PASSWORD}
@@ -514,6 +526,7 @@ services:
       context: ..
       dockerfile: src/Services/Ticket/Presentation/Gise.Ticket.Api/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
       Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
@@ -539,6 +552,7 @@ services:
       context: ..
       dockerfile: src/Workers/Ticket/Gise.Ticket.CommandWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
       RabbitMq__Password: ${RABBITMQ_PASSWORD}
@@ -567,6 +581,7 @@ services:
       context: ..
       dockerfile: src/Workers/Ticket/Gise.Ticket.OutboxWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
     healthcheck:
@@ -590,6 +605,7 @@ services:
       context: ..
       dockerfile: src/Workers/Ticket/Gise.Ticket.InboxWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
       # Etkinlik güncellenince bilet PDF'leri yeniden yazılır.
@@ -615,6 +631,7 @@ services:
       context: ..
       dockerfile: src/Services/Notification/Presentation/Gise.Notification.Api/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Notification: Host=postgres;Database=gise_notification;Username=gise;Password=${POSTGRES_PASSWORD}
     healthcheck:
@@ -634,6 +651,7 @@ services:
       context: ..
       dockerfile: src/Workers/Notification/Gise.Notification.InboxWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       ConnectionStrings__Notification: Host=postgres;Database=gise_notification;Username=gise;Password=${POSTGRES_PASSWORD}
       # Gmail SMTP; Keycloak'ın kullandığı hesap (deploy/.env).
@@ -660,6 +678,7 @@ services:
       context: ..
       dockerfile: src/Services/Search/Presentation/Gise.Search.Api/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       Elasticsearch__Password: ${ELASTIC_PASSWORD}
     healthcheck:
@@ -679,6 +698,7 @@ services:
       context: ..
       dockerfile: src/Workers/Search/Gise.Search.SyncWorker/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       Elasticsearch__Password: ${ELASTIC_PASSWORD}
     healthcheck:
@@ -704,6 +724,7 @@ services:
       context: ..
       dockerfile: src/Services/SeatMap/Presentation/Gise.SeatMap.Api/Dockerfile
     restart: unless-stopped
+    init: true
     environment:
       Redis__Connection: redis:6379,password=${REDIS_PASSWORD}
     depends_on:
