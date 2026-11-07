@@ -57,7 +57,8 @@ public sealed class Worker : BackgroundService
                 // Her tur APM'de tek işlem: gRPC ve Elasticsearch çağrıları onun altında görünür, ayrı ayrı işlem açmaz.
                 using var activity = AppTracing.StartLinked("search.sync", traceParent: null);
                 var count = await _eventIndex.ReplaceAllAsync(FetchPublishedEventsAsync(stoppingToken), stoppingToken);
-                _logger.LogInformation("Arama dizini yenilendi: {Count} etkinlik.", count);
+                // Debug: her turda yazılırdı; tur APM'de görünür (search.sync), hata ayrıca loglanır.
+                _logger.LogDebug("Arama dizini yenilendi: {Count} etkinlik.", count);
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {

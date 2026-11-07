@@ -24,6 +24,9 @@ public static class ServiceRegistration
         var rabbit = configuration.GetRequiredSection("RabbitMq");
         services.AddMassTransit(x =>
         {
+            // MassTransit kullanım verisini kendi sunucusuna gönderiyor (UsageTracker); kapalı.
+            x.DisableUsageTelemetry();
+
             x.AddEntityFrameworkOutbox<OrderDbContext>(outbox =>
             {
                 outbox.UsePostgres();

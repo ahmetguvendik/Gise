@@ -1,5 +1,6 @@
 using Gise.Ticket.Application.Interfaces;
 using Gise.Ticket.Application.UnitOfWorks;
+using Gise.Ticket.Persistence.Auditing;
 using Gise.Ticket.Persistence.Contexts;
 using Gise.Ticket.Persistence.Repositories;
 using Gise.Ticket.Persistence.UnitOfWorks;
@@ -13,9 +14,17 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddPersistenceServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<TicketDbContext>(options => options
-            .UseNpgsql(configuration.GetConnectionString("Ticket"))
-            .UseSnakeCaseNamingConvention());
+        services.AddDbContext<TicketDbContext>((provider, options) =>
+        {
+            options
+                .UseNpgsql(configuration.GetConnectionString("Ticket"))
+                .UseSnakeCaseNamingConvention();
+
+            // Denetim kaydının "Değişenler" kısmı. Command işlemeyen process'te toplayıcı kayıtlı değil; değişiklik
+            // toplanmaz.
+            if (provider.GetService<IChangeAuditCollector>() is { } collector)
+                options.AddInterceptors(new ChangeAuditInterceptor(collector));
+        });
 
         services.AddScoped<ITicketRepository, TicketRepository>();
         services.AddScoped<ITicketTransferRepository, TicketTransferRepository>();

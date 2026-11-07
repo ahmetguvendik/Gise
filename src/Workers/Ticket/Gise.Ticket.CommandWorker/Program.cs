@@ -24,6 +24,9 @@ builder.Services.AddInfrastructureServices();
 var rabbit = builder.Configuration.GetRequiredSection("RabbitMq");
 builder.Services.AddMassTransit(x =>
 {
+    // MassTransit kullanım verisini kendi sunucusuna gönderiyor (UsageTracker); kapalı.
+    x.DisableUsageTelemetry();
+
     // Inbox: aynı komut iki kez gelirse ikincisi işlenmez. Outbox: cevap (TicketsIssued…) biletlerle aynı transaction'da
     // yazılır, sonra gönderilir.
     x.AddEntityFrameworkOutbox<TicketDbContext>(outbox => outbox.UsePostgres());

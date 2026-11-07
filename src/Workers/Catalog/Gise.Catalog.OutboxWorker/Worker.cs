@@ -187,7 +187,8 @@ public sealed class Worker : BackgroundService
 
         var sent = messages.Count(m => m.ProcessedAt is not null);
         if (sent > 0)
-            _logger.LogInformation("Outbox: {Count} olay Kafka'ya gönderildi.", sent);
+            // Debug: her mesajda yazılırdı; akış APM'de görünür, hata ayrıca loglanır.
+            _logger.LogDebug("Outbox: {Count} olay Kafka'ya gönderildi.", sent);
     }
 
     private static Message<string, string> ToKafkaMessage(OutboxMessage message)

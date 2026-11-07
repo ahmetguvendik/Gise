@@ -43,6 +43,9 @@ var rabbit = builder.Configuration.GetRequiredSection("RabbitMq");
 var outboxQueryDelay = TimeSpan.FromSeconds(builder.Configuration.GetRequiredSection("Outbox").GetValue<int>("QueryDelaySeconds"));
 builder.Services.AddMassTransit(x =>
 {
+    // MassTransit kullanım verisini kendi sunucusuna gönderiyor (UsageTracker); kapalı.
+    x.DisableUsageTelemetry();
+
     x.SetKebabCaseEndpointNameFormatter();
 
     // Inbox: aynı mesaj iki kez gelirse ikincisi işlenmez. Outbox: saga'nın gönderdiği komutlar saga durumuyla aynı

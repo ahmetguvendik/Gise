@@ -8,6 +8,8 @@
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="MediatR" />
+    <!-- Denetim satırının alanları LogContext ile eklenir (bkz. Behaviors/CommandLoggingBehavior). -->
+    <PackageReference Include="Serilog" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
   </ItemGroup>
 </Project>

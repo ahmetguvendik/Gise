@@ -25,6 +25,9 @@ builder.Services.AddPersistenceServices(builder.Configuration);
 var rabbit = builder.Configuration.GetRequiredSection("RabbitMq");
 builder.Services.AddMassTransit(x =>
 {
+    // MassTransit kullanım verisini kendi sunucusuna gönderiyor (UsageTracker); kapalı.
+    x.DisableUsageTelemetry();
+
     x.AddEntityFrameworkOutbox<OrderDbContext>(outbox =>
     {
         outbox.UsePostgres();

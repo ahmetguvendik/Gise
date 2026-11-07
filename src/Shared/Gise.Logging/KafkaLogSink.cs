@@ -31,6 +31,8 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
             CompressionType = CompressionType.Lz4
         })
             .SetErrorHandler((_, e) => SelfLog.WriteLine("Kafka log sink hatası: {0}", e.Reason))
+            // librdkafka kendi loglarını işleyici yoksa doğrudan stderr'e basıyor: Kafka kapalıyken saniyede onlarca satır.
+            .SetLogHandler((_, message) => SelfLog.WriteLine("Kafka log sink: {0}", message.Message))
             .Build();
 
         // Kafka'da topic otomatik oluşturulmuyor (bkz. tasarım 3.5); her process açılışta dener, uygulamayı bekletmez.
@@ -41,7 +43,9 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
     {
         try
         {
-            using var admin = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = bootstrapServers }).Build();
+            using var admin = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = bootstrapServers })
+                .SetLogHandler((_, message) => SelfLog.WriteLine("Kafka log sink: {0}", message.Message))
+                .Build();
             await admin.CreateTopicsAsync([
                 new TopicSpecification
                 {

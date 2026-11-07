@@ -129,7 +129,8 @@ public sealed class Worker : BackgroundService
         }
 
         if (processed > 0)
-            _logger.LogInformation("Inbox: {Count} olay işlendi.", processed);
+            // Debug: her mesajda yazılırdı; akış APM'de görünür, hata ayrıca loglanır.
+            _logger.LogDebug("Inbox: {Count} olay işlendi.", processed);
     }
 
     private async Task HandleAsync(InboxWorkerDbContext db, CatalogGrpc.CatalogGrpcClient catalog, InboxMessage message, CancellationToken cancellationToken)

@@ -4,7 +4,7 @@ using Serilog.Events;
 
 namespace Gise.Logging;
 
-// Yalnızca kimlik (Keycloak sub) yazılır; ad ve e-posta kişisel veri olduğu için loga girmez.
+// Yalnızca kimlik (Keycloak sub) ve roller yazılır; ad ve e-posta kişisel veri olduğu için loga girmez.
 public sealed class UserEnricher : ILogEventEnricher
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -31,7 +31,18 @@ public sealed class UserEnricher : ILogEventEnricher
         var subject = context.User.FindFirst("sub")?.Value;
         if (!string.IsNullOrEmpty(subject))
             logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("actor.id", subject));
+
+        // Denetim kaydında "kim" kimlik ve roldür. Keycloak'un her kullanıcıya verdiği varsayılan roller bir şey anlatmaz.
+        var roles = context.User.FindAll("roles")
+            .Select(claim => claim.Value)
+            .Where(role => !IsKeycloakDefaultRole(role))
+            .ToArray();
+        if (roles.Length > 0)
+            logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("actor.roles", roles));
     }
+
+    private static bool IsKeycloakDefaultRole(string role) =>
+        role.StartsWith("default-roles-", StringComparison.Ordinal) || role is "offline_access" or "uma_authorization";
 
     // APISIX arkasında RemoteIpAddress hep gateway'i gösterir; gerçek adres başlıkta. Başlık uydurulabilir: yalnızca
     // loglama için, yetki kararında kullanılmaz.
