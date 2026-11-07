@@ -453,9 +453,9 @@ Saga'nın koltuk tutma kısmı. Ödeme ve bilet adımları 4.5'te.
 - **Tekrar ve sıra:**
   - Redis kilidinin değeri siparişin ID'sidir: `ReserveSeats` yeniden gelirse Lua betiği kendi kilidini tanır, siparişin var olan tutması döner (`seat_holds.order_id` benzersiz).
   - `ReserveSeats` ve `ReleaseSeats` ayrı kuyruklarda olduğu için sıraları garanti değildir. "Bırak" önce gelirse sipariş için "bırakıldı" kaydı yazılır; sonradan gelen "tut" koltuk tutmaz (`HOLD_ORDER_CLOSED`).
-- **Ayarlar:** `OrderRules` (ödeme süresi 10 dk, siparişte en fazla 10 koltuk), `RabbitMq`, `Catalog` (gRPC adresi).
+- **Ayarlar:** `OrderRules` (ödeme süresi 10 dk, siparişte en fazla 5 koltuk), `RabbitMq`, `Catalog` (gRPC adresi).
 - **Ön yüz:**
-  - Yayındaki etkinliğin sayfasında koltuk haritası: bölüm ve sıralar, boş, seçili ve dolu koltuklar. En fazla 10 koltuk seçilir; seçim yapıldıkça altta toplam ve "Satın al" görünür. Giriş yapılmamışsa önce girişe gider.
+  - Yayındaki etkinliğin sayfasında koltuk haritası: bölüm ve sıralar, boş, seçili ve dolu koltuklar. En fazla 5 koltuk seçilir; seçim yapıldıkça altta toplam ve "Satın al" görünür. Giriş yapılmamışsa önce girişe gider.
   - Sipariş sayfası (`/siparis/:id`): koltuklar tutulurken saniyede bir yoklar; "ödeme bekleniyor"da geri sayım, koltuklar ve toplam, kart formu (4.5), "Siparişten vazgeç". Kapanan siparişte sebebi ve koltuk seçimine dönüş.
   - Siparişlerim (`/siparislerim`): en yenisi önce, etkinlik, durum, toplam.
 - **Denendi:** başarılı sipariş, dolu koltuk, aynı etkinlikte ikinci sipariş, yetki, vazgeçme, ödeme süresinin dolması ve Reservation kapalıyken siparişin askıda kalmaması (süreler test için 1 dakikaya indirilerek).
@@ -531,7 +531,7 @@ stateDiagram-v2
 ### 5.1 Uygulama
 
 - Koltukları müşteri doğrudan tutmaz; sipariş tutar (bkz. 4.3). Reservation'ın RabbitMQ tüketicileri (`ReserveSeatsConsumer`, `ReleaseSeatsConsumer`, `ConfirmSeatsConsumer`, `reservation-command-worker`'da) MediatR komutlarını (`HoldSeatsCommand`, `ReleaseHoldCommand`, `ConfirmHoldCommand`) çağırır. Ödeme alınınca koltuklar satılır (bkz. 4.5). Her tutma bir siparişe aittir (`order_id` zorunlu ve benzersiz); müşteri `customer_id`. Koltuklar tutulmadan "bırak" gelirse koltuksuz bir `Released` kaydı, siparişin etkinliği ve müşterisiyle yazılır.
-- **Kurallar** (`ReservationRules`, appsettings): tutma 10 dakika; bir seferde en fazla 10 koltuk; aynı koltuk iki kez seçilemez.
+- **Kurallar** (`ReservationRules`, appsettings): tutma 10 dakika; bir seferde en fazla 5 koltuk; aynı koltuk iki kez seçilemez.
   - Etkinlik satışta olmalı (iptal edilmemiş, başlamamış): değilse `STOCK_NOT_ON_SALE`.
   - Koltuklar o etkinliğe ait olmalı: değilse `HOLD_SEAT_NOT_IN_EVENT`.
   - Bir müşterinin aynı etkinlikte ödemesi bekleyen tek siparişi olur: `HOLD_ALREADY_ACTIVE`.

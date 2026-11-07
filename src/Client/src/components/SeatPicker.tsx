@@ -10,7 +10,7 @@ import type { SeatMap, SeatMapSeat, SeatMapSection, SeatsChanged } from '../type
 import { ErrorAlert } from './ErrorAlert'
 
 // Order'ın kuralıyla aynı (OrderRules:MaxSeatsPerOrder); asıl kontrol backend'de.
-const MAX_SEATS = 10
+const MAX_SEATS = 5
 
 interface Props {
   eventId: string
