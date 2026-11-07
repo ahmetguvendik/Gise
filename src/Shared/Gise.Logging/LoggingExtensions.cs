@@ -6,14 +6,16 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Configuration;
+using Serilog.Extensions.Hosting;
 
 namespace Gise.Logging;
 
 public static class LoggingExtensions
 {
-    // Loglar ECS biçiminde konsola ve Kafka'nın "logs" topic'ine yazılır; Logstash oradan Elasticsearch'e taşır (bkz. tasarım
-    // 8). Konsol her zaman açık: Kafka, Logstash ya da Elasticsearch çökse de "docker compose logs" çalışır. Seviyeler
-    // appsettings'teki Serilog bölümünden, Kafka ayarları Logging:Kafka bölümünden okunur.
+    // Loglar ECS biçiminde konsola ve Kafka'ya yazılır: API'ler logs.api'ye, worker'lar logs.workers'a, insanların yaptığı
+    // işlemler logs.audit'e; Logstash her birini kendi akışına taşır (bkz. tasarım 8). Konsol her zaman açık: Kafka,
+    // Logstash ya da Elasticsearch çökse de "docker compose logs" çalışır. Seviyeler appsettings'teki Serilog bölümünden,
+    // Kafka ayarları Logging:Kafka bölümünden okunur.
     public static void UseAppLogging(this IHostApplicationBuilder builder, string serviceName)
     {
         // Kullanıcı kimliği istekten okunur; accessor ancak bu kayıtla doldurulur.
@@ -35,6 +37,11 @@ public static class LoggingExtensions
         builder.Logging.ClearProviders();
         // dispose: kapanışta kuyrukta bekleyen loglar da Kafka'ya gönderilsin.
         builder.Logging.AddSerilog(Log.Logger, dispose: true);
+
+        // İstek logu (UseAppRequestLogging) satırına alan eklemek için bunu ister.
+        var diagnosticContext = new DiagnosticContext(Log.Logger);
+        builder.Services.AddSingleton(diagnosticContext);
+        builder.Services.AddSingleton<IDiagnosticContext>(diagnosticContext);
     }
 
     // Kafka ayarı yoksa sink kurulmaz; Kafka'sız çalışılabilsin.
@@ -45,9 +52,12 @@ public static class LoggingExtensions
         if (string.IsNullOrWhiteSpace(bootstrapServers))
             return;
 
+        // API'ler logs.api'ye, worker'lar logs.workers'a (appsettings); unutulan bir process'in logları kaybolmaz, API
+        // akışında görünür.
         var sink = new KafkaLogSink(
             bootstrapServers,
-            kafka["Topic"] ?? "logs",
+            kafka["Topic"] ?? "logs.api",
+            kafka["AuditTopic"] ?? "logs.audit",
             kafka.GetValue("Partitions", 3),
             TimeSpan.FromHours(kafka.GetValue("RetentionHours", 24)));
 

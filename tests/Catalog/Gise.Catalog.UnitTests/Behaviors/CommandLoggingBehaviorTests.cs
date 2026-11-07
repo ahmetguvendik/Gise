@@ -90,6 +90,7 @@ public sealed class CommandLoggingBehaviorTests
         Assert.Equal(LogEventLevel.Warning, logEvent.Level);
         Assert.Equal("failure", Text(logEvent, "event.outcome"));
         Assert.Equal(thrown.ErrorCode, Text(logEvent, "error.code"));
+        Assert.Equal("403", Text(logEvent, "StatusCode"));
         // Kaydedilemeyen değişiklik bir sonraki command'a karışmaz.
         Assert.Empty(_changes.Drain());
     }

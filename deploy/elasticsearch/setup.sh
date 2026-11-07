@@ -38,11 +38,14 @@ wait_for "$ES/_cluster/health" '"status"'
 echo "kibana_system parolası"
 call POST "$ES/_security/user/kibana_system/_password" "{\"password\":\"${KIBANA_PASSWORD}\"}"
 
-# Logstash: yalnızca uygulama loglarının ve denetim kayıtlarının veri akışlarına yazar.
+# Logstash: yalnızca üç log akışına (API, worker, denetim) yazar.
 echo "logstash_writer rolü ve kullanıcısı"
 call PUT "$ES/_security/role/logstash_writer" '{
   "cluster": ["monitor"],
-  "indices": [{ "names": ["logs-gise-*", "logs-gise.audit-*"], "privileges": ["auto_configure", "create_doc", "view_index_metadata"] }]
+  "indices": [{
+    "names": ["logs-gise.api-*", "logs-gise.workers-*", "logs-gise.audit-*"],
+    "privileges": ["auto_configure", "create_doc", "view_index_metadata"]
+  }]
 }'
 call PUT "$ES/_security/user/logstash_writer" "{\"password\":\"${LOGSTASH_PASSWORD}\",\"roles\":[\"logstash_writer\"]}"
 
@@ -58,43 +61,31 @@ call PUT "$ES/_security/role/apm_writer" '{
 }'
 call PUT "$ES/_security/user/apm_writer" "{\"password\":\"${APM_PASSWORD}\",\"roles\":[\"apm_writer\"]}"
 
-# Uygulama logları: tek veri akışı (logs-gise-default), 7 gün sonra silinir. Yerleşik logs-*-* şablonundan önce gelir
-# (öncelik 200); ECS alan eşlemeleri yerleşik bileşenlerden. Tek düğüm: kopya yok.
-echo "logs-gise şablonu (7 gün)"
-call PUT "$ES/_index_template/logs-gise" '{
-  "index_patterns": ["logs-gise-*"],
-  "data_stream": {},
-  "priority": 200,
-  "composed_of": ["logs@mappings", "ecs@mappings"],
-  "template": {
-    "settings": { "number_of_replicas": 0 },
-    "lifecycle": { "data_retention": "7d" }
-  },
-  "_meta": { "description": "Gişe uygulama logları; 7 gün sonra silinir." }
-}'
+# Log akışı şablonu: $1 akış adı (sonuna -default eklenir), $2 saklama, $3 açıklama. Yerleşik logs-*-* şablonundan önce
+# gelir (öncelik 200); ECS alan eşlemeleri yerleşik bileşenlerden. Tek düğüm: kopya yok. Var olan akış şablon değişikliğini
+# yalnızca sonraki indekslerinde gördüğü için saklama süresi akışa da yazılır.
+log_stream() {
+  echo "$1 şablonu ($2)"
+  call PUT "$ES/_index_template/$1" "{
+    \"index_patterns\": [\"$1-*\"],
+    \"data_stream\": {},
+    \"priority\": 200,
+    \"composed_of\": [\"logs@mappings\", \"ecs@mappings\"],
+    \"template\": {
+      \"settings\": { \"number_of_replicas\": 0 },
+      \"lifecycle\": { \"data_retention\": \"$2\" }
+    },
+    \"_meta\": { \"description\": \"$3\" }
+  }"
+  if curl -s -u "$AUTH" "$ES/_data_stream/$1-default" | grep -q '"name"'; then
+    call PUT "$ES/_data_stream/$1-default/_lifecycle" "{ \"data_retention\": \"$2\" }"
+  fi
+}
 
-# Denetim kayıtları (kim ne yaptı; bkz. CommandLoggingBehavior): ayrı akış (logs-gise.audit-default), 1 yıl. "logs-gise-*"
-# kalıbına girmez: veri kümesi adında nokta var.
-echo "logs-gise.audit şablonu (1 yıl)"
-call PUT "$ES/_index_template/logs-gise.audit" '{
-  "index_patterns": ["logs-gise.audit-*"],
-  "data_stream": {},
-  "priority": 200,
-  "composed_of": ["logs@mappings", "ecs@mappings"],
-  "template": {
-    "settings": { "number_of_replicas": 0 },
-    "lifecycle": { "data_retention": "365d" }
-  },
-  "_meta": { "description": "Gişe denetim kayıtları (kim ne yaptı); 1 yıl sonra silinir." }
-}'
-
-# Var olan akış şablon değişikliğini yalnızca sonraki indekslerinde görür; saklama süresi akışa da yazılır.
-if curl -s -u "$AUTH" "$ES/_data_stream/logs-gise-default" | grep -q '"name"'; then
-  call PUT "$ES/_data_stream/logs-gise-default/_lifecycle" '{ "data_retention": "7d" }'
-fi
-if curl -s -u "$AUTH" "$ES/_data_stream/logs-gise.audit-default" | grep -q '"name"'; then
-  call PUT "$ES/_data_stream/logs-gise.audit-default/_lifecycle" '{ "data_retention": "365d" }'
-fi
+# Üç akış (bkz. tasarım 8 ve deploy/logstash/pipeline/logs.conf).
+log_stream logs-gise.api 7d "Gişe API logları: her istek için bir satır, uyarı ve hatalar; 7 gün sonra silinir."
+log_stream logs-gise.workers 7d "Gişe worker logları ve sistem adımları; 7 gün sonra silinir."
+log_stream logs-gise.audit 365d "Gişe denetim kayıtları: insanların yaptığı işlemler; 1 yıl sonra silinir."
 
 echo "Kibana bekleniyor (ilk açılışta 1-2 dakika sürebilir)..."
 wait_for "$KIBANA/api/status" '"level":"available"'
@@ -102,18 +93,22 @@ wait_for "$KIBANA/api/status" '"level":"available"'
 # az önce atandıysa); veri görünümü listesi gelene kadar beklenir.
 wait_for "$KIBANA/api/data_views" '"data_view"'
 
-echo "Kibana log görünümü"
-call POST "$KIBANA/api/data_views/data_view" '{
-  "override": true,
-  "data_view": { "id": "gise-logs", "name": "Gişe logları", "title": "logs-gise-*", "timeFieldName": "@timestamp" }
-}'
-call POST "$KIBANA/api/data_views/default" '{ "data_view_id": "gise-logs", "force": true }'
+# Kibana veri görünümü: $1 kimlik, $2 ad, $3 akış kalıbı.
+data_view() {
+  echo "Kibana görünümü: $2"
+  call POST "$KIBANA/api/data_views/data_view" "{
+    \"override\": true,
+    \"data_view\": { \"id\": \"$1\", \"name\": \"$2\", \"title\": \"$3\", \"timeFieldName\": \"@timestamp\" }
+  }"
+}
 
-echo "Kibana denetim görünümü"
-call POST "$KIBANA/api/data_views/data_view" '{
-  "override": true,
-  "data_view": { "id": "gise-audit", "name": "Gişe denetim kayıtları", "title": "logs-gise.audit-*", "timeFieldName": "@timestamp" }
-}'
+data_view gise-api "Gişe API logları" "logs-gise.api-*"
+data_view gise-workers "Gişe worker logları" "logs-gise.workers-*"
+data_view gise-audit "Gişe denetim kayıtları" "logs-gise.audit-*"
+call POST "$KIBANA/api/data_views/default" '{ "data_view_id": "gise-api", "force": true }'
+
+# Tek akış dönemindeki görünüm (logs-gise-*); yoksa 404 döner, sorun değil.
+curl -s -o /dev/null -u "$AUTH" -X DELETE "$KIBANA/api/data_views/data_view/gise-logs" -H "kbn-xsrf: true"
 
 # APM'in indeks şablonları Elasticsearch'ün kendisinde (apm-data eklentisi); yoksa APM arayüzü servis listesini boş
 # döndürür (Telgraf dersi).

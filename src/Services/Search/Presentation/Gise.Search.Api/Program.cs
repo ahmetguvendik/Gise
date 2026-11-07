@@ -35,6 +35,9 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+// Her istek için tek satır (bkz. tasarım 8); en başta: hata yanıtları da yazılır.
+app.UseAppRequestLogging();
+
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 

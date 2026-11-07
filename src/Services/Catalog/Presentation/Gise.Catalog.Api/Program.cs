@@ -52,6 +52,9 @@ await using (var scope = app.Services.CreateAsyncScope())
     await scope.ServiceProvider.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
 }
 
+// Her istek için tek satır (bkz. tasarım 8); en başta: hata yanıtları da yazılır.
+app.UseAppRequestLogging();
+
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 

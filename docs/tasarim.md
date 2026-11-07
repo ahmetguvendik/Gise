@@ -603,8 +603,10 @@ Telgraf'taki düzen: loglar Serilog'dan Kafka'ya, oradan Logstash'le Elasticsear
 
 ```
 Bütün API ve worker'lar (Gise.Logging)
-  ├─ loglar: Serilog, ECS JSON → bellekte kuyruk, toplu → Kafka "logs" → Logstash (alan temizliği) ─┬→ logs-gise-default (7 gün)
-  │                                                                     denetim satırları (kim ne yaptı) └→ logs-gise.audit-default (1 yıl)
+  ├─ loglar: Serilog, ECS JSON → bellekte kuyruk, toplu → Kafka → Logstash (alan temizliği) → Elasticsearch
+  │     API'ler: istekler, uyarı ve hatalar       logs.api      → logs-gise.api-default     (7 gün)
+  │     worker'lar: loglar ve sistem adımları      logs.workers  → logs-gise.workers-default (7 gün)
+  │     insanların yaptığı işlemler (denetim)      logs.audit    → logs-gise.audit-default   (1 yıl)
   └─ izler:  Elastic APM .NET ajanı → APM Server → traces-apm*, metrics-apm*
                                                          ↓
                                           Kibana (127.0.0.1:5601): Discover, APM
@@ -612,24 +614,26 @@ Bütün API ve worker'lar (Gise.Logging)
 
 - **`Gise.Logging`** (`src/Shared`, Telgraf'taki `Logging.Registration`): her process `Program.cs`'te `UseAppLogging("<servis>")` ve `UseAppApm("<servis>")` çağırır; servis adı compose'daki adla aynıdır.
 - **Loglar:**
-  - ECS biçiminde: konsola ve Kafka'nın `logs` topic'ine yazılır.
+  - ECS biçiminde konsola ve Kafka'ya yazılır. Üç topic (Telgraf'ta tek topic vardı): API'ler `logs.api`'ye, worker'lar `logs.workers`'a (`Logging:Kafka:Topic`), kullanıcısı olan denetim satırları `logs.audit`'e (`AuditTopic`); konuyu log yazıcısı satır satır seçer.
+  - **İstek logu** (`UseAppRequestLogging`, Serilog'un istek logu; Telgraf'ta yoktu): API'ye gelen her istek için tek satır: `GET /api/orders/{id} → 200 (12 ms)`, kim (`actor.*`), uç şablonu (`http.route`), `http.request.method`, `url.path`, `http.response.status_code`, süre (`event.duration`), `client.ip`, `trace.id`. 4xx Warning, 5xx Error. Adres sorgu dizesiz yazılır (koltuk haritası websocket'inde token sorgu dizesinde); `/health*` yazılmaz. ASP.NET Core'un kendi istek logları Warning'de kalır. APISIX'in kendisinin reddettiği istekler (429, bilinmeyen adres) bu loga girmez.
   - Her log `service.name`, `trace.id` ve `span.id` taşır; API'lerde `actor.id` (Keycloak `sub`), `actor.roles` ve `client.ip` de eklenir. Ad ve e-posta loga girmez.
   - Seviyeler appsettings'teki `Serilog` bölümünden, Kafka ayarları `Logging:Kafka`'dan okunur.
   - **Ne loglanır:** Information yalnızca iş olayları ve denetim satırları içindir; olağan dışı durumlar Warning, hatalar Error. Her mesajda ya da her turda tekrarlanan satırlar (inbox/outbox "olay işlendi", arama dizini turu) Debug'dır, akışları APM'de görünür. Açılış mesajları (`Microsoft.Hosting.Lifetime`) ve MassTransit yalnızca uyarı ve hatalarını yazar; MediatR lisans ve DataProtection uyarıları yalnızca hata olursa. MediatR'ın canlıda lisans anahtarı gerekir (Lucky Penny; küçük şirketlere ücretsiz Community lisansı var).
   - MassTransit'in kullanım verisi gönderimi (`UsageTracker`) kapalıdır (`DisableUsageTelemetry`).
 - **Denetim kaydı (kim ne yaptı):** Telgraf'taki `CommandLoggingBehavior` ve `ChangeAuditInterceptor`; Catalog, Order, Payment, Reservation ve Ticket'ta.
-  - Her command bitince tek satır: **kim** (`actor.id`, `actor.roles`; worker'daki sistem adımlarında `actor.id: system`), **ne** (`event.action`, ör. `PublishEvent`), **hangi kayıt** (command ve yanıttaki kimlikler: `target.event.id`, `target.order.id`, `target.seat.ids`…; etkinlik başlığı ve mekân adı), **ne değişti** (EF Core'un kayıttan önceki değerleri: `Değişenler: Event.Status: Draft → Published`; aynı değişiklik birden çok satırdaysa adediyle), **sonuç** (`event.outcome`), `client.ip`, `trace.id`. Query'ler yazılmaz.
-  - Telgraf'tan farkı: başarısız denemeler de yazılır (Warning, `event.outcome: failure`, `error.code`), doğrulamaya takılanlar dahil.
+  - Her command bitince tek satır: **kim** (`actor.id`, `actor.roles`), **ne** (`event.action`, ör. `PublishEvent`), **hangi kayıt** (command ve yanıttaki kimlikler: `target.event.id`, `target.order.id`, `target.seat.ids`…; etkinlik başlığı ve mekân adı), **ne değişti** (EF Core'un kayıttan önceki değerleri: `Değişenler: Event.Status: Draft → Published`; aynı değişiklik birden çok satırdaysa adediyle), **sonuç** (`event.outcome`), `client.ip`, `trace.id`. Query'ler yazılmaz.
+  - Telgraf'tan farkı: başarısız denemeler de yazılır (Warning, `event.outcome: failure`, `error.code`, istemcinin aldığı `http.response.status_code`: `CheckInTicket başarısız: TICKET_CHECKIN_NOT_OPEN (422, 9 ms)`), doğrulamaya takılanlar dahil.
   - Kişisel ve gizli veri girmez: e-posta, kişi adı, kart ve bilet kodu command'dan hiç alınmaz; değişikliklerde e-posta, kişi adı, bilet kodu ve PDF anahtarı için yalnızca "değişti" yazılır.
-  - `event.dataset: gise.audit` taşır; Logstash bu satırları **1 yıl** saklanan `logs-gise.audit-default` akışına yazar (Telgraf'ta ayrı akış yoktu). Kibana'da "Gişe denetim kayıtları" görünümü.
+  - `event.dataset: gise.audit` taşır; kullanıcısı olanlar `logs.audit` topic'inden **1 yıl** saklanan `logs-gise.audit-default` akışına gider (Telgraf'ta ayrı akış yoktu). Kibana'da "Gişe denetim kayıtları".
+  - Worker'daki command'lar (koltuk tutma, ödeme alma, bilet üretme, iade…) insan işlemi değildir: aynı satır worker akışına `actor.id: system` ile düşer, denetim işareti kaldırılır.
   - Yetki katmanında reddedilen istekler (rol yetmiyor) command'a ulaşmadığı için yazılmaz; Keycloak giriş olayları da henüz alınmıyor (Telgraf'taki `KeycloakEventSync`).
 - **Kafka'ya yazma isteği bekletmez:** loglar bellekte kuyruğa alınıp 2 saniyede bir ya da 500'lük toplu olarak gönderilir (`acks=0`, lz4). Kuyruk (10.000) dolarsa yeni loglar düşürülür: log kaybı, isteklerin yavaşlamasından iyidir. Sink hata fırlatmaz. Kafka, Logstash ya da Elasticsearch çökse de konsol çalışır (`docker compose logs`).
-- **`logs` topic'i:** 3 bölüm, 24 saat saklama. Kafka'da otomatik oluşturma kapalı olduğu için her process açılışta oluşturmayı dener, uygulamayı bekletmez.
+- **Log topic'leri** (`logs.api`, `logs.workers`, `logs.audit`): 3 bölüm, 24 saat saklama. Kafka'da otomatik oluşturma kapalı olduğu için her process açılışta oluşturmayı dener, uygulamayı bekletmez.
 - **Logstash** (`deploy/logstash`):
-  - `logs-gise-default` veri akışına, denetim satırlarını `logs-gise.audit-default`'a yazar; servisler `service.name` alanıyla ayrılır.
-  - ECS'nin ürettiği gereksiz alanlar (ham mesajın kopyası, şema sürümü, süreç ve makine ayrıntıları) ve geriye kalan boş nesneler atılır; `actor.*`, `client.*`, `target.*`, `event.*` ve `error.*` üst düzeye taşınır.
-  - Kendi hesabı (`logstash_writer`) yalnızca bu iki akışa yazabilir. Reddedilen belgeler ölü mektup kuyruğuna gider.
-- **Saklama:** loglar **7 gün** (`logs-gise` şablonu), denetim kayıtları **1 yıl** (`logs-gise.audit` şablonu); APM verisi Elasticsearch'ün APM varsayılanlarıyla.
+  - Üç topic'i okur, her birini kendi akışına yazar (topic → akış, yukarıdaki şema); servisler `service.name` alanıyla ayrılır.
+  - ECS'nin ürettiği gereksiz alanlar (ham mesajın kopyası, şema sürümü, süreç ve makine ayrıntıları) ve geriye kalan boş nesneler atılır; `actor.*`, `client.*`, `target.*`, `event.*`, `error.*` ve `http.*` üst düzeye taşınır, istek logunun alanları ECS adlarına çevrilir.
+  - Kendi hesabı (`logstash_writer`) yalnızca bu üç akışa yazabilir. Reddedilen belgeler ölü mektup kuyruğuna gider.
+- **Saklama:** API ve worker logları **7 gün** (`logs-gise.api`, `logs-gise.workers` şablonları), denetim kayıtları **1 yıl** (`logs-gise.audit`); APM verisi Elasticsearch'ün APM varsayılanlarıyla.
 - **İzler (Elastic APM):**
   - Ajan ASP.NET Core isteklerini, EF Core sorgularını, HttpClient ve gRPC çağrılarını kendiliğinden izler. MassTransit (RabbitMQ) ve Elasticsearch istemcisi ajanın OpenTelemetry köprüsüyle görünür.
   - Npgsql köprüden çıkarılmıştır (`OpenTelemetryBridgeDeniedActivitySources`): kendi izleri EF Core span'lerinin kopyasıydı, üst işlem olmayan her yoklama ve sağlık kontrolü sorgusu ayrı işlem açıyordu (APM verisinin %95'i). EF Core dışındaki sorgular (Quartz) izlerde görünmez.
@@ -640,7 +644,7 @@ Bütün API ve worker'lar (Gise.Logging)
   - Ajanlar için kimlik doğrulaması kapalıdır, port compose ağının dışına açık değildir.
   - Kendi hesabı (`apm_writer`) yalnızca APM veri akışlarına yazar ve ajan ayarlarını okur. Telgraf'ta `elastic` süper kullanıcısıydı.
   - İndeks şablonlarını Elasticsearch'ün apm-data eklentisi kurar; Fleet gerekmez.
-- **Kibana:** yalnızca `127.0.0.1:5601`'den erişilir; giriş `elastic` kullanıcısıyla (parola `deploy/.env`'deki `ELASTIC_PASSWORD`). Kendisi Elasticsearch'e `kibana_system` hesabıyla bağlanır. "Gişe logları" (`logs-gise-*`) varsayılan veri görünümüdür, denetim kayıtları "Gişe denetim kayıtları"nda (`logs-gise.audit-*`); izler Observability → APM'dedir.
+- **Kibana:** yalnızca `127.0.0.1:5601`'den erişilir; giriş `elastic` kullanıcısıyla (parola `deploy/.env`'deki `ELASTIC_PASSWORD`). Kendisi Elasticsearch'e `kibana_system` hesabıyla bağlanır. Veri görünümleri: "Gişe API logları" (varsayılan), "Gişe worker logları", "Gişe denetim kayıtları"; izler Observability → APM'dedir.
 - **Kurulum:** hesaplar, saklama süresi ve veri görünümü `deploy/elasticsearch/setup.sh`'ta; yeni kurulumda bir kez `docker compose -f deploy/docker-compose.yml --profile setup up elastic-init`. Tekrar çalıştırılabilir. Parolalar `deploy/.env`'de (`KIBANA_PASSWORD`, `KIBANA_ENCRYPTION_KEY`, `LOGSTASH_PASSWORD`, `APM_PASSWORD`).
 - **Sağlık uçları:** `/health/live`, `/health/ready` (yalnızca vazgeçilmez bağımlılıklar). Log ve iz altyapısı vazgeçilmez değildir: çökmesi hiçbir servisi "hazır değil" yapmaz.
 - **Çöken servisin yeniden başlaması:** compose'daki her .NET servisinde `init: true` vardır. .NET süreci konteynerin PID 1'i olunca yakalanmamış bir hatada kapanamıyor (çekirdek PID 1'e gelen SIGABRT'yi yok sayar), asılı kalıyor ve `restart` devreye girmiyordu: Docker yeniden başlayınca Postgres'ten önce açılan order-api migration'da hata alıp takılı kalmıştı. Init süreciyle çöken servis kapanır, Docker yeniden başlatır.

@@ -53,12 +53,15 @@ public sealed partial class CommandLoggingBehavior<TRequest, TResponse> : IPipel
             // Kaydedilemeyen değişiklikler aynı kapsamdaki bir sonraki command'a karışmasın.
             _changes.Drain();
 
-            var errorCode = ex is AppException appException ? appException.ErrorCode : ErrorCodes.General.InternalError;
+            var (errorCode, statusCode) = ex is AppException appException
+                ? (appException.ErrorCode, appException.StatusCode)
+                : (ErrorCodes.General.InternalError, 500);
 
+            // StatusCode: istemcinin aldığı yanıt (Logstash http.response.status_code yapar; worker'da kaldırır).
             using (LogContext.Push(new AuditFieldsEnricher(action, request, response: null, errorCode)))
             {
-                _logger.LogWarning("{Command:l} başarısız: {ErrorCode:l} ({ElapsedMs} ms).",
-                    action, errorCode, stopwatch.ElapsedMilliseconds);
+                _logger.LogWarning("{Command:l} başarısız: {ErrorCode:l} ({StatusCode}, {ElapsedMs} ms).",
+                    action, errorCode, statusCode, stopwatch.ElapsedMilliseconds);
             }
 
             throw;

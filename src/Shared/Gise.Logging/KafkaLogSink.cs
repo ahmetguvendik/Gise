@@ -14,10 +14,12 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
     private readonly IProducer<Null, string> _producer;
     private readonly EcsTextFormatter _formatter = new();
     private readonly string _topic;
+    private readonly string _auditTopic;
 
-    public KafkaLogSink(string bootstrapServers, string topic, int partitions, TimeSpan retention)
+    public KafkaLogSink(string bootstrapServers, string topic, string auditTopic, int partitions, TimeSpan retention)
     {
         _topic = topic;
+        _auditTopic = auditTopic;
 
         _producer = new ProducerBuilder<Null, string>(new ProducerConfig
         {
@@ -36,26 +38,24 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
             .Build();
 
         // Kafka'da topic otomatik oluşturulmuyor (bkz. tasarım 3.5); her process açılışta dener, uygulamayı bekletmez.
-        _ = EnsureTopicAsync(bootstrapServers, partitions, retention);
+        _ = EnsureTopicsAsync(bootstrapServers, partitions, retention);
     }
 
-    private async Task EnsureTopicAsync(string bootstrapServers, int partitions, TimeSpan retention)
+    private async Task EnsureTopicsAsync(string bootstrapServers, int partitions, TimeSpan retention)
     {
         try
         {
             using var admin = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = bootstrapServers })
                 .SetLogHandler((_, message) => SelfLog.WriteLine("Kafka log sink: {0}", message.Message))
                 .Build();
-            await admin.CreateTopicsAsync([
-                new TopicSpecification
-                {
-                    Name = _topic,
-                    NumPartitions = partitions,
-                    ReplicationFactor = 1,
-                    // Logstash okuduktan sonra Kafka'da tutmaya gerek yok; kısa saklama.
-                    Configs = new Dictionary<string, string> { ["retention.ms"] = ((long)retention.TotalMilliseconds).ToString() }
-                }
-            ]);
+            await admin.CreateTopicsAsync(new[] { _topic, _auditTopic }.Distinct().Select(name => new TopicSpecification
+            {
+                Name = name,
+                NumPartitions = partitions,
+                ReplicationFactor = 1,
+                // Logstash okuduktan sonra Kafka'da tutmaya gerek yok; kısa saklama.
+                Configs = new Dictionary<string, string> { ["retention.ms"] = ((long)retention.TotalMilliseconds).ToString() }
+            }));
         }
         catch (CreateTopicsException ex) when (ex.Results.All(r => r.Error.Code is ErrorCode.TopicAlreadyExists or ErrorCode.NoError))
         {
@@ -74,7 +74,7 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
             {
                 var payload = new StringWriter();
                 _formatter.Format(logEvent, payload);
-                _producer.Produce(_topic, new Message<Null, string> { Value = payload.ToString() });
+                _producer.Produce(TopicFor(logEvent), new Message<Null, string> { Value = payload.ToString() });
             }
             catch (ProduceException<Null, string> ex)
             {
@@ -88,6 +88,15 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
 
         return Task.CompletedTask;
     }
+
+    // İnsanların yaptığı işlem (kullanıcısı olan denetim satırı, bkz. CommandLoggingBehavior) denetim topic'ine; worker'daki
+    // sistem adımları ve diğer her şey process'in kendi topic'ine (bkz. tasarım 8).
+    private string TopicFor(LogEvent logEvent) =>
+        logEvent.Properties.TryGetValue("event.dataset", out var dataset)
+        && dataset is ScalarValue { Value: "gise.audit" }
+        && logEvent.Properties.ContainsKey("actor.id")
+            ? _auditTopic
+            : _topic;
 
     public void Dispose()
     {

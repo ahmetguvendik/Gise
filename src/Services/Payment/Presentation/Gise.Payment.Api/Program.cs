@@ -24,6 +24,9 @@ await using (var scope = app.Services.CreateAsyncScope())
     await scope.ServiceProvider.GetRequiredService<PaymentDbContext>().Database.MigrateAsync();
 }
 
+// Her istek için tek satır (bkz. tasarım 8); en başta: hata yanıtları da yazılır.
+app.UseAppRequestLogging();
+
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 
