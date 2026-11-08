@@ -17,7 +17,8 @@ public sealed class GetMyTicketsResponse
     // Okunaklı biçimde: "ABCD-EFGH-JKMN-PQRS". Başkasına aktarılan bilette boş: kod artık alıcının.
     public string Code { get; set; } = string.Empty;
 
-    // Valid, Used, Cancelled; gönderenin listesinde başkasına aktarılan bilet için Transferred.
+    // Valid, Used, Cancelled; okutulmadan kapısı kapanmış (etkinliği geçmiş) bilet için Expired; gönderenin listesinde
+    // başkasına aktarılan bilet için Transferred.
     public string Status { get; set; } = string.Empty;
     public DateTime? CheckedInAt { get; set; }
 

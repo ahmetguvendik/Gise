@@ -4,6 +4,7 @@ const LABELS: Record<TicketStatus, string> = {
   Valid: 'Geçerli',
   Used: 'Kullanıldı',
   Cancelled: 'İptal',
+  Expired: 'Zamanı geçti',
   Transferred: 'Aktarıldı',
 }
 

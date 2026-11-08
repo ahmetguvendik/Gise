@@ -100,6 +100,8 @@ export function TicketList({ tickets, showEvent = true, allowTransfer = false, o
             <div className="ticket-row__side">
               {ticket.status === 'Cancelled' ? (
                 <span className="muted">Bu bilet geçersiz.</span>
+              ) : ticket.status === 'Expired' ? (
+                <span className="muted">Etkinliğin tarihi geçti; bilet kullanılmadı.</span>
               ) : ticket.status === 'Transferred' ? (
                 <span className="muted ticket-row__note">
                   {ticket.transferredTo} adresine aktarıldı

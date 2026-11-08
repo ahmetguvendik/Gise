@@ -13,10 +13,14 @@ public sealed class GetMyTicketsQueryHandler : IRequestHandler<GetMyTicketsQuery
     // Biletin kendi durumu değil: gönderenin gözünden "başkasına aktarıldı".
     private const string TransferredStatus = "Transferred";
 
+    // Biletin kendi durumu değil: okutulmamış ama kapı kapandı (etkinlik geçti); bilet artık kullanılamaz.
+    private const string ExpiredStatus = "Expired";
+
     private readonly ITicketRepository _ticketRepository;
     private readonly ITicketTransferRepository _transferRepository;
     private readonly TimeProvider _timeProvider;
     private readonly int _cutoffHours;
+    private readonly CheckInWindow _window;
 
     public GetMyTicketsQueryHandler(
         ITicketRepository ticketRepository,
@@ -28,6 +32,7 @@ public sealed class GetMyTicketsQueryHandler : IRequestHandler<GetMyTicketsQuery
         _transferRepository = transferRepository;
         _timeProvider = timeProvider;
         _cutoffHours = TicketTransferRules.CutoffHours(configuration);
+        _window = CheckInWindow.FromConfiguration(configuration);
     }
 
     public async Task<IReadOnlyList<GetMyTicketsResponse>> Handle(GetMyTicketsQuery request, CancellationToken cancellationToken)
@@ -43,6 +48,8 @@ public sealed class GetMyTicketsQueryHandler : IRequestHandler<GetMyTicketsQuery
             var open = t.Status == TicketStatus.Valid && now < deadline;
             // Süresi dolan aktarım düşmüş sayılır; bilet sahibinde kalır.
             var transfer = open ? pending.GetValueOrDefault(t.Id) : null;
+            // Kapıdaki kuralla aynı an: okutma penceresi kapandıysa geçerli bilet artık kullanılamaz.
+            var expired = t.Status == TicketStatus.Valid && now >= _window.ClosesAt(t.EventStartsAt);
 
             return new GetMyTicketsResponse
             {
@@ -58,7 +65,7 @@ public sealed class GetMyTicketsQueryHandler : IRequestHandler<GetMyTicketsQuery
                 Number = t.Number,
                 Price = t.Price,
                 Code = TicketCode.Format(t.Code),
-                Status = t.Status.ToString(),
+                Status = expired ? ExpiredStatus : t.Status.ToString(),
                 CheckedInAt = t.CheckedInAt,
                 TransferredAt = t.TransferredAt,
                 CanTransfer = open && t.TransferredAt is null && transfer is null,

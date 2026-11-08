@@ -232,7 +232,8 @@ export interface CreatedOrder {
 
 /** Valid: girişte okutulabilir; Used: okutuldu; Cancelled: geçersiz (ör. etkinlik iptal edildi). */
 /** Transferred: gönderenin listesinde, başkasına aktarılan bilet. */
-export type TicketStatus = 'Valid' | 'Used' | 'Cancelled' | 'Transferred'
+/** Expired: okutulmadan kapısı kapanmış (etkinliği geçmiş) geçerli bilet; Transferred: gönderenin gözünden aktarılmış. */
+export type TicketStatus = 'Valid' | 'Used' | 'Cancelled' | 'Expired' | 'Transferred'
 
 /** Etkinlik ve koltuk bilgisi bilet çıkarken siparişten kopyalanır. */
 export interface TicketItem {
