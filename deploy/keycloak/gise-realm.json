@@ -10,7 +10,7 @@
   "rememberMe": true,
   "verifyEmail": true,
   "resetPasswordAllowed": true,
-  "passwordPolicy": "length(8) and notUsername and notEmail",
+  "passwordPolicy": "length(8) and notUsername and notEmail and passwordBlacklist(gise-common-passwords.txt)",
   "internationalizationEnabled": true,
   "supportedLocales": ["tr"],
   "defaultLocale": "tr",

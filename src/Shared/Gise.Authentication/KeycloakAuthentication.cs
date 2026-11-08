@@ -28,7 +28,12 @@ public static class KeycloakAuthentication
                     ValidIssuers = [Required("InternalAuthority"), Required("PublicAuthority")],
                     ValidAudience = Required("Audience"),
                     NameClaimType = "preferred_username",
-                    RoleClaimType = "roles"
+                    RoleClaimType = "roles",
+                    // Keycloak realm anahtarıyla RS256 imzalar; başka algoritma kabul edilmez (derinlemesine savunma:
+                    // alg karışıklığı kütüphanede zaten engelli).
+                    ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
+                    // Varsayılan 5 dk: süresi dolan token 5 dk daha geçerli sayılırdı. Konteynerlerin saati aynı makineden.
+                    ClockSkew = TimeSpan.FromSeconds(30)
                 };
             });
 

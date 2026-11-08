@@ -34,12 +34,17 @@ services:
       # Realm JSON'undaki ${SMTP_...} yer tutucuları ilk kurulumda bunlarla dolar (Gmail SMTP).
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    # Yalnızca bu makineden: start-dev'de host adı sabit değil, parola sıfırlama bağlantısı isteğin Host başlığından
+    # üretiliyor; ağdaki biri sahte Host'la sıfırlama bağlantısını kendi sunucusuna yönlendirebilirdi. Canlıda
+    # KC_HOSTNAME ve start modu (bkz. tasarım 6).
     ports:
-      - "8180:8080"
+      - "127.0.0.1:8180:8080"
     volumes:
       - keycloak_data:/opt/keycloak/data
       # Realm yalnızca ilk açılışta içe aktarılır; sonraki değişiklikler mevcut kurulumu etkilemez.
       - ./keycloak/gise-realm.json:/opt/keycloak/data/import/gise-realm.json:ro
+      # Parola kuralındaki yaygın parola listesi (passwordBlacklist); Keycloak'ın varsayılan liste klasörü.
+      - ./keycloak/password-blacklists:/opt/keycloak/data/password-blacklists:ro
     healthcheck:
       # Keycloak 25+ sağlık uçları yönetim portunda (9000); imajda curl yok.
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]

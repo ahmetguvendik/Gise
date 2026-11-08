@@ -557,11 +557,13 @@ stateDiagram-v2
 - Sayfa yenilenince bellek sıfırlanır; açılışta **sessiz giriş** yapılır: gizli bir çerçevede Keycloak'a `prompt=none` ile "açık oturum var mı?" diye sorulur (`silent-renew.html`). Oturum varsa kullanıcı parolasız içeri alınır, yoksa misafir olarak devam eder. Canlıda Keycloak uygulamayla aynı site altında olmalıdır (ör. `giris.gise.com.tr`), yoksa tarayıcılar çerçevedeki çerezi engelleyebilir.
 - Kimlik işlemlerinin hepsi Keycloak'ta; ayrı bir Identity servisi ve kullanıcı tablosu yok. Servisler kullanıcıyı token'daki `sub` ile tanır (ör. `Event.OrganizerId`).
   - **Kayıt:** "Kayıt ol" düğmesi Keycloak'ın kayıt formunu açar (`prompt=create`). Form ad, soyad ve e-posta ister. E-posta doğrulama açık olduğu için parola, doğrulama bağlantısına tıklandıktan sonra belirlenir; ardından kullanıcı giriş yapmış olarak uygulamaya döner. Yeni kullanıcıya otomatik olarak `customer` rolü verilir.
-  - **Parola kuralı:** En az 8 karakter; e-posta ya da kullanıcı adıyla aynı olamaz. Art arda hatalı girişte hesap geçici olarak kilitlenir.
+  - **Parola kuralı:** En az 8 karakter; e-posta ya da kullanıcı adıyla aynı olamaz; en yaygın 10.000 parola (`123456`, `qwerty123`…) reddedilir (`passwordBlacklist`, liste `deploy/keycloak/password-blacklists/`, SecLists, MIT). Uzunluk NIST'in önerisi gibi 8'de kaldı: yaygın parola listesiyle birlikte yeterli. Keycloak kuralı realm geneline uygular, role göre ayrılamaz; ayrıcalıklı roller için asıl koruma iki aşamalı doğrulama olacak (canlıda). Art arda hatalı girişte hesap geçici olarak kilitlenir.
   - **Şifremi unuttum** ve **beni hatırla** giriş sayfasında.
   - **Hesabım:** Keycloak'ın hesap sayfasına gider (`/realms/gise/account`). Profil, parola, aktif oturumlar ve hesap silme burada.
   - **Rol yükseltme:** `organizer` ve `gate-staff` rollerini admin verir; şimdilik Keycloak yönetim panelinden.
 - Keycloak'ın mailleri (e-posta doğrulama, şifre sıfırlama) Telgraf'taki gibi **Gmail SMTP** ile gider (`smtp.gmail.com:587`, STARTTLS). Hesap ve uygulama şifresi `deploy/.env`'de: `SMTP_USERNAME`, `SMTP_PASSWORD`. Gönderen adresi Gmail hesabının kendisidir; Gmail başka adresle göndermeye izin vermez. Var olan kurulumda ayar `deploy/scripts/keycloak-smtp.sh` ile uygulanır.
+- **API'lerde token doğrulaması** (`Gise.Authentication`): imza (realm anahtarları), `iss`, `aud` (`gise-api`) ve süre. Yalnızca RS256 kabul edilir; saat toleransı 30 sn (varsayılan 5 dk, süresi dolan token 5 dk daha geçerli sayılırdı).
+- **Keycloak'a yalnızca bu makineden erişilir** (`127.0.0.1:8180`). `start-dev`'de host adı sabit değil: parola sıfırlama bağlantısı isteğin `Host` başlığından üretilir, ağdaki biri sahte `Host`'la bağlantıyı kendi sunucusuna yönlendirebilirdi. Canlıda `KC_HOSTNAME` ve `start` modu zorunlu.
 - `deploy/keycloak/gise-realm.json` yalnızca ilk açılışta içe aktarılır. Var olan kurulumda realm ayarı değişirse aynı değişiklik yönetim paneli ya da `kcadm.sh` ile de uygulanmalıdır.
 
 ---
@@ -731,7 +733,7 @@ Kodda ve konteyner adlarında ASCII **`gise`** kullanılır; klasör adındaki `
 ## 11. Telgraf'tan alınan dersler (baştan uygulanacak)
 
 - Kafka, PostgreSQL ve Redis için kalıcı volume; Kafka'da replikasyon ayarı bilinçli seçilir.
-- Dışarıya yalnızca gateway ve Keycloak açılır; veritabanı, Redis, RabbitMQ ve Kafka portları açılmaz.
+- Dışarıya yalnızca gateway ve Keycloak açılır (yerelde Keycloak da yalnızca `127.0.0.1`'den, bkz. 6); veritabanı, Redis, RabbitMQ ve Kafka portları açılmaz.
 - Parolalar repoda durmaz; `.env.example` yalnızca değişken adlarını içerir.
 - Migration'lar servis açılırken uygulanır. Telgraf'ta birden fazla kopyanın aynı anda migration çalıştırması bir riskti; EF Core 9'dan beri migration sırasında veritabanında kilit alındığı için kopyalar sırayla bekler.
 - Outbox okuyan worker'lar `FOR UPDATE SKIP LOCKED` ile birden fazla kopyada güvenle çalışır.
