@@ -31,3 +31,5 @@ apisix:
   # Konteyner yeniden oluşturulunca yeni IP'si en geç 10 sn'de görülür. Telgraf'ta varsayılan
   # süre yüzünden gateway dakikalarca eski IP'ye gidiyordu.
   dns_resolver_valid: 10
+  # Server başlığı sürümsüz ("APISIX"); sürüm, bilinen açıkları aramayı kolaylaştırır (bkz. docs/threat-model.md T5).
+  enable_server_tokens: false

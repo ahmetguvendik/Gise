@@ -225,7 +225,7 @@ Rapordan sonra çalışan sistemde test edilen ve rapor yazıldıktan sonra değ
 
 | Madde | Sonuç |
 |---|---|
-| T5 — güvenlik başlıkları | **Doğrulandı.** Ön yüzde CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` yok; ayrıca `Server: APISIX/3.16.0` sürüm bilgisini veriyor. |
+| T5 — güvenlik başlıkları | **Doğrulandı, kapatıldı.** Ön yüze CSP, `frame-ancestors 'self'`, `X-Frame-Options: SAMEORIGIN`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` eklendi; `Server` sürümsüz. Tarayıcıda denendi: Keycloak girişi, sessiz giriş çerçevesi, afişler, yazı tipleri ve koltuk haritasının websocket'i çalışıyor; başka bir kökenden çerçeveleme engelleniyor. Önerilen `frame-ancestors 'none'` sessiz girişi bozardı. HSTS canlıda. |
 | T4(a) — `client.ip` uydurulabilir | **Tekrarlanamadı.** `X-Forwarded-For: 6.6.6.6` ile istek atıldı; logda APISIX'in gördüğü adres yazıyor. APISIX başlığı kendisi yazıyor, gelen değeri iletmiyor (varsayım 4 yanlış). Canlıda araya başka bir proxy girerse yeniden değerlendirilmeli. |
 | Varsayım 3 — APM istek gövdesi | **Doğrulandı, güvenli.** APM verisinde kart numarası geçmiyor; `Authorization` başlığı `[REDACTED]`. |
 | T3 ve sınır tablosu — Keycloak `0.0.0.0:8180`, zayıf parola | **Kısmen kapandı** (commit `1ff87f9`): Keycloak yalnızca `127.0.0.1:8180`'den; en yaygın 10.000 parola reddediliyor; API'ler yalnızca RS256 kabul ediyor, saat toleransı 30 sn. MFA, yönetim konsolu, `KC_HOSTNAME` ve `start` modu canlıya kaldı. |
