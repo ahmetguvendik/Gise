@@ -102,6 +102,7 @@ upstream ticket ticket-api:8080
 upstream search search-api:8080
 upstream seatmap seatmap-api:8080
 upstream client client:80
+upstream keycloak keycloak:8080
 
 echo "Catalog: etkinlikler"
 endpoint events-mine     GET    /api/events/mine           catalog events "Organizatörün etkinlikleri, taslaklar dahil"
@@ -173,6 +174,49 @@ put routes/seatmap-hub "{
   \"plugins\": $(limits seatmap 120 "Çok fazla bağlantı denemesi.")
 }"
 
+echo "Keycloak (/auth)"
+# Kimlik: yalnızca gise realm'i ve Keycloak'ın tema dosyaları yayınlanır; yönetim konsolu ve master realm gateway'den
+# kapalı (yerelde 127.0.0.1:8180). Giriş, kayıt ve parola sıfırlama formlarının gönderildiği uçlar (login-actions) dar
+# sınırlı: Keycloak'ın brute-force koruması hesap başına, bu IP başına (çok hesaba deneme, kayıt botu, e-posta
+# bombardımanı). Keycloak X-Forwarded-* başlıklarına güvenir (KC_PROXY_HEADERS); onları APISIX yazar.
+put routes/auth-login-actions "{
+  \"name\": \"POST /auth/realms/gise/login-actions/*\",
+  \"desc\": \"Giriş, kayıt ve parola sıfırlama formları (dakikada 30)\",
+  \"methods\": [\"POST\"],
+  \"uri\": \"/auth/realms/gise/login-actions/*\",
+  \"upstream_id\": \"keycloak\",
+  \"priority\": 20,
+  \"plugins\": $(limits "" 30 "Çok fazla giriş denemesi yaptınız.")
+}"
+put routes/auth-realm "{
+  \"name\": \"/auth/realms/gise/*\",
+  \"desc\": \"gise realm'i: giriş sayfaları, token, hesap API'si\",
+  \"uri\": \"/auth/realms/gise/*\",
+  \"upstream_id\": \"keycloak\",
+  \"priority\": 10,
+  \"plugins\": $(limits auth 300 "Çok fazla istek gönderdiniz.")
+}"
+put routes/auth-resources "{
+  \"name\": \"GET /auth/resources/*\",
+  \"desc\": \"Keycloak'ın giriş ve hesap sayfalarının tema dosyaları\",
+  \"methods\": [\"GET\"],
+  \"uri\": \"/auth/resources/*\",
+  \"upstream_id\": \"keycloak\",
+  \"priority\": 10,
+  \"plugins\": $(limits auth-resources 600 "Çok fazla istek gönderdiniz.")
+}"
+# Yukarıdakilere uymayan /auth istekleri (yönetim konsolu, master realm, başka realm): 404.
+put routes/auth-not-found '{
+  "name": "Tanımsız /auth yolu",
+  "desc": "Yayınlanmayan Keycloak yolları (yönetim konsolu, master realm): 404",
+  "uri": "/auth/*",
+  "priority": 1,
+  "plugins": {
+    "fault-injection": {"abort": {"http_status": 404, "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"İstenen adres bulunamadı.\",\"status\":404,\"errorCode\":\"ROUTE_NOT_FOUND\"}"}},
+    "response-rewrite": {"vars": [["status", "==", 404]], "headers": {"set": {"Content-Type": "application/problem+json; charset=utf-8"}}}
+  }
+}'
+
 echo "Diğer"
 # Tanımlı olmayan API yolu ya da yöntemi istemciye (index.html) düşmesin: 404 ProblemDetails.
 put routes/api-not-found '{
@@ -185,6 +229,6 @@ put routes/api-not-found '{
     "response-rewrite": {"vars": [["status", "==", 404]], "headers": {"set": {"Content-Type": "application/problem+json; charset=utf-8"}}}
   }
 }'
-put routes/client '{"name": "client", "desc": "React istemcisi: API yollarına uymayan her istek", "uri": "/*", "upstream_id": "client"}'
+put routes/client '{"name": "client", "desc": "React istemcisi: API ve /auth yollarına uymayan her istek", "uri": "/*", "upstream_id": "client"}'
 
 echo "APISIX hazır."

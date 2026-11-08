@@ -25,6 +25,10 @@ deployment:
     timeout: 30
 
 apisix:
+  # Konteyner içinde de dışarıdaki portta (8000): APISIX upstream'e X-Forwarded-Port olarak kendi portunu yazar;
+  # Keycloak token ve userinfo adreslerini bundan kurar. 9080'de dinlerken tarayıcıya localhost:9080 veriyordu.
+  node_listen:
+    - 8000
   router:
     # Uçlar tek tek route olarak tanımlı; yol parametreleri (/api/events/:id) bu router'la eşleşir.
     http: radixtree_uri_with_parameter

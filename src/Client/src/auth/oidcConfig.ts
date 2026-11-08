@@ -2,7 +2,9 @@ import { InMemoryWebStorage, WebStorageStateStore } from 'oidc-client-ts'
 import type { UserManagerSettings } from 'oidc-client-ts'
 import type { AuthProviderProps } from 'react-oidc-context'
 
-const authority = import.meta.env.VITE_KEYCLOAK_AUTHORITY ?? 'http://localhost:8180/realms/gise'
+// Keycloak gateway'in arkasında, uygulamayla aynı adreste (/auth). Keycloak'ın dışarıya verdiği adres sabit
+// (KC_HOSTNAME); geliştirme sunucusu (npm run dev, :5180) onu .env.development'tan alır.
+const authority = import.meta.env.VITE_KEYCLOAK_AUTHORITY ?? `${window.location.origin}/auth/realms/gise`
 
 // Profil, parola, oturumlar ve hesap silme Keycloak'ın hesap sayfasında.
 export const accountUrl = `${authority}/account`

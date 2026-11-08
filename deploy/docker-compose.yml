@@ -1,7 +1,7 @@
 # Çalıştırma (repo kökünden):  docker compose -f deploy/docker-compose.yml up -d --build
-# Dışarıya yalnızca gateway (8000) ve Keycloak (8180) açılır; Redis, Kafka ve RabbitMQ portları
-# kapalı. Geliştirme araçları (PostgreSQL 5432, RabbitMQ 15672, MinIO konsolu 9001) yalnızca
-# 127.0.0.1'e açılır; ağdaki başka makineler erişemez.
+# Dışarıya yalnızca gateway (8000) açılır; Keycloak da onun arkasında (/auth). Redis, Kafka ve RabbitMQ
+# portları kapalı. Geliştirme araçları (PostgreSQL 5432, RabbitMQ 15672, MinIO konsolu 9001, Keycloak yönetim
+# konsolu 8180) yalnızca 127.0.0.1'e açılır; ağdaki başka makineler erişemez.
 name: gise
 
 services:
@@ -31,12 +31,23 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?deploy/.env içinde KEYCLOAK_ADMIN_PASSWORD tanımlı olmalı}
       KC_HEALTH_ENABLED: "true"
+      # Tarayıcı Keycloak'a gateway'den, /auth altından ulaşır (bkz. tasarım 6 ve 7). Dışarıya verilen adres sabit:
+      # parola sıfırlama bağlantısı gibi adresler isteğin Host başlığından üretilmez.
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HOSTNAME: http://localhost:8000/auth
+      # Yönetim konsolu gateway'den yayınlanmaz; yalnızca bu makineden, doğrudan porttan.
+      KC_HOSTNAME_ADMIN: http://localhost:8180/auth
+      # API'ler anahtarları ve token ucunu konteyner ağından (keycloak:8080) ister; o istekler kendi adresiyle yanıtlanır.
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      # APISIX X-Forwarded-For/Proto/Host ekler: Keycloak gerçek istemci adresini görür.
+      KC_PROXY_HEADERS: xforwarded
+      # Sağlık uçları yönetim portunda /auth olmadan kalsın (healthcheck).
+      KC_HTTP_MANAGEMENT_RELATIVE_PATH: /
       # Realm JSON'undaki ${SMTP_...} yer tutucuları ilk kurulumda bunlarla dolar (Gmail SMTP).
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-    # Yalnızca bu makineden: start-dev'de host adı sabit değil, parola sıfırlama bağlantısı isteğin Host başlığından
-    # üretiliyor; ağdaki biri sahte Host'la sıfırlama bağlantısını kendi sunucusuna yönlendirebilirdi. Canlıda
-    # KC_HOSTNAME ve start modu (bkz. tasarım 6).
+    # Yalnızca yönetim konsolu için ve yalnızca bu makineden (http://localhost:8180/auth/admin); uygulama trafiği
+    # gateway'den. Canlıda bu port açılmaz.
     ports:
       - "127.0.0.1:8180:8080"
     volumes:
@@ -283,8 +294,8 @@ services:
     init: true
     environment:
       ConnectionStrings__Catalog: Host=postgres;Database=gise_catalog;Username=gise;Password=${POSTGRES_PASSWORD}
-      Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
-      Keycloak__PublicAuthority: http://localhost:8180/realms/gise
+      Keycloak__InternalAuthority: http://keycloak:8080/auth/realms/gise
+      Keycloak__PublicAuthority: http://localhost:8000/auth/realms/gise
       Keycloak__RequireHttpsMetadata: "false"
       # Afişler: Endpoint konteyner ağı içindir; imzalı adresler tarayıcının eriştiği appsettings'teki PublicEndpoint ile üretilir.
       Storage__AccessKey: gise
@@ -411,8 +422,8 @@ services:
     init: true
     environment:
       ConnectionStrings__Order: Host=postgres;Database=gise_order;Username=gise;Password=${POSTGRES_PASSWORD}
-      Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
-      Keycloak__PublicAuthority: http://localhost:8180/realms/gise
+      Keycloak__InternalAuthority: http://keycloak:8080/auth/realms/gise
+      Keycloak__PublicAuthority: http://localhost:8000/auth/realms/gise
       Keycloak__RequireHttpsMetadata: "false"
       # Yalnızca outbox'a yazar; RabbitMQ'ya order-saga-worker gönderir. Bağlantı, hedef adresleri doğru olsun diye.
       RabbitMq__Password: ${RABBITMQ_PASSWORD}
@@ -534,8 +545,8 @@ services:
     init: true
     environment:
       ConnectionStrings__Ticket: Host=postgres;Database=gise_ticket;Username=gise;Password=${POSTGRES_PASSWORD}
-      Keycloak__InternalAuthority: http://keycloak:8080/realms/gise
-      Keycloak__PublicAuthority: http://localhost:8180/realms/gise
+      Keycloak__InternalAuthority: http://keycloak:8080/auth/realms/gise
+      Keycloak__PublicAuthority: http://localhost:8000/auth/realms/gise
       Keycloak__RequireHttpsMetadata: "false"
       # PDF indirme adresleri appsettings'teki PublicEndpoint ile imzalanır.
       Storage__AccessKey: gise
@@ -772,7 +783,8 @@ services:
     environment:
       APISIX_ADMIN_KEY: ${APISIX_ADMIN_KEY:?deploy/.env içinde APISIX_ADMIN_KEY tanımlı olmalı}
     ports:
-      - "8000:9080"
+      # İçeride de 8000 (config.yaml node_listen): Keycloak'a doğru X-Forwarded-Port gitsin.
+      - "8000:8000"
       # Yönetim API'si ve dashboard (/ui/): yalnızca bu makineden.
       - "127.0.0.1:9180:9180"
     volumes:

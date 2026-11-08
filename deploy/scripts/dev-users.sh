@@ -15,7 +15,7 @@ DEV_USERS_PASSWORD=$(grep -E '^DEV_USERS_PASSWORD=' .env | cut -d= -f2-)
 docker compose exec -T -e DEV_USERS_PASSWORD="$DEV_USERS_PASSWORD" keycloak bash -s <<'EOF'
 set -euo pipefail
 kc=/opt/keycloak/bin/kcadm.sh
-$kc config credentials --server http://localhost:8080 --realm master \
+$kc config credentials --server http://localhost:8080/auth --realm master \
   --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null
 
 create_user() {

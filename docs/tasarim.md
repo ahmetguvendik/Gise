@@ -559,18 +559,19 @@ stateDiagram-v2
   - **Kayıt:** "Kayıt ol" düğmesi Keycloak'ın kayıt formunu açar (`prompt=create`). Form ad, soyad ve e-posta ister. E-posta doğrulama açık olduğu için parola, doğrulama bağlantısına tıklandıktan sonra belirlenir; ardından kullanıcı giriş yapmış olarak uygulamaya döner. Yeni kullanıcıya otomatik olarak `customer` rolü verilir.
   - **Parola kuralı:** En az 8 karakter; e-posta ya da kullanıcı adıyla aynı olamaz; en yaygın 10.000 parola (`123456`, `qwerty123`…) reddedilir (`passwordBlacklist`, liste `deploy/keycloak/password-blacklists/`, SecLists, MIT). Uzunluk NIST'in önerisi gibi 8'de kaldı: yaygın parola listesiyle birlikte yeterli. Keycloak kuralı realm geneline uygular, role göre ayrılamaz; ayrıcalıklı roller için asıl koruma iki aşamalı doğrulama olacak (canlıda). Art arda hatalı girişte hesap geçici olarak kilitlenir.
   - **Şifremi unuttum** ve **beni hatırla** giriş sayfasında.
-  - **Hesabım:** Keycloak'ın hesap sayfasına gider (`/realms/gise/account`). Profil, parola, aktif oturumlar ve hesap silme burada.
+  - **Hesabım:** Keycloak'ın hesap sayfasına gider (`/auth/realms/gise/account`). Profil, parola, aktif oturumlar ve hesap silme burada.
   - **Rol yükseltme:** `organizer` ve `gate-staff` rollerini admin verir; şimdilik Keycloak yönetim panelinden.
 - Keycloak'ın mailleri (e-posta doğrulama, şifre sıfırlama) Telgraf'taki gibi **Gmail SMTP** ile gider (`smtp.gmail.com:587`, STARTTLS). Hesap ve uygulama şifresi `deploy/.env`'de: `SMTP_USERNAME`, `SMTP_PASSWORD`. Gönderen adresi Gmail hesabının kendisidir; Gmail başka adresle göndermeye izin vermez. Var olan kurulumda ayar `deploy/scripts/keycloak-smtp.sh` ile uygulanır.
 - **API'lerde token doğrulaması** (`Gise.Authentication`): imza (realm anahtarları), `iss`, `aud` (`gise-api`) ve süre. Yalnızca RS256 kabul edilir; saat toleransı 30 sn (varsayılan 5 dk, süresi dolan token 5 dk daha geçerli sayılırdı).
-- **Keycloak'a yalnızca bu makineden erişilir** (`127.0.0.1:8180`). `start-dev`'de host adı sabit değil: parola sıfırlama bağlantısı isteğin `Host` başlığından üretilir, ağdaki biri sahte `Host`'la bağlantıyı kendi sunucusuna yönlendirebilirdi. Canlıda `KC_HOSTNAME` ve `start` modu zorunlu.
+- **Keycloak gateway'in arkasında, `/auth` altında** (`KC_HTTP_RELATIVE_PATH`): tarayıcı onunla uygulamayla aynı adreste konuşur, CORS ve ayrı köken yok. Dışarıya verdiği adres sabit (`KC_HOSTNAME=http://localhost:8000/auth`): parola sıfırlama bağlantısı gibi adresler isteğin `Host` başlığından üretilmez (sahte `Host`'la denendi). API'ler anahtarları ve token ucunu konteyner ağından (`keycloak:8080/auth`) ister; `KC_HOSTNAME_BACKCHANNEL_DYNAMIC` bu isteklere kendi adresiyle yanıt verdirir. Keycloak gerçek istemci adresini ve şemayı APISIX'in `X-Forwarded-*` başlıklarından alır (`KC_PROXY_HEADERS`); APISIX bu yüzden konteyner içinde de 8000'de dinler, yoksa Keycloak tarayıcıya token adresi olarak iç portu (`localhost:9080`) veriyordu. **Yönetim konsolu ve `master` realm gateway'den yayınlanmaz;** yerelde yalnızca `http://localhost:8180/auth/admin` (`127.0.0.1`), canlıda bu port açılmaz. Canlıda `start` modu ve HTTPS gerekir.
 - `deploy/keycloak/gise-realm.json` yalnızca ilk açılışta içe aktarılır. Var olan kurulumda realm ayarı değişirse aynı değişiklik yönetim paneli ya da `kcadm.sh` ile de uygulanmalıdır.
 
 ---
 
 ## 7. Gateway (APISIX)
 
-- Dışarıya açık tek uygulama portu gateway'dir (`localhost:8000`). İstemci de gateway'in arkasından sunulur; tarayıcı tek bir adresle konuşur, CORS gerekmez.
+- Dışarıya açık tek uygulama portu gateway'dir (`localhost:8000`). İstemci ve Keycloak (`/auth`) da gateway'in arkasından sunulur; tarayıcı tek bir adresle konuşur, CORS gerekmez.
+- **Keycloak rotaları:** yalnızca `gise` realm'i (`/auth/realms/gise/*`) ve tema dosyaları (`/auth/resources/*`) yayınlanır; `/auth` altındaki geri kalan her şey (yönetim konsolu, `master` realm) 404. Giriş, kayıt ve parola sıfırlama formlarının gönderildiği uç (`POST …/login-actions/*`) dakikada 30 ile sınırlı: Keycloak'ın brute-force koruması hesap başına, bu IP başına (çok hesaba deneme, kayıt botu, e-posta bombardımanı).
 - **Tarayıcı güvenlik başlıkları** istemcinin nginx'inde (`src/Client/security-headers.conf`, bkz. `docs/threat-model.md` T5): Content-Security-Policy (betik ve stil yalnızca bu siteden, yazı tipleri Google Fonts'tan; Keycloak'a token istekleri ve sessiz giriş çerçevesi, MinIO'ya afiş okuma ve yükleme; websocket aynı adreste), `frame-ancestors 'self'` ve `X-Frame-Options: SAMEORIGIN` (başka siteler çerçeveye alamaz; sessiz giriş sayfası kendi sitemizde çerçevelenebilmeli, `'none'` onu bozar), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (kamera, mikrofon, konum kapalı). Keycloak ve MinIO adresleri `KEYCLOAK_ORIGIN`, `MINIO_ORIGIN` ortam değişkenlerinden gelir (varsayılanlar yerel); canlıda compose'dan verilir ve `Strict-Transport-Security` eklenir. `Server` başlığı sürüm göstermez (APISIX `enable_server_tokens: false`, nginx `server_tokens off`). API'lerin JSON yanıtlarına bu başlıklar eklenmez.
 - APISIX **etcd ile** çalışır (`deploy/apisix/config.yaml`): route'lar, upstream'ler ve eklentiler etcd'de durur ve **dashboard**'dan yönetilir: `http://127.0.0.1:9180/ui/`. Dashboard ile yönetim API'si aynı porttadır. Port yalnızca makinenin `127.0.0.1`'ine açıktır ve `deploy/.env`'deki `APISIX_ADMIN_KEY` olmadan açılmaz.
 - **Başlangıç route'ları** `deploy/apisix/seed.sh`'tadır; yeni kurulumda bir kez yüklenir: `docker compose -f deploy/docker-compose.yml --profile setup up apisix-init`. Script tekrar çalıştırılırsa aynı id'li route'lar script'teki hâline döner. Dashboard'dan yapılan değişiklik koda yansımaz; kalıcı olması istenen değişiklik script'e de yazılır.
@@ -591,6 +592,9 @@ stateDiagram-v2
 | kendi sayacı | `POST /api/media/upload-url` (depoya dosya yükletir) | 20 |
 | kendi sayacı | `POST /api/orders` (koltuk tutar) | 10 |
 | kendi sayacı | `POST /api/tickets/:id/transfer` (alıcıya e-posta gönderir) | 10 |
+| `auth` | Keycloak `gise` realm'i (giriş sayfaları, token, hesap API'si) | 300 |
+| `auth-resources` | Keycloak tema dosyaları | 600 |
+| kendi sayacı | `POST /auth/realms/gise/login-actions/*` (giriş, kayıt, parola sıfırlama formları) | 30 |
 
 - Sınır aşılınca servislerin hata biçiminde 429 döner (ProblemDetails, `RATE_LIMIT_EXCEEDED`, `Retry-After: 60`); ön yüz mesajı gösterir. Gateway'in ürettiği kodlar da `ErrorCodes.General`'da yazılıdır.
 - Sayaç APISIX'in belleğindedir (`policy: local`). Birden çok APISIX düğümüne çıkılırsa her düğüm kendi sayar ve sınır düğüm sayısı kadar gevşer; o zaman `redis` politikasına geçilir (Telgraf notu).
@@ -734,7 +738,7 @@ Kodda ve konteyner adlarında ASCII **`gise`** kullanılır; klasör adındaki `
 ## 11. Telgraf'tan alınan dersler (baştan uygulanacak)
 
 - Kafka, PostgreSQL ve Redis için kalıcı volume; Kafka'da replikasyon ayarı bilinçli seçilir.
-- Dışarıya yalnızca gateway ve Keycloak açılır (yerelde Keycloak da yalnızca `127.0.0.1`'den, bkz. 6); veritabanı, Redis, RabbitMQ ve Kafka portları açılmaz.
+- Dışarıya yalnızca gateway açılır; Keycloak da onun arkasında (`/auth`, bkz. 6). Veritabanı, Redis, RabbitMQ, Kafka portları ve Keycloak yönetim konsolu açılmaz.
 - Parolalar repoda durmaz; `.env.example` yalnızca değişken adlarını içerir.
 - Migration'lar servis açılırken uygulanır. Telgraf'ta birden fazla kopyanın aynı anda migration çalıştırması bir riskti; EF Core 9'dan beri migration sırasında veritabanında kilit alındığı için kopyalar sırayla bekler.
 - Outbox okuyan worker'lar `FOR UPDATE SKIP LOCKED` ile birden fazla kopyada güvenle çalışır.
