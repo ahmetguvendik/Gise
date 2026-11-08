@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
-import { accountUrl } from '../auth/oidcConfig'
 import { useSessionReady } from '../auth/SilentSignin'
 import { canCheckIn, canManageEvents, isAdmin } from '../auth/roles'
 import { Logo, TicketMark } from './Logo'
@@ -83,9 +82,9 @@ export function Layout() {
           {!sessionReady ? null : auth.isAuthenticated ? (
             <div className="header__user">
               <Menu label={<span className="header__name">{name}</span>} className="menu__button--account" align="end">
-                <a className="menu__item" href={accountUrl}>
-                  Hesabım
-                </a>
+                <NavLink to="/profil" className={itemClass}>
+                  Profilim
+                </NavLink>
                 <button type="button" className="menu__item" onClick={() => void auth.signoutRedirect()}>
                   Çıkış
                 </button>

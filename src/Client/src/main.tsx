@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from 'react-oidc-context'
+import { captureAccountActionResult } from './auth/accountActions'
 import { oidcConfig } from './auth/oidcConfig'
 import { SilentSignin } from './auth/SilentSignin'
 import { Guard } from './components/Guard'
@@ -15,9 +16,13 @@ import { MyTicketsPage } from './pages/MyTicketsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { OrderPage } from './pages/OrderPage'
 import { PendingEventsPage } from './pages/PendingEventsPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { VenueEditorPage } from './pages/VenueEditorPage'
 import { VenuesPage } from './pages/VenuesPage'
 import './index.css'
+
+// Keycloak'taki hesap işleminden dönülüyorsa sonucu, giriş dönüşü adresi temizlemeden önce al.
+captureAccountActionResult()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -52,6 +57,14 @@ createRoot(document.getElementById('root')!).render(
                 element={
                   <Guard>
                     <MyTicketsPage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="profil"
+                element={
+                  <Guard>
+                    <ProfilePage />
                   </Guard>
                 }
               />

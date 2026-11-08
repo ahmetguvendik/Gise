@@ -6,7 +6,7 @@ import type { AuthProviderProps } from 'react-oidc-context'
 // (KC_HOSTNAME); geliştirme sunucusu (npm run dev, :5180) onu .env.development'tan alır.
 const authority = import.meta.env.VITE_KEYCLOAK_AUTHORITY ?? `${window.location.origin}/auth/realms/gise`
 
-// Profil, parola, oturumlar ve hesap silme Keycloak'ın hesap sayfasında.
+// Keycloak hesap API'si: profil sayfası ad, soyad ve iki aşamalı doğrulama bilgisini buradan okur (bkz. api/account).
 export const accountUrl = `${authority}/account`
 
 // Giriş ve kayıt Keycloak'ın kendi sayfalarında yapılır (authorization code + PKCE); uygulama parolayı görmez.

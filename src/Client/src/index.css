@@ -549,3 +549,20 @@ a:hover { color: var(--link-hover); }
 .gate-result--valid { background: var(--success-bg); color: var(--success-text); }
 .gate-result--used { background: var(--warning-bg); color: var(--warning-text); }
 .gate-result--invalid { background: var(--danger-bg); color: var(--danger-text); }
+
+/* Profil */
+.profile { display: grid; gap: 24px; max-width: 820px; }
+.profile__card { display: grid; gap: 20px; }
+.profile__card h2 { font-size: 26px; letter-spacing: -0.02em; }
+.profile__list { margin: 0; display: grid; gap: 18px; }
+.profile__item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding-top: 18px; border-top: 1px solid var(--border); }
+.profile__item:first-child { padding-top: 0; border-top: 0; }
+.profile__item--nested { padding-left: 20px; }
+.profile__item > div { display: grid; gap: 6px; min-width: 0; }
+.profile__item dt { font-weight: 700; font-size: 17px; }
+.profile__item dd { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--muted); }
+.profile__value { color: var(--text); font-weight: 600; overflow-wrap: anywhere; }
+.profile__danger { justify-items: start; border-color: color-mix(in srgb, var(--danger-text) 35%, var(--border)); }
+.profile__danger h2 { color: var(--danger-text); }
+.badge--verified { background: var(--success-bg); color: var(--success-text); }
+.badge--unverified { background: var(--warning-bg); color: var(--warning-text); }

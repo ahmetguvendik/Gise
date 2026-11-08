@@ -370,3 +370,20 @@ export interface ProblemDetails {
   errors?: Record<string, string[]>
   errorCode?: string
 }
+
+/** Keycloak hesap API'sindeki kullanıcı bilgileri. E-posta burada salt okunur; değişikliği Keycloak doğrular. */
+export interface AccountProfile {
+  id: string
+  username: string
+  email: string
+  emailVerified: boolean
+  firstName: string
+  lastName: string
+}
+
+/** Kayıtlı bir doğrulayıcı uygulama (iki aşamalı doğrulama, TOTP). */
+export interface OtpDevice {
+  id: string
+  label: string
+  createdDate?: number
+}

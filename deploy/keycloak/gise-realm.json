@@ -35,6 +35,7 @@
     {
       "clientId": "gise-web",
       "name": "Gişe Web",
+      "baseUrl": "http://localhost:8000/",
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,
@@ -93,7 +94,7 @@
     { "alias": "CONFIGURE_TOTP", "name": "Configure OTP", "providerId": "CONFIGURE_TOTP", "enabled": true, "defaultAction": false, "priority": 54 },
     { "alias": "UPDATE_PASSWORD", "name": "Update Password", "providerId": "UPDATE_PASSWORD", "enabled": true, "defaultAction": false, "priority": 57 },
     { "alias": "delete_account", "name": "Delete Account", "providerId": "delete_account", "enabled": true, "defaultAction": false, "priority": 60 },
-    { "alias": "UPDATE_EMAIL", "name": "Update Email", "providerId": "UPDATE_EMAIL", "enabled": false, "defaultAction": false, "priority": 70 },
+    { "alias": "UPDATE_EMAIL", "name": "Update Email", "providerId": "UPDATE_EMAIL", "enabled": true, "defaultAction": false, "priority": 70 },
     { "alias": "webauthn-register", "name": "Webauthn Register", "providerId": "webauthn-register", "enabled": true, "defaultAction": false, "priority": 80 },
     { "alias": "webauthn-register-passwordless", "name": "Webauthn Register Passwordless", "providerId": "webauthn-register-passwordless", "enabled": true, "defaultAction": false, "priority": 90 },
     { "alias": "VERIFY_PROFILE", "name": "Verify Profile", "providerId": "VERIFY_PROFILE", "enabled": true, "defaultAction": false, "priority": 100 },
