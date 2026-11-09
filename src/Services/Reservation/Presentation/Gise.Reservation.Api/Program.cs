@@ -15,7 +15,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.UseAppLogging("reservation-api");
 builder.UseAppApm("reservation-api");
 
-builder.Services.AddControllers();
+// Model bağlama aşamasındaki 400'ler de Türkçe ve aynı biçimde (ErrorHandling/ModelValidationResponses).
+builder.Services.AddControllers().AddTurkishModelValidation();
 builder.Services.AddGrpc();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

@@ -16,7 +16,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.UseAppLogging("ticket-api");
 builder.UseAppApm("ticket-api");
 
-builder.Services.AddControllers();
+// Model bağlama aşamasındaki 400'ler de Türkçe ve aynı biçimde (ErrorHandling/ModelValidationResponses).
+builder.Services.AddControllers().AddTurkishModelValidation();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
