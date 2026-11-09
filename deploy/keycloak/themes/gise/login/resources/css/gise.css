@@ -309,6 +309,23 @@ a:hover { color: var(--gise-link-hover); }
   .gise-otp__box { height: 54px; font-size: 24px; }
 }
 
+/* ---- Girişteki kod ekranı (login-otp.ftl) ----
+   Yalnızca kod: üstteki e-posta satırı ve alan etiketi gizli (etiket ekran okuyucu için kalır). */
+[data-page-id='login-login-otp'] .pf-v5-c-login__main-body > .pf-v5-c-form:has(#kc-attempted-username) { display: none; }
+[data-page-id='login-login-otp'] #kc-otp-login-form .pf-v5-c-form__group-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.gise-otp-hint { margin: 0 0 20px; color: var(--gise-muted); }
+.gise-otp-timer { margin: 0; text-align: center; color: var(--gise-muted); font-size: 15px; }
+.gise-otp-timer strong { color: var(--gise-text); font-variant-numeric: tabular-nums; }
+.gise-otp-timer.is-ending strong { color: var(--gise-danger-text); }
+.gise-otp-back { margin-top: 12px; }
+
 /* İki aşamalı doğrulama kurulumundaki QR kodu koyu zeminde de okunsun. */
 #kc-totp-secret-qr-code { background: #fff; padding: 8px; border-radius: 14px; }
 
