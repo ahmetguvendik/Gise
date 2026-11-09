@@ -14,6 +14,8 @@
   "internationalizationEnabled": true,
   "supportedLocales": ["tr"],
   "defaultLocale": "tr",
+  "loginTheme": "gise",
+  "emailTheme": "gise",
   "roles": {
     "realm": [
       { "name": "customer", "description": "Bilet alan kullanıcı" },

@@ -1,0 +1,241 @@
+/* Gişe görünümü: Keycloak'ın PatternFly 5 temasının üstüne. Renkler ve ölçüler uygulamadaki gibi
+   (src/Client/src/index.css); orada değişirse burada da değişmeli. */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=DM+Sans:opsz,wght@9..40,400..700&display=swap');
+
+:root {
+  --gise-accent: #ff5a1f;
+  --gise-accent-hover: #ff7642;
+  --gise-on-accent: #1c110a;
+  --gise-link: #c2410c;
+  --gise-link-hover: #9a3412;
+  --gise-page: #f6f1ec;
+  --gise-surface: #ffffff;
+  --gise-surface-2: #f6f1ec;
+  --gise-border: #ede6df;
+  --gise-border-strong: #e3d8ce;
+  --gise-text: #1c110a;
+  --gise-muted: #5e5149;
+  --gise-danger-bg: #fde8e4;
+  --gise-danger-text: #a3200f;
+  --gise-success-bg: #ddf4e8;
+  --gise-success-text: #0e6b4b;
+  --gise-warning-bg: #fff0d1;
+  --gise-warning-text: #8a4b00;
+  --gise-shadow: 0 1px 2px rgb(28 17 10 / 6%), 0 10px 28px rgb(28 17 10 / 8%);
+  --gise-font-display: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif;
+  --gise-font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Keycloak koyu görünümde <html>'e pf-v5-theme-dark ekler. */
+:root.pf-v5-theme-dark {
+  --gise-link: #ff8a5c;
+  --gise-link-hover: #ffab88;
+  --gise-page: #130c08;
+  --gise-surface: #1c1410;
+  --gise-surface-2: #251b15;
+  --gise-border: #33271f;
+  --gise-border-strong: #46362a;
+  --gise-text: #f7efe9;
+  --gise-muted: #b9aa9f;
+  --gise-danger-bg: #43150e;
+  --gise-danger-text: #ffb3a6;
+  --gise-success-bg: #0f3a2a;
+  --gise-success-text: #8fe0bb;
+  --gise-warning-bg: #3d2a08;
+  --gise-warning-text: #ffd27a;
+  --gise-shadow: 0 10px 28px rgb(0 0 0 / 40%);
+}
+
+/* PatternFly'ın genel değişkenleri: bileşenler renklerini bunlardan alır. */
+:root,
+:root.pf-v5-theme-dark {
+  --pf-v5-global--FontFamily--text: var(--gise-font-body);
+  --pf-v5-global--FontFamily--heading: var(--gise-font-display);
+  --pf-v5-global--primary-color--100: var(--gise-accent);
+  --pf-v5-global--primary-color--200: var(--gise-accent-hover);
+  --pf-v5-global--link--Color: var(--gise-link);
+  --pf-v5-global--link--Color--hover: var(--gise-link-hover);
+  --pf-v5-global--BackgroundColor--100: var(--gise-surface);
+  --pf-v5-global--BackgroundColor--200: var(--gise-surface-2);
+  --pf-v5-global--Color--100: var(--gise-text);
+  --pf-v5-global--Color--200: var(--gise-muted);
+  --pf-v5-global--BorderColor--100: var(--gise-border-strong);
+  --pf-v5-global--active-color--100: var(--gise-accent);
+  --keycloak-card-top-color: transparent;
+}
+
+/* ---- Sayfa ---- */
+.login-pf body {
+  background: var(--gise-page);
+  color: var(--gise-text);
+  font-family: var(--gise-font-body);
+}
+
+.pf-v5-c-login__container {
+  grid-template-columns: min(30rem, 100%);
+}
+
+/* Logo: bilet koçanı + "Gişe", uygulamanın üst çubuğundaki gibi. */
+#kc-header-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--gise-font-display);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-transform: none;
+  /* Keycloak'ın stili rengi bu değişkenle !important veriyor (koyu arka plan resmi için beyaz). */
+  --pf-v5-global--Color--light-100: var(--gise-text);
+  color: var(--gise-text);
+}
+#kc-header-wrapper::before {
+  content: '';
+  width: 42px;
+  height: 30px;
+  background: url('../img/gise-mark.svg') no-repeat center / contain;
+}
+.pf-v5-c-login__header { justify-content: center; text-align: center; padding-bottom: 8px; }
+
+/* ---- Kart ---- */
+.pf-v5-c-login__main {
+  background: var(--gise-surface);
+  border: 1px solid var(--gise-border);
+  border-radius: 22px;
+  box-shadow: var(--gise-shadow);
+  overflow: hidden;
+}
+.pf-v5-c-login__main-header { border-top: 0; padding-top: 32px; }
+#kc-page-title {
+  font-family: var(--gise-font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+/* ---- Alanlar ---- */
+.pf-v5-c-form__label-text { font-weight: 600; font-size: 15px; color: var(--gise-text); }
+.pf-v5-c-form-control {
+  --pf-v5-c-form-control--BackgroundColor: var(--gise-surface);
+  --pf-v5-c-form-control--Color: var(--gise-text);
+  min-height: 50px;
+  border: 2px solid var(--gise-border-strong);
+  border-radius: 14px;
+  background: var(--gise-surface);
+}
+.pf-v5-c-form-control::before,
+.pf-v5-c-form-control::after { display: none; }
+.pf-v5-c-form-control > input,
+.pf-v5-c-form-control > select,
+.pf-v5-c-form-control > textarea {
+  font-family: var(--gise-font-body);
+  font-size: 16px;
+  padding: 12px 14px;
+  color: var(--gise-text);
+}
+/* Odak halkası kutunun kendisinde; içteki alanın ayrıca çerçevesi olmasın. */
+.pf-v5-c-form-control > input:focus-visible,
+.pf-v5-c-form-control > select:focus-visible,
+.pf-v5-c-form-control > textarea:focus-visible { outline: none; }
+.pf-v5-c-form-control:focus-within {
+  border-color: var(--gise-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gise-accent) 22%, transparent);
+}
+.pf-v5-c-form-control.pf-m-error { border-color: var(--gise-danger-text); }
+.pf-v5-c-form-control.pf-m-readonly { background: var(--gise-surface-2); }
+
+/* Parola alanındaki göster/gizle düğmesi alanın içinde dursun. */
+.pf-v5-c-input-group { gap: 8px; align-items: stretch; }
+.pf-v5-c-button.pf-m-control {
+  --pf-v5-c-button--BorderRadius: 14px;
+  border: 2px solid var(--gise-border-strong);
+  border-radius: 14px;
+  background: var(--gise-surface);
+  color: var(--gise-muted);
+}
+.pf-v5-c-button.pf-m-control::after { display: none; }
+.pf-v5-c-button.pf-m-control:hover { color: var(--gise-text); border-color: var(--gise-accent); }
+
+/* ---- Düğmeler ---- */
+.pf-v5-c-button {
+  --pf-v5-c-button--BorderRadius: 999px;
+  /* İkincil düğmenin çerçevesi ::after'da; köşesi ayrı değişkenden. */
+  --pf-v5-c-button--after--BorderRadius: 999px;
+  font-family: var(--gise-font-body);
+  font-weight: 700;
+}
+.pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--gise-accent);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--gise-accent-hover);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--gise-accent-hover);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--gise-accent-hover);
+  --pf-v5-c-button--m-primary--Color: var(--gise-on-accent);
+  --pf-v5-c-button--m-primary--hover--Color: var(--gise-on-accent);
+  --pf-v5-c-button--m-primary--focus--Color: var(--gise-on-accent);
+  --pf-v5-c-button--m-primary--active--Color: var(--gise-on-accent);
+  min-height: 50px;
+  font-size: 16px;
+}
+.pf-v5-c-button.pf-m-secondary {
+  --pf-v5-c-button--m-secondary--Color: var(--gise-text);
+  --pf-v5-c-button--m-secondary--hover--Color: var(--gise-text);
+  --pf-v5-c-button--m-secondary--BackgroundColor: transparent;
+  --pf-v5-c-button--m-secondary--hover--BackgroundColor: var(--gise-surface-2);
+  --pf-v5-c-button--after--BorderColor: currentColor;
+  --pf-v5-c-button--hover--after--BorderColor: currentColor;
+  min-height: 50px;
+}
+/* Bağlantı olarak yazılan düğmelerde (ör. "« Girişe geri dön") yazı ortada dursun. */
+.pf-v5-c-button.pf-m-primary,
+.pf-v5-c-button.pf-m-secondary { display: inline-flex; align-items: center; justify-content: center; }
+.pf-v5-c-button.pf-m-block { display: flex; width: 100%; }
+.pf-v5-c-button.pf-m-link {
+  --pf-v5-c-button--m-link--Color: var(--gise-link);
+  --pf-v5-c-button--m-link--hover--Color: var(--gise-link-hover);
+  font-weight: 600;
+}
+a { color: var(--gise-link); }
+a:hover { color: var(--gise-link-hover); }
+:focus-visible { outline: 3px solid var(--gise-accent); outline-offset: 3px; }
+
+/* Geri alınamayan işlemlerin onayı (hesap silme, doğrulayıcı kaldırma) uygulamadaki gibi kırmızı. */
+[data-page-id='login-delete-account-confirm'] .pf-v5-c-button.pf-m-primary,
+[data-page-id='login-delete-credential'] .pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--gise-danger-text);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--gise-danger-text);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--gise-danger-text);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--gise-danger-text);
+  --pf-v5-c-button--m-primary--Color: var(--gise-surface);
+  --pf-v5-c-button--m-primary--hover--Color: var(--gise-surface);
+  --pf-v5-c-button--m-primary--focus--Color: var(--gise-surface);
+  --pf-v5-c-button--m-primary--active--Color: var(--gise-surface);
+}
+
+/* ---- Onay kutusu ---- */
+.pf-v5-c-check__input { accent-color: var(--gise-accent); width: 18px; height: 18px; }
+
+/* ---- Uyarılar ---- */
+.pf-v5-c-alert.pf-m-inline {
+  border: 0;
+  border-radius: 14px;
+  box-shadow: none;
+}
+.pf-v5-c-alert.pf-m-inline::before { display: none; }
+.pf-v5-c-alert.pf-m-danger { background: var(--gise-danger-bg); --pf-v5-c-alert__title--Color: var(--gise-danger-text); --pf-v5-c-alert__icon--Color: var(--gise-danger-text); }
+.pf-v5-c-alert.pf-m-success { background: var(--gise-success-bg); --pf-v5-c-alert__title--Color: var(--gise-success-text); --pf-v5-c-alert__icon--Color: var(--gise-success-text); }
+.pf-v5-c-alert.pf-m-warning { background: var(--gise-warning-bg); --pf-v5-c-alert__title--Color: var(--gise-warning-text); --pf-v5-c-alert__icon--Color: var(--gise-warning-text); }
+.pf-v5-c-alert.pf-m-info { background: var(--gise-surface-2); --pf-v5-c-alert__title--Color: var(--gise-text); --pf-v5-c-alert__icon--Color: var(--gise-link); }
+.pf-v5-c-helper-text__item.pf-m-error,
+.kc-feedback-text.pf-m-error { color: var(--gise-danger-text); }
+
+/* ---- Alt bilgi ("Yeni kullanıcı? Kayıt ol") ---- */
+.pf-v5-c-login__main-footer-band { border-top: 1px solid var(--gise-border); color: var(--gise-muted); }
+
+/* İki aşamalı doğrulama kurulumundaki QR kodu koyu zeminde de okunsun. */
+#kc-totp-secret-qr-code { background: #fff; padding: 8px; border-radius: 14px; }
+
+@media (max-width: 480px) {
+  .pf-v5-c-login__main { border-radius: 0; border-left: 0; border-right: 0; }
+  #kc-page-title { font-size: 26px; }
+}

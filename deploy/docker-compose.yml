@@ -56,6 +56,9 @@ services:
       - keycloak_data:/opt/keycloak/data
       # Realm yalnızca ilk açılışta içe aktarılır; sonraki değişiklikler mevcut kurulumu etkilemez.
       - ./keycloak/gise-realm.json:/opt/keycloak/data/import/gise-realm.json:ro
+      # Gişe teması: giriş ekranları ve e-postalar (realm'de loginTheme, emailTheme). start-dev'de tema önbelleği kapalı,
+      # CSS ve metin değişiklikleri sayfa yenilenince görünür.
+      - ./keycloak/themes/gise:/opt/keycloak/themes/gise:ro
       # Parola kuralındaki yaygın parola listesi (passwordBlacklist); Keycloak'ın varsayılan liste klasörü.
       - ./keycloak/password-blacklists:/opt/keycloak/data/password-blacklists:ro
     healthcheck:
