@@ -14,6 +14,13 @@ public class BusinessException : AppException
         "Kendi yönetici rolünüzü kaldıramazsınız.",
         "Admin rolü başka bir admin tarafından alınabilir.");
 
+    // E-postasını doğrulamamış hesabın sahibi belli değil (adres başkasının olabilir); ona yetki verilmez. Daha önce
+    // verilmiş rol alınabilir.
+    public static BusinessException UserEmailNotVerified(string userId) => new(
+        ErrorCodes.User.EmailNotVerified,
+        "E-postasını doğrulamamış kullanıcıya rol verilemez. Kullanıcı önce e-posta adresini doğrulamalı.",
+        $"'{userId}' ID'li kullanıcının e-postası doğrulanmamış.");
+
     public static BusinessException VenueHasEvents(Guid venueId) => new(
         ErrorCodes.Venue.HasEvents,
         "Bu mekânda etkinlik olduğu için bölüm düzeni değiştirilemez ve mekân silinemez.",

@@ -144,12 +144,18 @@ export function UsersPage() {
                     {!user.emailVerified && <span className="badge badge--unverified">E-posta doğrulanmadı</span>}
                     {!user.enabled && <span className="badge badge--cancelled">Devre dışı</span>}
                   </span>
+                  {!user.emailVerified && (
+                    <span className="user-row__hint">Rol vermek için kullanıcının önce e-posta adresini doğrulaması gerekiyor.</span>
+                  )}
                 </div>
                 <div className="user-row__roles" role="group" aria-label={`${user.email} rolleri`}>
                   {MANAGED_ROLES.map((role) => {
                     const has = user.roles.includes(role)
-                    // Kendi yönetici rolünü kaldırmak yok: sistem adminsiz kalmasın (API de reddeder).
-                    const locked = self && role === 'admin'
+                    // Kendi yönetici rolünü kaldırmak yok: sistem adminsiz kalmasın. E-postasını doğrulamamış kullanıcıya rol
+                    // verilmez; önceden verilmiş rol alınabilir. İkisini API de reddeder.
+                    const ownAdmin = self && role === 'admin'
+                    const unverified = !has && !user.emailVerified
+                    const locked = ownAdmin || unverified
                     return (
                       <button
                         key={role}
@@ -157,7 +163,13 @@ export function UsersPage() {
                         className={has ? 'role-toggle is-on' : 'role-toggle'}
                         aria-pressed={has}
                         disabled={busy !== null || locked}
-                        title={locked ? 'Kendi yönetici rolünüzü kaldıramazsınız.' : undefined}
+                        title={
+                          ownAdmin
+                            ? 'Kendi yönetici rolünüzü kaldıramazsınız.'
+                            : unverified
+                              ? 'E-postasını doğrulamamış kullanıcıya rol verilemez.'
+                              : undefined
+                        }
                         onClick={() => void toggle(user, role)}
                       >
                         {busy === `${user.id}:${role}` ? '…' : ROLE_LABELS[role]}

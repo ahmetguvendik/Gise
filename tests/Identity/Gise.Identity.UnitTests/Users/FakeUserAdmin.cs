@@ -17,6 +17,10 @@ public sealed class FakeUserAdmin : IKeycloakUserAdmin
             .Take(max)
             .ToList());
 
+    public Task<KeycloakUser> GetUserAsync(string userId, CancellationToken cancellationToken = default)
+        => Task.FromResult(Users.FirstOrDefault(u => u.Id == userId)
+                           ?? throw Gise.Exceptions.NotFoundException.User(userId));
+
     public Task<IReadOnlyList<string>> GetRealmRolesAsync(string userId, CancellationToken cancellationToken = default)
         => Task.FromResult<IReadOnlyList<string>>(Roles.GetValueOrDefault(userId)?.ToList() ?? []);
 

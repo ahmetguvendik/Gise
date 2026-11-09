@@ -102,6 +102,7 @@ public static class ErrorCodes
     {
         public const string NotFound = "USER_NOT_FOUND";
         public const string CannotRevokeOwnAdmin = "USER_CANNOT_REVOKE_OWN_ADMIN";
+        public const string EmailNotVerified = "USER_EMAIL_NOT_VERIFIED";
     }
 
     public static class Price

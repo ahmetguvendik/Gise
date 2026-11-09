@@ -47,11 +47,33 @@ public sealed class RoleManagementTests
     [Fact]
     public async Task Grant_adds_the_role()
     {
+        _keycloak.Users.Add(new KeycloakUser(Other, "kapi@gise.local", null, null, Enabled: true, EmailVerified: true));
+
         await new GrantRoleCommandHandler(_keycloak)
             .Handle(new GrantRoleCommand { UserId = Other, Role = AssignableRoles.GateStaff, RequestedBy = Admin }, Ct);
 
         Assert.Contains(AssignableRoles.GateStaff, _keycloak.Roles[Other]);
     }
+
+    [Fact]
+    public async Task No_role_for_unverified_email_but_existing_role_can_be_revoked()
+    {
+        _keycloak.Users.Add(new KeycloakUser(Other, "yeni@gise.local", null, null, Enabled: true, EmailVerified: false));
+        _keycloak.Roles[Other] = [AssignableRoles.Organizer];
+
+        var error = await Assert.ThrowsAsync<BusinessException>(() => new GrantRoleCommandHandler(_keycloak)
+            .Handle(new GrantRoleCommand { UserId = Other, Role = AssignableRoles.Admin, RequestedBy = Admin }, Ct));
+        await new RevokeRoleCommandHandler(_keycloak)
+            .Handle(new RevokeRoleCommand { UserId = Other, Role = AssignableRoles.Organizer, RequestedBy = Admin }, Ct);
+
+        Assert.Equal(ErrorCodes.User.EmailNotVerified, error.ErrorCode);
+        Assert.Empty(_keycloak.Roles[Other]);
+    }
+
+    [Fact]
+    public async Task Grant_to_unknown_user_is_not_found()
+        => await Assert.ThrowsAsync<NotFoundException>(() => new GrantRoleCommandHandler(_keycloak)
+            .Handle(new GrantRoleCommand { UserId = Other, Role = AssignableRoles.Organizer, RequestedBy = Admin }, Ct));
 
     [Theory]
     [InlineData("organizer", true)]

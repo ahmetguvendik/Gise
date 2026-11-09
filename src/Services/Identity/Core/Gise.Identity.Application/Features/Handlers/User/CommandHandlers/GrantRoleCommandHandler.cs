@@ -1,3 +1,4 @@
+using Gise.Exceptions;
 using Gise.Identity.Application.Features.Commands.User.Request;
 using Gise.Identity.Application.Interfaces;
 using MediatR;
@@ -14,6 +15,13 @@ public sealed class GrantRoleCommandHandler : IRequestHandler<GrantRoleCommand>
     }
 
     // Rolün verilebilir olduğunu GrantRoleCommandValidator denetler.
-    public Task Handle(GrantRoleCommand request, CancellationToken cancellationToken)
-        => _keycloak.AddRealmRoleAsync(request.UserId, request.Role, cancellationToken);
+    public async Task Handle(GrantRoleCommand request, CancellationToken cancellationToken)
+    {
+        // Rol yalnızca e-postasını doğrulamış kullanıcıya: doğrulanmamış adres başkasının olabilir.
+        var user = await _keycloak.GetUserAsync(request.UserId, cancellationToken);
+        if (!user.EmailVerified)
+            throw BusinessException.UserEmailNotVerified(request.UserId);
+
+        await _keycloak.AddRealmRoleAsync(request.UserId, request.Role, cancellationToken);
+    }
 }

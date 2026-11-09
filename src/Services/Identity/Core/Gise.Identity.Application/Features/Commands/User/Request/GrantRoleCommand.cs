@@ -2,7 +2,8 @@ using MediatR;
 
 namespace Gise.Identity.Application.Features.Commands.User.Request;
 
-// Admin: kullanıcıya rol verir (organizer, gate-staff, admin). Rol kullanıcının bir sonraki token'ında görünür.
+// Admin: kullanıcıya rol verir (organizer, gate-staff, admin). Kullanıcının e-postası doğrulanmış olmalı. Rol kullanıcının
+// bir sonraki token'ında görünür.
 public sealed class GrantRoleCommand : IRequest
 {
     public string UserId { get; set; } = string.Empty;

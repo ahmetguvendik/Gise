@@ -45,6 +45,12 @@ public sealed class KeycloakUserAdmin : IKeycloakUserAdmin
             .ToList();
     }
 
+    public async Task<KeycloakUser> GetUserAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var user = await GetAsync<UserRepresentation>($"/users/{Escape(userId)}", userId, cancellationToken);
+        return new KeycloakUser(user.Id ?? userId, user.Email ?? user.Username ?? string.Empty, user.FirstName, user.LastName, user.Enabled, user.EmailVerified);
+    }
+
     public async Task<IReadOnlyList<string>> GetRealmRolesAsync(string userId, CancellationToken cancellationToken = default)
         => (await GetMappedRolesAsync(userId, cancellationToken)).Select(r => r.Name).ToList();
 
@@ -87,12 +93,13 @@ public sealed class KeycloakUserAdmin : IKeycloakUserAdmin
         EnsureSuccess(response, userId);
     }
 
-    private async Task<T> GetAsync<T>(string path, string? userId, CancellationToken cancellationToken) where T : new()
+    private async Task<T> GetAsync<T>(string path, string? userId, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, _adminUrl + path);
         using var response = await KeycloakAdminHttp.SendAsync(_httpClientFactory, _token, request, cancellationToken);
         EnsureSuccess(response, userId);
-        return await response.Content.ReadFromJsonAsync<T>(cancellationToken) ?? new T();
+        return await response.Content.ReadFromJsonAsync<T>(cancellationToken)
+               ?? throw ServiceUnavailableException.Keycloak($"Keycloak yönetim API'si {path} için boş yanıt döndü.");
     }
 
     private static void EnsureSuccess(HttpResponseMessage response, string? userId)
