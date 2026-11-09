@@ -101,6 +101,7 @@ upstream order order-api:8080
 upstream ticket ticket-api:8080
 upstream search search-api:8080
 upstream seatmap seatmap-api:8080
+upstream identity identity-api:8080
 upstream client client:80
 upstream keycloak keycloak:8080
 
@@ -159,6 +160,9 @@ endpoint tickets-transfer-decline POST /api/tickets/transfers/:id/decline       
 echo "Search"
 endpoint search-events  GET /api/search/events  search search "Ana sayfa listesi ve arama"
 endpoint search-suggest GET /api/search/suggest search search "Yazarken öneri"
+
+echo "Identity: hesap"
+endpoint account-activity GET /api/account/activity identity account "Son girişler ve hesap güvenliği hareketleri"
 
 echo "SeatMap"
 # Koltuk haritasının anlık güncellenmesi: SignalR, yalnızca WebSocket (istemci negotiate adımını atlar). Her bağlantı

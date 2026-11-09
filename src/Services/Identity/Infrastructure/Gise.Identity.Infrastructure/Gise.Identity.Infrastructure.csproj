@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <!-- HttpClientFactory ve sağlık kontrolleri. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Gise.Identity.Application\Gise.Identity.Application.csproj" />
+  </ItemGroup>
+</Project>

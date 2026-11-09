@@ -11,6 +11,9 @@
   <Folder Name="/src/Workers/Catalog/">
     <Project Path="src/Workers/Catalog/Gise.Catalog.OutboxWorker/Gise.Catalog.OutboxWorker.csproj" />
   </Folder>
+  <Folder Name="/src/Workers/Identity/">
+    <Project Path="src/Workers/Identity/Gise.Identity.AuditWorker/Gise.Identity.AuditWorker.csproj" />
+  </Folder>
   <Folder Name="/src/Workers/Notification/">
     <Project Path="src/Workers/Notification/Gise.Notification.InboxWorker/Gise.Notification.InboxWorker.csproj" />
   </Folder>
@@ -45,6 +48,16 @@
   </Folder>
   <Folder Name="/src/Services/Catalog/Presentation/">
     <Project Path="src/Services/Catalog/Presentation/Gise.Catalog.Api/Gise.Catalog.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Identity/" />
+  <Folder Name="/src/Services/Identity/Core/">
+    <Project Path="src/Services/Identity/Core/Gise.Identity.Application/Gise.Identity.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Identity/Infrastructure/">
+    <Project Path="src/Services/Identity/Infrastructure/Gise.Identity.Infrastructure/Gise.Identity.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Identity/Presentation/">
+    <Project Path="src/Services/Identity/Presentation/Gise.Identity.Api/Gise.Identity.Api.csproj" />
   </Folder>
   <Folder Name="/src/Services/Notification/" />
   <Folder Name="/src/Services/Notification/Core/">
@@ -131,5 +144,8 @@
   <Folder Name="/tests/Catalog/">
     <Project Path="tests/Catalog/Gise.Catalog.IntegrationTests/Gise.Catalog.IntegrationTests.csproj" />
     <Project Path="tests/Catalog/Gise.Catalog.UnitTests/Gise.Catalog.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Identity/">
+    <Project Path="tests/Identity/Gise.Identity.UnitTests/Gise.Identity.UnitTests.csproj" />
   </Folder>
 </Solution>

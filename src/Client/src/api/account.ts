@@ -1,5 +1,5 @@
 import { accountUrl } from '../auth/oidcConfig'
-import type { AccountProfile, OtpDevice } from '../types'
+import type { AccountProfile, AccountSession, OtpDevice } from '../types'
 import { ApiError } from './http'
 
 // Keycloak'ın hesap API'si (/auth/realms/gise/account). Giriş token'ı bu API için de geçerli (aud "account",
@@ -13,6 +13,21 @@ interface KeycloakFieldError {
 
 interface KeycloakError extends KeycloakFieldError {
   errors?: KeycloakFieldError[]
+}
+
+// Keycloak oturumları cihaza göre gruplar; tarayıcı oturumda, işletim sistemi cihazda.
+interface DeviceRepresentation {
+  os?: string
+  osVersion?: string
+  sessions: {
+    id: string
+    ipAddress?: string
+    started: number
+    lastAccess: number
+    expires: number
+    browser?: string
+    current?: boolean
+  }[]
 }
 
 interface CredentialType {
@@ -36,11 +51,12 @@ function fieldMessage({ field = '', errorMessage }: KeycloakFieldError) {
   }
 }
 
-async function call<T>(path: string, token: string, body?: unknown): Promise<T> {
+// Keycloak hesap API'si Accept: application/json olmadan bazı uçlarda 405 döner (ör. oturum kapatma).
+async function call<T>(path: string, token: string, { method, body }: { method?: string; body?: unknown } = {}): Promise<T> {
   let response: Response
   try {
     response = await fetch(`${accountUrl}${path}`, {
-      method: body === undefined ? 'GET' : 'POST',
+      method: method ?? (body === undefined ? 'GET' : 'POST'),
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,
@@ -71,8 +87,34 @@ export const accountApi = {
   // Alan tanımları (userProfileMetadata) yalnızca okuma için, geri gönderilmez.
   updateName: (current: AccountProfile & Record<string, unknown>, firstName: string, lastName: string, token: string) => {
     const { userProfileMetadata: _metadata, ...profile } = current
-    return call<void>('', token, { ...profile, firstName: firstName.trim(), lastName: lastName.trim() })
+    return call<void>('', token, { body: { ...profile, firstName: firstName.trim(), lastName: lastName.trim() } })
   },
+
+  // Açık oturumlar: bu cihaz önce, sonra son etkinliğe göre.
+  sessions: async (token: string): Promise<AccountSession[]> => {
+    const devices = await call<DeviceRepresentation[]>('/sessions/devices', token)
+    return devices
+      .flatMap((device) =>
+        device.sessions.map((session) => ({
+          id: session.id,
+          ipAddress: session.ipAddress ?? '',
+          started: session.started,
+          lastAccess: session.lastAccess,
+          expires: session.expires,
+          // "Chrome/142.0.0" → "Chrome"; Keycloak tanıyamazsa "Other".
+          browser: (session.browser ?? '').split('/')[0] || 'Bilinmeyen tarayıcı',
+          os: [device.os, device.osVersion].filter((part) => part && part !== 'Other' && part !== 'Unknown').join(' ') || 'Bilinmeyen sistem',
+          current: session.current === true,
+        })),
+      )
+      .sort((a, b) => Number(b.current) - Number(a.current) || b.lastAccess - a.lastAccess)
+  },
+
+  // Keycloak oturumu kapatır; o cihazın elindeki token API'lerde süresi dolana kadar (en fazla 5 dk) geçerli kalır.
+  signOutSession: (id: string, token: string) => call<void>(`/sessions/${encodeURIComponent(id)}`, token, { method: 'DELETE' }),
+
+  // Bu cihaz dışındaki bütün oturumlar.
+  signOutOtherSessions: (token: string) => call<void>('/sessions', token, { method: 'DELETE' }),
 
   // Kayıtlı doğrulayıcı uygulamalar; boşsa iki aşamalı doğrulama kapalı.
   otpDevices: async (token: string): Promise<OtpDevice[]> => {

@@ -93,6 +93,7 @@ Desen bu projede **bilerek iki farklı şekilde** kullanılır:
 | Order | `order-inbox-worker` | Kafka'dan okur, inbox'a yazar ve işler (iptal edilen etkinliğin tamamlanmış siparişlerini iade eder) |
 | Notification | `notification-inbox-worker` | Kafka'dan okur (`catalog.events`, `ticket.events`), inbox'a yazar ve işler (e-postalar) |
 | Search | `search-sync-worker` | Arama dizinini Catalog'dan (etkinlikler) ve Reservation'dan (koltuk durumu) gRPC ile dakikada bir baştan kurar; Kafka dinlemez |
+| Identity | `identity-audit-worker` | Keycloak'ın giriş ve hesap güvenliği olaylarını 30 sn'de bir okur, denetim loguna yazar; Kafka dinlemez |
 
 Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 
@@ -110,6 +111,7 @@ Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 | **Notification** | E-posta | PostgreSQL (inbox, bilet sahipleri, gönderilenler) | — | — | Kafka: `TicketsIssued`, `EventCancelled`, `EventUpdated` |
 | **Search** | Ana sayfadaki liste, Türkçe tam metin arama, yazarken öneri | Elasticsearch | REST (herkese açık) | — | — (Catalog'dan ve Reservation'dan gRPC ile dakikada bir alır) |
 | **SeatMap** | Koltuk haritasında anlık güncelleme | — | SignalR (`/hubs/seatmap`) | — | Redis yayını: `SeatsChanged` (Reservation'dan) |
+| **Identity** | Hesap hareketleri: giriş geçmişi, Keycloak olaylarının denetim loguna aktarılması | — (kullanıcılar ve olaylar Keycloak'ta) | REST (`/api/account/activity`, giriş yapmış kullanıcı) | — | — (Keycloak yönetim API'sinden okur) |
 
 ### 3.1 Mimari
 
@@ -371,6 +373,17 @@ reservation-command-worker (tutma / bırakma / satış, kayıttan sonra)
 - **Veri:** veritabanı yok. Redis parolası compose'dan ortam değişkeniyle gelir. Sağlık: Redis.
 - **Henüz yok:** "şu an N kişi bakıyor" sayacı, etkinlik iptalinin haritaya anlık yansıması (sayfa yenilenince görünür).
 
+### 3.12 Identity: hesap hareketleri
+
+Kullanıcılar, parolalar ve oturumlar Keycloak'ta; Identity'nin kullanıcı tablosu yok. Kullanıcının kendi token'ıyla okunamayan tek şey Keycloak'ın olay kaydı: onu sunucu tarafında okur.
+
+- **Servis hesabı:** `gise-identity` (gizli anahtarlı istemci, `deploy/.env` → `IDENTITY_CLIENT_SECRET`). Tek yetkisi olayları okumak (`realm-management: view-events`): anahtar sızsa bile kullanıcı açamaz, rol veremez, parola değiştiremez (denendi: olaylar 200, kullanıcı listesi ve `master` 403). Telgraf'tan farkı: orada master realm'in admin parolası kullanılıyordu. Token süresi bitmeden 30 sn önce yenilenir; yönetim API'si konteyner ağından çağrılır (`keycloak:8080/auth/admin`), gateway'den yayınlanmaz.
+- **Olay kaydı** (realm ayarı): yalnızca 15 tür saklanır (`SecurityEventTypes` ile `gise-realm.json` → `enabledEventTypes` aynı olmalı): giriş, hatalı giriş, çıkış, kayıt, ad/soyad, e-posta değişikliği ve doğrulaması, parola sıfırlama isteği, parola ve iki aşamalı doğrulama değişikliği (`UPDATE_CREDENTIAL`/`REMOVE_CREDENTIAL`, `credential_type` ayırır; Keycloak'ın aynı anda yazdığı eski adlar saklanmaz), hesap silme, kilitlenme. Token yenileme ve kodun token'a çevrilmesi saklanmaz. **90 gün** tutulur (IP kişisel veri; KVKK gereği süresiz tutulmaz).
+- **Sessiz girişler:** token yalnızca bellekte olduğundan sayfa her yenilendiğinde uygulama Keycloak'a sessizce yeniden girer ve Keycloak bunu da `LOGIN` yazar; parolayla girişten ayırt edilemez. Ayıran oturum kimliği: **oturumun ilk `LOGIN`'i asıl giriştir**, aynı oturumdaki sonrakiler sayılmaz (hem giriş geçmişinde hem denetim logunda).
+- **`GET /api/account/activity`** (identity-api, giriş yapmış kullanıcı): kullanıcının son 200 olayı okunur, sessiz girişler elenir, en fazla 20'si döner (zaman, tür, başarısız mı, hata kodu, kimlik bilgisi türü, IP). Keycloak'a ulaşılamazsa 503.
+- **Denetim logu** (`identity-audit-worker`, Telgraf'taki `KeycloakEventSync`): 30 sn'de bir (`EventSync:IntervalSeconds`) son okunan olaydan sonrakileri 100'erli sayfalarla okur (turda en fazla 1.000; fazlası uyarıyla atlanır) ve her olayı bir denetim satırı yapar (bkz. 8). İmleç bellekte: ilk tur o ana kurulur, worker kapalıyken olan olaylar denetim loguna girmez (Keycloak'ta 90 gün durur). Aynı milisaniyedeki olaylar kimlikleriyle ayrılır (örn. "diğer oturumları kapat" aynı anda birkaç `LOGOUT` yazar). Tek kopya çalışır.
+- **Sağlık:** ikisinde de `/health/ready` servis hesabıyla token alabiliyor mu (Keycloak açık, anahtar doğru); worker'da ayrıca heartbeat.
+
 ---
 
 ## 4. Satın alma saga'sı
@@ -555,7 +568,7 @@ stateDiagram-v2
 - SPA, Keycloak'a **PKCE'li authorization code** ile bağlanır; parola uygulamadan geçmez.
 - Token bellekte tutulur, `localStorage`'a yazılmaz.
 - Sayfa yenilenince bellek sıfırlanır; açılışta **sessiz giriş** yapılır: gizli bir çerçevede Keycloak'a `prompt=none` ile "açık oturum var mı?" diye sorulur (`silent-renew.html`). Oturum varsa kullanıcı parolasız içeri alınır, yoksa misafir olarak devam eder. Canlıda Keycloak uygulamayla aynı site altında olmalıdır (ör. `giris.gise.com.tr`), yoksa tarayıcılar çerçevedeki çerezi engelleyebilir.
-- Kimlik işlemlerinin hepsi Keycloak'ta; ayrı bir Identity servisi ve kullanıcı tablosu yok. Servisler kullanıcıyı token'daki `sub` ile tanır (ör. `Event.OrganizerId`).
+- Kimlik işlemlerinin hepsi Keycloak'ta; kullanıcı tablosu yok. Identity servisi yalnızca Keycloak'ın olay kaydını okur (giriş geçmişi, denetim logu; bkz. 3.12). Servisler kullanıcıyı token'daki `sub` ile tanır (ör. `Event.OrganizerId`).
   - **Kayıt:** "Kayıt ol" düğmesi Keycloak'ın kayıt formunu açar (`prompt=create`). Form ad, soyad ve e-posta ister. E-posta doğrulama açık olduğu için parola, doğrulama bağlantısına tıklandıktan sonra belirlenir; ardından kullanıcı giriş yapmış olarak uygulamaya döner. Yeni kullanıcıya otomatik olarak `customer` rolü verilir.
   - **Parola kuralı:** En az 8 karakter; e-posta ya da kullanıcı adıyla aynı olamaz; en yaygın 10.000 parola (`123456`, `qwerty123`…) reddedilir (`passwordBlacklist`, liste `deploy/keycloak/password-blacklists/`, SecLists, MIT). Uzunluk NIST'in önerisi gibi 8'de kaldı: yaygın parola listesiyle birlikte yeterli. Keycloak kuralı realm geneline uygular, role göre ayrılamaz; ayrıcalıklı roller için asıl koruma iki aşamalı doğrulama olacak (canlıda). Art arda hatalı girişte hesap geçici olarak kilitlenir.
   - **Şifremi unuttum** ve **beni hatırla** giriş sayfasında.
@@ -563,7 +576,9 @@ stateDiagram-v2
   - **Parola, e-posta, iki aşamalı doğrulama ve hesap silme Keycloak'ın kendi ekranında** (application-initiated action): profil sayfası giriş isteğine `kc_action` ekler (`UPDATE_PASSWORD`, `UPDATE_EMAIL`, `CONFIGURE_TOTP`, `delete_credential:<id>`, `delete_account`). Keycloak gerekirse parolayı yeniden sorar, işlem bitince `/profil`'e döner ve sonucu `kc_action_status` (`success`, `cancelled`, `error`) ile bildirir; sayfa bunu mesaj olarak gösterir. Uygulama parola ya da doğrulama kodu görmez.
     - E-posta değişikliği yeni adres doğrulanınca geçerli olur (`UPDATE_EMAIL` realm'de açık; Keycloak 26'da varsayılan kapalı). Gelen bilet aktarımları doğrulanmış adrese göre gösterildiği için bu önemli.
     - Hesap silinince Keycloak'ın "kullanıcı silindi" sayfası açılır; oradaki bağlantı ana sayfaya döner (istemcinin `baseUrl`'i). Sipariş ve biletler servislerde kalır, ama o hesapla bir daha giriş yapılamaz.
-    - Keycloak'ın ayrı hesap sayfası (`/auth/realms/gise/account`) da açık; aktif oturumlar şimdilik yalnızca orada.
+  - **Oturumlar** (profil sayfası): açık oturumlar Keycloak'ın hesap API'sinden (`/account/sessions/devices`): tarayıcı ve sistem (Keycloak'ın User-Agent tahmini), IP, giriş ve son etkinlik zamanı, "Bu cihaz". Başka bir oturum tek tek ya da topluca kapatılır (`DELETE /account/sessions[/{id}]`; Keycloak `Accept: application/json` olmadan 405 verir). Kapatılan cihazın elindeki erişim token'ı API'lerde süresi dolana kadar (en fazla 5 dk) geçerli kalır: API'ler token'ı Keycloak'a sormadan doğrular; yenileme ve sessiz giriş hemen reddedilir.
+  - **Son hareketler** (profil sayfası): girişler, hatalı denemeler (yanlış parola ya da kod, kilitli hesap), çıkışlar, parola, e-posta ve iki aşamalı doğrulama değişiklikleri; identity-api'den (bkz. 3.12). Hatalı denemeler vurgulu.
+  - Keycloak'ın ayrı hesap sayfası (`/auth/realms/gise/account`) da açık kalıyor.
   - **Rol yükseltme:** `organizer` ve `gate-staff` rollerini admin verir; şimdilik Keycloak yönetim panelinden.
 - Keycloak'ın mailleri (e-posta doğrulama, şifre sıfırlama) Telgraf'taki gibi **Gmail SMTP** ile gider (`smtp.gmail.com:587`, STARTTLS). Hesap ve uygulama şifresi `deploy/.env`'de: `SMTP_USERNAME`, `SMTP_PASSWORD`. Gönderen adresi Gmail hesabının kendisidir; Gmail başka adresle göndermeye izin vermez. Var olan kurulumda ayar `deploy/scripts/keycloak-smtp.sh` ile uygulanır.
 - **API'lerde token doğrulaması** (`Gise.Authentication`): imza (realm anahtarları), `iss`, `aud` (`gise-api`) ve süre. Yalnızca RS256 kabul edilir; saat toleransı 30 sn (varsayılan 5 dk, süresi dolan token 5 dk daha geçerli sayılırdı).
@@ -637,7 +652,8 @@ Bütün API ve worker'lar (Gise.Logging)
   - Kişisel ve gizli veri girmez: e-posta, kişi adı, kart ve bilet kodu command'dan hiç alınmaz; değişikliklerde e-posta, kişi adı, bilet kodu ve PDF anahtarı için yalnızca "değişti" yazılır.
   - `event.dataset: gise.audit` taşır; kullanıcısı olanlar `logs.audit` topic'inden **1 yıl** saklanan `logs-gise.audit-default` akışına gider (Telgraf'ta ayrı akış yoktu). Kibana'da "Gişe denetim kayıtları".
   - Worker'daki command'lar (koltuk tutma, ödeme alma, bilet üretme, iade…) insan işlemi değildir: aynı satır worker akışına `actor.id: system` ile düşer, denetim işareti kaldırılır.
-  - Yetki katmanında reddedilen istekler (rol yetmiyor) command'a ulaşmadığı için yazılmaz; Keycloak giriş olayları da henüz alınmıyor (Telgraf'taki `KeycloakEventSync`).
+  - Yetki katmanında reddedilen istekler (rol yetmiyor) command'a ulaşmadığı için yazılmaz.
+  - **Keycloak olayları** (`identity-audit-worker`, bkz. 3.12): giriş, hatalı giriş, çıkış, parola ve e-posta değişikliği, iki aşamalı doğrulama, hesap silme, kilitlenme aynı biçimde satır olur: `event.provider: keycloak`, `event.action` (`Login`, `Logout`, `UpdateCredential`, `RemoveCredential`, `DeleteAccount`…), `event.outcome`, başarısızsa Keycloak'ın hata kodu (`error.code: invalid_user_credentials`), `actor.id`, `client.ip`, parola mı iki aşamalı doğrulama mı (`target.credential.type`) ve olayın Keycloak'taki zamanı (`event.start`; satırın zamanı worker'ın okuduğu an, en fazla 30 sn sonra). E-posta ve kullanıcı adı yazılmaz. Var olmayan hesapla denenen girişte kişi yok: satır worker akışına düşer (`user_not_found`, IP'siyle), kaba kuvvet denemesi orada görünür.
 - **Kafka'ya yazma isteği bekletmez:** loglar bellekte kuyruğa alınıp 2 saniyede bir ya da 500'lük toplu olarak gönderilir (`acks=0`, lz4). Kuyruk (10.000) dolarsa yeni loglar düşürülür: log kaybı, isteklerin yavaşlamasından iyidir. Sink hata fırlatmaz. Kafka, Logstash ya da Elasticsearch çökse de konsol çalışır (`docker compose logs`).
 - **Log topic'leri** (`logs.api`, `logs.workers`, `logs.audit`): 3 bölüm, 24 saat saklama. Kafka'da otomatik oluşturma kapalı olduğu için her process açılışta oluşturmayı dener, uygulamayı bekletmez.
 - **Logstash** (`deploy/logstash`):
@@ -699,13 +715,15 @@ Gişe/
 │   │   ├── Payment/               # Gise.Payment.CommandWorker
 │   │   ├── Ticket/                # Gise.Ticket.CommandWorker, Gise.Ticket.InboxWorker, Gise.Ticket.OutboxWorker
 │   │   ├── Notification/          # Gise.Notification.InboxWorker
-│   │   └── Search/                # Gise.Search.SyncWorker
+│   │   ├── Search/                # Gise.Search.SyncWorker
+│   │   └── Identity/              # Gise.Identity.AuditWorker
 │   ├── Services/
 │   │   ├── Catalog/  Reservation/  Order/  Payment/
-│   │   ├── Ticket/   Notification/  Search/  SeatMap/
+│   │   ├── Ticket/   Notification/  Search/  SeatMap/  Identity/
 │   └── Client/                    # React + Vite + React Router (Telgraf gibi): api/, auth/, components/, lib/, pages/
 ├── tests/
-│   └── Catalog/                   # Gise.Catalog.UnitTests, Gise.Catalog.IntegrationTests
+│   ├── Catalog/                   # Gise.Catalog.UnitTests, Gise.Catalog.IntegrationTests
+│   └── Identity/                  # Gise.Identity.UnitTests
 └── Gise.slnx · global.json · Directory.Build.props · Directory.Packages.props
 ```
 
@@ -724,7 +742,7 @@ Her servis aynı düzendedir:
     └── Gise.<Servis>.Api/             Controllers/, Authentication/, ErrorHandling/
 ```
 
-- Klasör ve proje yalnızca içinde kod varsa bulunur; boş yer tutucu (`.gitkeep`) tutulmaz, ihtiyaç olunca açılır. Veritabanı olmayan Search ile SeatMap'te Persistence, SeatMap'te Domain yoktur.
+- Klasör ve proje yalnızca içinde kod varsa bulunur; boş yer tutucu (`.gitkeep`) tutulmaz, ihtiyaç olunca açılır. Veritabanı olmayan Search, SeatMap ve Identity'de Persistence; SeatMap ve Identity'de Domain yoktur.
 
 - `Features` düzeni Telgraf'taki gibidir: `Commands/<Varlık>/Request|Response`, `Queries/<Varlık>/Request|Response`, `Handlers/<Varlık>/CommandHandlers|QueryHandlers`.
 - Komut ve sorgular Telgraf'taki gibi MediatR (14.1.0) üzerinden gider: controller'lar yalnızca `_mediator.Send(...)` çağırır, handler'lar `IRequestHandler<,>` uygular. Kayıt Application'daki `ServiceRegistration` içindedir (`AddMediatR` + `RegisterServicesFromAssembly`).

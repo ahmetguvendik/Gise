@@ -387,3 +387,25 @@ export interface OtpDevice {
   label: string
   createdDate?: number
 }
+
+/** Keycloak'ta açık bir oturum (hesap API'si). Zamanlar Unix saniye; tarayıcı ve sistem Keycloak'ın User-Agent tahmini. */
+export interface AccountSession {
+  id: string
+  ipAddress: string
+  started: number
+  lastAccess: number
+  expires: number
+  browser: string
+  os: string
+  current: boolean
+}
+
+/** Giriş ve hesap güvenliği hareketi (identity-api; Keycloak olayları). type Keycloak'ın olay türü, ör. LOGIN, LOGIN_ERROR. */
+export interface AccountActivity {
+  time: string
+  type: string
+  failed: boolean
+  error: string | null
+  credentialType: string | null
+  ipAddress: string | null
+}

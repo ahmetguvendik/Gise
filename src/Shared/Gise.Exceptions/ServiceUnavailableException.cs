@@ -13,6 +13,11 @@ public class ServiceUnavailableException : AppException
         "Şu an sipariş alınamıyor; biraz sonra tekrar deneyin.",
         "Etkinlik bilgisi Catalog'dan alınamadı.");
 
+    public static ServiceUnavailableException Keycloak(string description) => new(
+        ErrorCodes.General.ServiceUnavailable,
+        "Hesap hareketleri şu an alınamıyor; biraz sonra tekrar deneyin.",
+        description);
+
     public static ServiceUnavailableException PaymentProvider() => new(
         ErrorCodes.General.ServiceUnavailable,
         "Ödeme sağlayıcısına şu an ulaşılamıyor.",

@@ -46,6 +46,8 @@ services:
       # Realm JSON'undaki ${SMTP_...} yer tutucuları ilk kurulumda bunlarla dolar (Gmail SMTP).
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      # Identity servislerinin servis hesabı (gise-identity); realm JSON'undaki yer tutucu ilk kurulumda bununla dolar.
+      IDENTITY_CLIENT_SECRET: ${IDENTITY_CLIENT_SECRET:?deploy/.env içinde IDENTITY_CLIENT_SECRET tanımlı olmalı}
     # Yalnızca yönetim konsolu için ve yalnızca bu makineden (http://localhost:8180/auth/admin); uygulama trafiği
     # gateway'den. Canlıda bu port açılmaz.
     ports:
@@ -731,6 +733,53 @@ services:
         condition: service_healthy
       # Koltuk durumu ("Tükendi", "Son N bilet") Reservation'ın gRPC ucundan.
       reservation-api:
+        condition: service_healthy
+
+  # Hesap: giriş geçmişi (Keycloak olayları). Veritabanı yok; Keycloak yönetim API'sini yalnızca olay okuma yetkili servis
+  # hesabıyla (gise-identity) çağırır.
+  identity-api:
+    image: gise/identity-api:dev
+    build:
+      context: ..
+      dockerfile: src/Services/Identity/Presentation/Gise.Identity.Api/Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      Keycloak__InternalAuthority: http://keycloak:8080/auth/realms/gise
+      Keycloak__PublicAuthority: http://localhost:8000/auth/realms/gise
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__ServiceClientSecret: ${IDENTITY_CLIENT_SECRET}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  # Keycloak'ın giriş ve hesap güvenliği olaylarını (giriş, hatalı giriş, parola, e-posta, iki aşamalı doğrulama) 30 sn'de
+  # bir okuyup denetim loguna (logs-gise.audit) yazar.
+  identity-audit-worker:
+    image: gise/identity-audit-worker:dev
+    build:
+      context: ..
+      dockerfile: src/Workers/Identity/Gise.Identity.AuditWorker/Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      Keycloak__InternalAuthority: http://keycloak:8080/auth/realms/gise
+      Keycloak__ServiceClientSecret: ${IDENTITY_CLIENT_SECRET}
+    healthcheck:
+      # Döngü asılı kalırsa (heartbeat eskirse) ya da servis hesabıyla token alınamazsa ready kontrolü düşer.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
+    depends_on:
+      keycloak:
         condition: service_healthy
 
   # Koltuk haritasının anlık güncellenmesi: Reservation'ın Redis yayınlarını SignalR'la tarayıcılara iletir. Kalıcı verisi yok.

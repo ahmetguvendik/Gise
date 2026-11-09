@@ -74,7 +74,36 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "gise-identity",
+      "name": "Gişe Identity (servis hesabı)",
+      "description": "identity-api ve identity-audit-worker Keycloak olaylarını okur; tek yetkisi view-events.",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${IDENTITY_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "frontchannelLogout": false
     }
+  ],
+  "users": [
+    {
+      "username": "service-account-gise-identity",
+      "enabled": true,
+      "serviceAccountClientId": "gise-identity",
+      "clientRoles": { "realm-management": ["view-events"] }
+    }
+  ],
+  "eventsEnabled": true,
+  "eventsExpiration": 7776000,
+  "enabledEventTypes": [
+    "LOGIN", "LOGIN_ERROR", "LOGOUT", "REGISTER", "UPDATE_PROFILE", "UPDATE_EMAIL", "VERIFY_EMAIL", "SEND_RESET_PASSWORD",
+    "UPDATE_CREDENTIAL", "UPDATE_CREDENTIAL_ERROR", "REMOVE_CREDENTIAL", "REMOVE_CREDENTIAL_ERROR", "DELETE_ACCOUNT",
+    "USER_DISABLED_BY_TEMPORARY_LOCKOUT", "USER_DISABLED_BY_PERMANENT_LOCKOUT"
   ],
   "smtpServer": {
     "host": "smtp.gmail.com",

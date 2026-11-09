@@ -6,6 +6,8 @@ import { ApiError, toApiError } from '../api/http'
 import { accountActionResult, clearAccountActionResult, startAccountAction } from '../auth/accountActions'
 import type { AccountAction, AccountActionResult } from '../auth/accountActions'
 import { ROLE_LABELS, rolesOf } from '../auth/roles'
+import { AccountActivityList } from '../components/AccountActivityList'
+import { AccountSessions } from '../components/AccountSessions'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { formatLongDate } from '../lib/format'
 import type { AccountProfile, OtpDevice } from '../types'
@@ -228,6 +230,10 @@ export function ProfilePage() {
                   ))}
                 </dl>
               </section>
+
+              <AccountSessions token={token} />
+
+              <AccountActivityList token={token} />
 
               <section className="card profile__card profile__danger" aria-labelledby="hesap-sil">
                 <h2 id="hesap-sil">Hesabı sil</h2>
