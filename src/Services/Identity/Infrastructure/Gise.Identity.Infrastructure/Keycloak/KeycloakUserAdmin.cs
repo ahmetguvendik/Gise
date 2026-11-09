@@ -34,15 +34,23 @@ public sealed class KeycloakUserAdmin : IKeycloakUserAdmin
     // biçimini değiştirmesin.
     public async Task<IReadOnlyList<KeycloakUser>> SearchUsersAsync(string search, int first, int max, CancellationToken cancellationToken = default)
     {
-        var term = search.Replace("*", string.Empty).Replace("\"", string.Empty);
-        var filter = term.Length == 0 ? string.Empty : $"search={Uri.EscapeDataString($"*{term}*")}&";
         var users = await GetAsync<List<UserRepresentation>>(
-            $"/users?{filter}first={first}&max={max}&briefRepresentation=true", userId: null, cancellationToken);
+            $"/users?{SearchFilter(search)}first={first}&max={max}&briefRepresentation=true", userId: null, cancellationToken);
 
         return users
             .Where(u => !string.IsNullOrEmpty(u.Id))
             .Select(u => new KeycloakUser(u.Id!, u.Email ?? u.Username ?? string.Empty, u.FirstName, u.LastName, u.Enabled, u.EmailVerified))
             .ToList();
+    }
+
+    // Listeyle aynı kural: servis hesapları sayılmaz (denendi: liste ve sayım tutarlı).
+    public Task<int> CountUsersAsync(string search, CancellationToken cancellationToken = default)
+        => GetAsync<int>($"/users/count?{SearchFilter(search)}".TrimEnd('&', '?'), userId: null, cancellationToken);
+
+    private static string SearchFilter(string search)
+    {
+        var term = search.Replace("*", string.Empty).Replace("\"", string.Empty);
+        return term.Length == 0 ? string.Empty : $"search={Uri.EscapeDataString($"*{term}*")}&";
     }
 
     public async Task<KeycloakUser> GetUserAsync(string userId, CancellationToken cancellationToken = default)

@@ -5,36 +5,35 @@ import { ApiError, toApiError } from '../api/http'
 import { usersApi } from '../api/users'
 import { ROLE_LABELS } from '../auth/roles'
 import { ErrorAlert } from '../components/ErrorAlert'
-import type { ManagedUser } from '../types'
+import { Pagination } from '../components/Pagination'
+import type { ManagedUser, PagedResult } from '../types'
 
 // Uygulamadan verilip alınabilen roller; "customer" herkesin varsayılan rolü, burada yok.
 const MANAGED_ROLES = ['organizer', 'gate-staff', 'admin']
 
-// Guard'ın arkasında: yalnızca admin. Açılışta bütün kullanıcılar (20'şerli); arama e-posta ya da adla daraltır. Rol
-// verme/alma identity-api üzerinden Keycloak'ta.
+// Guard'ın arkasında: yalnızca admin. Açılışta bütün kullanıcılar, sayfada 10 (yalnızca o sayfa çekilir); arama e-posta ya
+// da adla daraltır ve ilk sayfaya döner. Rol verme/alma identity-api üzerinden Keycloak'ta.
 export function UsersPage() {
   const auth = useAuth()
   const token = auth.user?.access_token ?? ''
   const currentUserId = auth.user?.profile.sub
   const [search, setSearch] = useState('')
-  // Listenin şu an gösterdiği arama (kutudaki yazı değişse de "Daha fazla göster" buna göre devam eder).
+  // Listenin şu an gösterdiği arama (kutudaki yazı değişse de sayfa değişimi buna göre).
   const [shownSearch, setShownSearch] = useState('')
-  const [users, setUsers] = useState<ManagedUser[] | null>(null)
-  const [hasMore, setHasMore] = useState(false)
+  const [result, setResult] = useState<PagedResult<ManagedUser> | null>(null)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   // Açılıştaki token'la ilk sayfa; sessiz yenilemede liste yeniden yüklenmez.
   const [initialToken] = useState(token)
+  const users = result?.items ?? null
 
   useEffect(() => {
     let ignore = false
-    usersApi.search('', 0, initialToken).then(
-      (page) => {
-        if (ignore) return
-        setUsers(page.users)
-        setHasMore(page.hasMore)
+    usersApi.list('', 1, initialToken).then(
+      (data) => {
+        if (!ignore) setResult(data)
       },
       (err) => {
         if (!ignore) setError(toApiError(err))
@@ -45,16 +44,14 @@ export function UsersPage() {
     }
   }, [initialToken])
 
-  // more: aynı aramanın sonraki sayfası listeye eklenir; değilse liste baştan.
-  const load = async (term: string, more: boolean) => {
+  const load = async (term: string, page: number) => {
     setLoading(true)
     setError(null)
     setNotice(null)
     try {
-      const page = await usersApi.search(term, more ? (users?.length ?? 0) : 0, token)
-      setUsers((current) => (more && current ? [...current, ...page.users.filter((u) => !current.some((c) => c.id === u.id))] : page.users))
-      setHasMore(page.hasMore)
+      setResult(await usersApi.list(term, page, token))
       setShownSearch(term)
+      window.scrollTo(0, 0)
     } catch (err) {
       setError(toApiError(err))
     } finally {
@@ -64,7 +61,7 @@ export function UsersPage() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    void load(search.trim(), false)
+    void load(search.trim(), 1)
   }
 
   const toggle = async (user: ManagedUser, role: string) => {
@@ -79,10 +76,13 @@ export function UsersPage() {
     try {
       if (has) await usersApi.revokeRole(user.id, role, token)
       else await usersApi.grantRole(user.id, role, token)
-      setUsers((current) =>
-        current?.map((u) =>
-          u.id === user.id ? { ...u, roles: has ? u.roles.filter((r) => r !== role) : [...u.roles, role] } : u,
-        ) ?? null,
+      setResult((current) =>
+        current && {
+          ...current,
+          items: current.items.map((u) =>
+            u.id === user.id ? { ...u, roles: has ? u.roles.filter((r) => r !== role) : [...u.roles, role] } : u,
+          ),
+        },
       )
       setNotice(`${user.email}: ${label} rolü ${has ? 'alındı' : 'verildi'}. Kullanıcının oturumu yenilenince (en geç 5 dakika) geçerli olur.`)
     } catch (err) {
@@ -182,10 +182,14 @@ export function UsersPage() {
           })}
         </ul>
       )}
-      {hasMore && (
-        <button type="button" className="button button--outline users-more" disabled={loading} onClick={() => void load(shownSearch, true)}>
-          {loading ? 'Yükleniyor…' : 'Daha fazla göster'}
-        </button>
+      {result && (
+        <Pagination
+          page={result.page}
+          pageSize={result.pageSize}
+          totalCount={result.totalCount}
+          disabled={loading || busy !== null}
+          onPageChange={(page) => void load(shownSearch, page)}
+        />
       )}
     </div>
   )

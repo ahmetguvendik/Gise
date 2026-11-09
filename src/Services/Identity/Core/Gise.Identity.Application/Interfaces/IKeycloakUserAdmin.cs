@@ -10,6 +10,9 @@ public interface IKeycloakUserAdmin
     // search boşsa bütün kullanıcılar, doluysa e-posta, ad ya da soyadda geçenler; first'ten başlayarak en fazla max.
     Task<IReadOnlyList<KeycloakUser>> SearchUsersAsync(string search, int first, int max, CancellationToken cancellationToken = default);
 
+    // SearchUsersAsync'in aynı aramayla döndüreceği toplam kullanıcı sayısı.
+    Task<int> CountUsersAsync(string search, CancellationToken cancellationToken = default);
+
     Task<KeycloakUser> GetUserAsync(string userId, CancellationToken cancellationToken = default);
 
     // Kullanıcıya doğrudan verilmiş realm rolleri (varsayılan rol grubu dahil, içindekiler açılmadan).

@@ -17,6 +17,9 @@ public sealed class FakeUserAdmin : IKeycloakUserAdmin
             .Take(max)
             .ToList());
 
+    public Task<int> CountUsersAsync(string search, CancellationToken cancellationToken = default)
+        => Task.FromResult(Users.Count(u => search.Length == 0 || u.Email.Contains(search, StringComparison.OrdinalIgnoreCase)));
+
     public Task<KeycloakUser> GetUserAsync(string userId, CancellationToken cancellationToken = default)
         => Task.FromResult(Users.FirstOrDefault(u => u.Id == userId)
                            ?? throw Gise.Exceptions.NotFoundException.User(userId));

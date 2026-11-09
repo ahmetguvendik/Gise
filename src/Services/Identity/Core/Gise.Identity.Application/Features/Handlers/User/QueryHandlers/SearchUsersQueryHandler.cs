@@ -1,3 +1,4 @@
+using Gise.Identity.Application.Common;
 using Gise.Identity.Application.Features.Queries.User.Request;
 using Gise.Identity.Application.Features.Queries.User.Response;
 using Gise.Identity.Application.Interfaces;
@@ -6,11 +7,8 @@ using MediatR;
 
 namespace Gise.Identity.Application.Features.Handlers.User.QueryHandlers;
 
-public sealed class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, SearchUsersResponse>
+public sealed class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, PagedResult<SearchUsersResponse>>
 {
-    // Sayfadaki kullanıcı sayısı; her birinin rolleri ayrı istekle okunur.
-    private const int PageSize = 20;
-
     private readonly IKeycloakUserAdmin _keycloak;
 
     public SearchUsersQueryHandler(IKeycloakUserAdmin keycloak)
@@ -18,19 +16,22 @@ public sealed class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, 
         _keycloak = keycloak;
     }
 
-    public async Task<SearchUsersResponse> Handle(SearchUsersQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<SearchUsersResponse>> Handle(SearchUsersQuery request, CancellationToken cancellationToken)
     {
-        // Bir fazlası istenir: geldiyse sonraki sayfa var (ayrıca sayım isteği gerekmez).
-        var found = await _keycloak.SearchUsersAsync((request.Search ?? string.Empty).Trim(), request.First, PageSize + 1, cancellationToken);
-        var users = found.Take(PageSize).ToList();
+        var search = (request.Search ?? string.Empty).Trim();
 
-        // Keycloak listede rolleri vermez; her kullanıcı için ayrı okunur (en fazla 20 istek, birlikte).
+        // Sayım ve sayfa birlikte istenir. Keycloak listeyi e-postaya göre sıralı verir; sayfalar arasında sıra tutarlı.
+        var totalTask = _keycloak.CountUsersAsync(search, cancellationToken);
+        var usersTask = _keycloak.SearchUsersAsync(search, (request.Page - 1) * request.PageSize, request.PageSize, cancellationToken);
+        await Task.WhenAll(totalTask, usersTask);
+        var users = usersTask.Result;
+
+        // Keycloak listede rolleri vermez; her kullanıcı için ayrı okunur (sayfa başına en fazla PageSize istek, birlikte).
         var roles = await Task.WhenAll(users.Select(user => _keycloak.GetRealmRolesAsync(user.Id, cancellationToken)));
 
-        return new SearchUsersResponse
+        return new PagedResult<SearchUsersResponse>
         {
-            HasMore = found.Count > PageSize,
-            Users = users.Select((user, index) => new SearchUsersItem
+            Items = users.Select((user, index) => new SearchUsersResponse
             {
                 Id = user.Id,
                 Email = user.Email,
@@ -39,7 +40,10 @@ public sealed class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, 
                 Enabled = user.Enabled,
                 EmailVerified = user.EmailVerified,
                 Roles = AssignableRoles.All.Where(roles[index].Contains).ToList()
-            }).ToList()
+            }).ToList(),
+            TotalCount = totalTask.Result,
+            Page = request.Page,
+            PageSize = request.PageSize
         };
     }
 }

@@ -109,26 +109,28 @@ public sealed class RoleManagementTests
 
         var result = await new SearchUsersQueryHandler(_keycloak).Handle(new SearchUsersQuery { Search = " kapi " }, Ct);
 
-        var user = Assert.Single(result.Users);
-        Assert.False(result.HasMore);
+        var user = Assert.Single(result.Items);
+        Assert.Equal(1, result.TotalCount);
         Assert.Equal([AssignableRoles.GateStaff], user.Roles);
         Assert.Equal("kapi@gise.local", user.Email);
     }
 
     [Fact]
-    public async Task Empty_search_lists_everyone_in_pages_of_20()
+    public async Task Empty_search_lists_everyone_in_pages_of_10_with_total()
     {
-        for (var i = 0; i < 45; i++)
+        for (var i = 0; i < 25; i++)
             _keycloak.Users.Add(new KeycloakUser(Guid.NewGuid().ToString(), $"kullanici{i:00}@gise.local", null, null, true, true));
         var handler = new SearchUsersQueryHandler(_keycloak);
 
         var first = await handler.Handle(new SearchUsersQuery(), Ct);
-        var third = await handler.Handle(new SearchUsersQuery { First = 40 }, Ct);
+        var third = await handler.Handle(new SearchUsersQuery { Page = 3 }, Ct);
 
-        Assert.Equal(20, first.Users.Count);
-        Assert.True(first.HasMore);
-        Assert.Equal(5, third.Users.Count);
-        Assert.False(third.HasMore);
+        Assert.Equal(10, first.Items.Count);
+        Assert.Equal("kullanici00@gise.local", first.Items[0].Email);
+        Assert.Equal(25, first.TotalCount);
+        Assert.Equal((1, 10), (first.Page, first.PageSize));
+        Assert.Equal(5, third.Items.Count);
+        Assert.Equal("kullanici20@gise.local", third.Items[0].Email);
     }
 
     [Theory]
@@ -139,4 +141,12 @@ public sealed class RoleManagementTests
     [InlineData("ay", true)]
     public void Search_is_empty_or_at_least_two_characters(string? search, bool valid)
         => Assert.Equal(valid, new SearchUsersQueryValidator().Validate(new SearchUsersQuery { Search = search }).IsValid);
+
+    [Theory]
+    [InlineData(1, 10, true)]
+    [InlineData(0, 10, false)]
+    [InlineData(1, 0, false)]
+    [InlineData(1, 51, false)]
+    public void Page_and_page_size_are_bounded(int page, int pageSize, bool valid)
+        => Assert.Equal(valid, new SearchUsersQueryValidator().Validate(new SearchUsersQuery { Page = page, PageSize = pageSize }).IsValid);
 }

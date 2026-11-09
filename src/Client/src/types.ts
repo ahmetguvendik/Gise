@@ -410,10 +410,12 @@ export interface AccountActivity {
   ipAddress: string | null
 }
 
-/** Admin'in kullanıcı listesinin bir sayfası (identity-api); hasMore: sonraki sayfa var mı. */
-export interface ManagedUserPage {
-  users: ManagedUser[]
-  hasMore: boolean
+/** Sayfalı liste (Telgraf'taki PagedResult); page 1'den başlar. */
+export interface PagedResult<T> {
+  items: T[]
+  totalCount: number
+  page: number
+  pageSize: number
 }
 
 /** Admin'in kullanıcı listesindeki kayıt. roles: uygulamadan yönetilen rollerden kullanıcıda olanlar. */

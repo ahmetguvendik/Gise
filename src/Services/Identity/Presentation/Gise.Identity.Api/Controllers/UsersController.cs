@@ -1,4 +1,5 @@
 using Gise.Exceptions;
+using Gise.Identity.Application.Common;
 using Gise.Identity.Api.Authentication;
 using Gise.Identity.Application.Features.Commands.User.Request;
 using Gise.Identity.Application.Features.Queries.User.Request;
@@ -23,10 +24,10 @@ public sealed class UsersController : ControllerBase
         _mediator = mediator;
     }
 
-    // search boşsa bütün kullanıcılar, doluysa e-posta, ad ya da soyadda geçen (2-100 karakter); first sayfanın başı.
-    // 20'şerli, uygulamadan yönetilen rolleriyle; hasMore sonraki sayfa var mı.
+    // search boşsa bütün kullanıcılar, doluysa e-posta, ad ya da soyadda geçen (2-100 karakter). page 1'den başlar,
+    // pageSize en fazla 50 (varsayılan 10); her kullanıcı uygulamadan yönetilen rolleriyle. totalCount toplam kullanıcı.
     [HttpGet]
-    public async Task<ActionResult<SearchUsersResponse>> Search([FromQuery] SearchUsersQuery query, CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResult<SearchUsersResponse>>> Search([FromQuery] SearchUsersQuery query, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 
     // Zaten varsa da 204.
