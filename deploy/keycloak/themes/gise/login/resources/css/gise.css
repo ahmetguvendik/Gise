@@ -103,7 +103,8 @@
   border: 1px solid var(--gise-border);
   border-radius: 22px;
   box-shadow: var(--gise-shadow);
-  overflow: hidden;
+  /* overflow: hidden verilmez: "girişi yeniden başlat" düğmesinin gizli ipucu karttan taşar; kırpılan kutu odaklanınca
+     içeriği yana kaydırıyordu (kod ekranı). */
 }
 .pf-v5-c-login__main-header { border-top: 0; padding-top: 32px; }
 #kc-page-title {
@@ -212,6 +213,20 @@ a:hover { color: var(--gise-link-hover); }
   --pf-v5-c-button--m-primary--active--Color: var(--gise-surface);
 }
 
+/* "Girişi yeniden başlat" ipucu düğmenin sağına değil üstüne açılır: sağda karttan ve telefonda ekrandan taşıyordu. */
+.kc-login-tooltip .kc-tooltip-text {
+  top: auto;
+  left: auto;
+  right: 0;
+  bottom: calc(100% + 8px);
+  border-radius: 10px;
+  background: var(--gise-text);
+  color: var(--gise-surface);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.kc-login-tooltip .kc-tooltip-text::after { display: none; }
+
 /* ---- Onay kutusu ---- */
 .pf-v5-c-check__input { accent-color: var(--gise-accent); width: 18px; height: 18px; }
 
@@ -231,6 +246,68 @@ a:hover { color: var(--gise-link-hover); }
 
 /* ---- Alt bilgi ("Yeni kullanıcı? Kayıt ol") ---- */
 .pf-v5-c-login__main-footer-band { border-top: 1px solid var(--gise-border); color: var(--gise-muted); }
+
+/* ---- Doğrulama kodu: 6 kare (js/otp-boxes.js) ----
+   Gerçek alan karelerin üstünde ve görünmez; yazılanı kareler gösterir, sıradaki kare vurgulu. */
+.pf-v5-c-form-control.gise-otp {
+  /* PatternFly alanı ızgara yapar (alan + simge sütunu); kareler bütün genişliği alsın. */
+  display: block;
+  position: relative;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.pf-v5-c-form-control.gise-otp:focus-within { box-shadow: none; }
+.gise-otp .pf-v5-c-form-control__utilities { display: none; }
+.gise-otp__boxes {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.gise-otp__box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 62px;
+  border: 2px solid var(--gise-border-strong);
+  border-radius: 14px;
+  background: var(--gise-surface);
+  color: var(--gise-text);
+  font-family: var(--gise-font-display);
+  font-size: 28px;
+  font-weight: 800;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.gise-otp__box.is-active {
+  border-color: var(--gise-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gise-accent) 22%, transparent);
+}
+/* Boş ve sıradaki karede yanıp sönen imleç. */
+.gise-otp__box.is-active:empty::after {
+  content: '';
+  width: 2px;
+  height: 28px;
+  background: var(--gise-accent);
+  animation: gise-caret 1s steps(1) infinite;
+}
+@keyframes gise-caret { 50% { opacity: 0; } }
+.gise-otp.pf-m-error .gise-otp__box { border-color: var(--gise-danger-text); }
+.pf-v5-c-form-control.gise-otp > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  opacity: 0;
+  font-size: 16px; /* iOS 16 px altında alana yakınlaştırır */
+  cursor: text;
+}
+@media (max-width: 400px) {
+  .gise-otp__boxes { gap: 6px; }
+  .gise-otp__box { height: 54px; font-size: 24px; }
+}
 
 /* İki aşamalı doğrulama kurulumundaki QR kodu koyu zeminde de okunsun. */
 #kc-totp-secret-qr-code { background: #fff; padding: 8px; border-radius: 14px; }
