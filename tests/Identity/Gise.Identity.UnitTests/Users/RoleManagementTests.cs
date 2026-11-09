@@ -110,10 +110,11 @@ public sealed class RoleManagementTests
     }
 
     [Theory]
+    [InlineData(null, true)]
     [InlineData("", true)]
     [InlineData("   ", true)]
     [InlineData("a", false)]
     [InlineData("ay", true)]
-    public void Search_is_empty_or_at_least_two_characters(string search, bool valid)
+    public void Search_is_empty_or_at_least_two_characters(string? search, bool valid)
         => Assert.Equal(valid, new SearchUsersQueryValidator().Validate(new SearchUsersQuery { Search = search }).IsValid);
 }

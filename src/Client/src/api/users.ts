@@ -5,7 +5,7 @@ import { request } from './http'
 export const usersApi = {
   // search boşsa bütün kullanıcılar; 20'şerli, first sayfanın başı.
   search: (search: string, first: number, token: string) =>
-    request<ManagedUserPage>(`/api/users?search=${encodeURIComponent(search)}&first=${first}`, { token }),
+    request<ManagedUserPage>(`/api/users?${search ? `search=${encodeURIComponent(search)}&` : ''}first=${first}`, { token }),
 
   grantRole: (id: string, role: string, token: string) =>
     request<void>(`/api/users/${id}/roles/${encodeURIComponent(role)}`, { method: 'PUT', token }),

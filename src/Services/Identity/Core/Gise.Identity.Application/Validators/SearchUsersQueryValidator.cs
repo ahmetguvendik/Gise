@@ -9,7 +9,7 @@ public sealed class SearchUsersQueryValidator : AbstractValidator<SearchUsersQue
     {
         // Boşsa bütün kullanıcılar; tek harf neredeyse herkesle eşleşir.
         RuleFor(x => x.Search)
-            .Must(search => search.Trim().Length is 0 or (>= 2 and <= 100))
+            .Must(search => (search ?? string.Empty).Trim().Length is 0 or (>= 2 and <= 100))
             .WithMessage("Aramak için 2 ile 100 karakter arasında yazın.");
 
         RuleFor(x => x.First)
