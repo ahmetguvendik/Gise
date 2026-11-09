@@ -23,9 +23,10 @@ public sealed class UsersController : ControllerBase
         _mediator = mediator;
     }
 
-    // search: e-posta, ad ya da soyadda geçen (2-100 karakter). En fazla 20 kullanıcı, uygulamadan yönetilen rolleriyle.
+    // search boşsa bütün kullanıcılar, doluysa e-posta, ad ya da soyadda geçen (2-100 karakter); first sayfanın başı.
+    // 20'şerli, uygulamadan yönetilen rolleriyle; hasMore sonraki sayfa var mı.
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<SearchUsersResponse>>> Search([FromQuery] SearchUsersQuery query, CancellationToken cancellationToken)
+    public async Task<ActionResult<SearchUsersResponse>> Search([FromQuery] SearchUsersQuery query, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(query, cancellationToken));
 
     // Zaten varsa da 204.

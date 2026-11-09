@@ -87,8 +87,33 @@ public sealed class RoleManagementTests
 
         var result = await new SearchUsersQueryHandler(_keycloak).Handle(new SearchUsersQuery { Search = " kapi " }, Ct);
 
-        var user = Assert.Single(result);
+        var user = Assert.Single(result.Users);
+        Assert.False(result.HasMore);
         Assert.Equal([AssignableRoles.GateStaff], user.Roles);
         Assert.Equal("kapi@gise.local", user.Email);
     }
+
+    [Fact]
+    public async Task Empty_search_lists_everyone_in_pages_of_20()
+    {
+        for (var i = 0; i < 45; i++)
+            _keycloak.Users.Add(new KeycloakUser(Guid.NewGuid().ToString(), $"kullanici{i:00}@gise.local", null, null, true, true));
+        var handler = new SearchUsersQueryHandler(_keycloak);
+
+        var first = await handler.Handle(new SearchUsersQuery(), Ct);
+        var third = await handler.Handle(new SearchUsersQuery { First = 40 }, Ct);
+
+        Assert.Equal(20, first.Users.Count);
+        Assert.True(first.HasMore);
+        Assert.Equal(5, third.Users.Count);
+        Assert.False(third.HasMore);
+    }
+
+    [Theory]
+    [InlineData("", true)]
+    [InlineData("   ", true)]
+    [InlineData("a", false)]
+    [InlineData("ay", true)]
+    public void Search_is_empty_or_at_least_two_characters(string search, bool valid)
+        => Assert.Equal(valid, new SearchUsersQueryValidator().Validate(new SearchUsersQuery { Search = search }).IsValid);
 }

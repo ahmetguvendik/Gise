@@ -9,8 +9,13 @@ public sealed class FakeUserAdmin : IKeycloakUserAdmin
     public List<KeycloakUser> Users { get; } = [];
     public Dictionary<string, HashSet<string>> Roles { get; } = [];
 
-    public Task<IReadOnlyList<KeycloakUser>> SearchUsersAsync(string search, int max, CancellationToken cancellationToken = default)
-        => Task.FromResult<IReadOnlyList<KeycloakUser>>(Users.Where(u => u.Email.Contains(search, StringComparison.OrdinalIgnoreCase)).Take(max).ToList());
+    public Task<IReadOnlyList<KeycloakUser>> SearchUsersAsync(string search, int first, int max, CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<KeycloakUser>>(Users
+            .Where(u => search.Length == 0 || u.Email.Contains(search, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(u => u.Email, StringComparer.Ordinal)
+            .Skip(first)
+            .Take(max)
+            .ToList());
 
     public Task<IReadOnlyList<string>> GetRealmRolesAsync(string userId, CancellationToken cancellationToken = default)
         => Task.FromResult<IReadOnlyList<string>>(Roles.GetValueOrDefault(userId)?.ToList() ?? []);

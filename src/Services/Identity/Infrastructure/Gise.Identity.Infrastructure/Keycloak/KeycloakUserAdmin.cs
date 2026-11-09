@@ -29,10 +29,15 @@ public sealed class KeycloakUserAdmin : IKeycloakUserAdmin
             : throw new InvalidOperationException("Keycloak:AdminUrl ayarı eksik.");
     }
 
-    public async Task<IReadOnlyList<KeycloakUser>> SearchUsersAsync(string search, int max, CancellationToken cancellationToken = default)
+    // Servis hesapları listede yer almaz (Keycloak varsayılanı). Keycloak'ın araması varsayılan olarak baştan eşleşir
+    // ("gise", "admin@gise.local"u bulmaz); *…* ile içinde geçen aranır. Kullanıcının yazdığı * ve " atılır, aramanın
+    // biçimini değiştirmesin.
+    public async Task<IReadOnlyList<KeycloakUser>> SearchUsersAsync(string search, int first, int max, CancellationToken cancellationToken = default)
     {
+        var term = search.Replace("*", string.Empty).Replace("\"", string.Empty);
+        var filter = term.Length == 0 ? string.Empty : $"search={Uri.EscapeDataString($"*{term}*")}&";
         var users = await GetAsync<List<UserRepresentation>>(
-            $"/users?search={Uri.EscapeDataString(search)}&first=0&max={max}&briefRepresentation=true", userId: null, cancellationToken);
+            $"/users?{filter}first={first}&max={max}&briefRepresentation=true", userId: null, cancellationToken);
 
         return users
             .Where(u => !string.IsNullOrEmpty(u.Id))

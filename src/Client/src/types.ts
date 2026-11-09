@@ -410,7 +410,13 @@ export interface AccountActivity {
   ipAddress: string | null
 }
 
-/** Admin'in kullanıcı aramasındaki kayıt (identity-api). roles: uygulamadan yönetilen rollerden kullanıcıda olanlar. */
+/** Admin'in kullanıcı listesinin bir sayfası (identity-api); hasMore: sonraki sayfa var mı. */
+export interface ManagedUserPage {
+  users: ManagedUser[]
+  hasMore: boolean
+}
+
+/** Admin'in kullanıcı listesindeki kayıt. roles: uygulamadan yönetilen rollerden kullanıcıda olanlar. */
 export interface ManagedUser {
   id: string
   email: string

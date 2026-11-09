@@ -602,3 +602,4 @@ a:hover { color: var(--link-hover); }
 .role-toggle.is-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .role-toggle.is-on:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--on-accent); }
 .role-toggle:disabled { opacity: 0.55; cursor: not-allowed; }
+.users-more { justify-self: start; }

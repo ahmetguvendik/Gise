@@ -7,8 +7,8 @@ namespace Gise.Identity.Application.Interfaces;
 // Keycloak'a ulaşılamazsa ServiceUnavailableException.
 public interface IKeycloakUserAdmin
 {
-    // E-posta, ad ya da soyadda geçenler; en fazla max kullanıcı.
-    Task<IReadOnlyList<KeycloakUser>> SearchUsersAsync(string search, int max, CancellationToken cancellationToken = default);
+    // search boşsa bütün kullanıcılar, doluysa e-posta, ad ya da soyadda geçenler; first'ten başlayarak en fazla max.
+    Task<IReadOnlyList<KeycloakUser>> SearchUsersAsync(string search, int first, int max, CancellationToken cancellationToken = default);
 
     // Kullanıcıya doğrudan verilmiş realm rolleri (varsayılan rol grubu dahil, içindekiler açılmadan).
     Task<IReadOnlyList<string>> GetRealmRolesAsync(string userId, CancellationToken cancellationToken = default);

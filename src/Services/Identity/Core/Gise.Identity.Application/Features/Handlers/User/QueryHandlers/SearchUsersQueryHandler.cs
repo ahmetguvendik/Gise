@@ -6,10 +6,10 @@ using MediatR;
 
 namespace Gise.Identity.Application.Features.Handlers.User.QueryHandlers;
 
-public sealed class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, IReadOnlyList<SearchUsersResponse>>
+public sealed class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, SearchUsersResponse>
 {
-    // Bir aramada en fazla bu kadar kullanıcı; her birinin rolleri ayrı istekle okunur.
-    private const int MaxResults = 20;
+    // Sayfadaki kullanıcı sayısı; her birinin rolleri ayrı istekle okunur.
+    private const int PageSize = 20;
 
     private readonly IKeycloakUserAdmin _keycloak;
 
@@ -18,22 +18,28 @@ public sealed class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, 
         _keycloak = keycloak;
     }
 
-    public async Task<IReadOnlyList<SearchUsersResponse>> Handle(SearchUsersQuery request, CancellationToken cancellationToken)
+    public async Task<SearchUsersResponse> Handle(SearchUsersQuery request, CancellationToken cancellationToken)
     {
-        var users = await _keycloak.SearchUsersAsync(request.Search.Trim(), MaxResults, cancellationToken);
+        // Bir fazlası istenir: geldiyse sonraki sayfa var (ayrıca sayım isteği gerekmez).
+        var found = await _keycloak.SearchUsersAsync(request.Search.Trim(), request.First, PageSize + 1, cancellationToken);
+        var users = found.Take(PageSize).ToList();
 
-        // Keycloak arama sonucunda rolleri vermez; her kullanıcı için ayrı okunur (en fazla 20 istek, birlikte).
+        // Keycloak listede rolleri vermez; her kullanıcı için ayrı okunur (en fazla 20 istek, birlikte).
         var roles = await Task.WhenAll(users.Select(user => _keycloak.GetRealmRolesAsync(user.Id, cancellationToken)));
 
-        return users.Select((user, index) => new SearchUsersResponse
+        return new SearchUsersResponse
         {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Enabled = user.Enabled,
-            EmailVerified = user.EmailVerified,
-            Roles = AssignableRoles.All.Where(roles[index].Contains).ToList()
-        }).ToList();
+            HasMore = found.Count > PageSize,
+            Users = users.Select((user, index) => new SearchUsersItem
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Enabled = user.Enabled,
+                EmailVerified = user.EmailVerified,
+                Roles = AssignableRoles.All.Where(roles[index].Contains).ToList()
+            }).ToList()
+        };
     }
 }
