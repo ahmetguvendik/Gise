@@ -101,6 +101,20 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": true,
       "frontchannelLogout": false
+    },
+    {
+      "clientId": "gise-identity-roles",
+      "name": "Gişe Identity rol yönetimi (servis hesabı)",
+      "description": "identity-api'de admin'in kullanıcı arama ve rol verme/alma işleri; query-users, view-users, manage-users.",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${IDENTITY_ROLES_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "frontchannelLogout": false
     }
   ],
   "users": [
@@ -109,6 +123,12 @@
       "enabled": true,
       "serviceAccountClientId": "gise-identity",
       "clientRoles": { "realm-management": ["view-events"] }
+    },
+    {
+      "username": "service-account-gise-identity-roles",
+      "enabled": true,
+      "serviceAccountClientId": "gise-identity-roles",
+      "clientRoles": { "realm-management": ["query-users", "view-users", "manage-users"] }
     }
   ],
   "eventsEnabled": true,

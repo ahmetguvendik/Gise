@@ -17,6 +17,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { OrderPage } from './pages/OrderPage'
 import { PendingEventsPage } from './pages/PendingEventsPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { UsersPage } from './pages/UsersPage'
 import { VenueEditorPage } from './pages/VenueEditorPage'
 import { VenuesPage } from './pages/VenuesPage'
 import './index.css'
@@ -95,6 +96,14 @@ createRoot(document.getElementById('root')!).render(
                 element={
                   <Guard roles={['admin']}>
                     <PendingEventsPage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="kullanicilar"
+                element={
+                  <Guard roles={['admin']}>
+                    <UsersPage />
                   </Guard>
                 }
               />

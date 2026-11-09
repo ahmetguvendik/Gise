@@ -8,6 +8,12 @@ public class BusinessException : AppException
     {
     }
 
+    // Admin kendi admin rolünü kaldıramaz: sistem hiçbir an adminsiz kalmasın (işlemi yapan hep admin).
+    public static BusinessException CannotRevokeOwnAdmin() => new(
+        ErrorCodes.User.CannotRevokeOwnAdmin,
+        "Kendi yönetici rolünüzü kaldıramazsınız.",
+        "Admin rolü başka bir admin tarafından alınabilir.");
+
     public static BusinessException VenueHasEvents(Guid venueId) => new(
         ErrorCodes.Venue.HasEvents,
         "Bu mekânda etkinlik olduğu için bölüm düzeni değiştirilemez ve mekân silinemez.",

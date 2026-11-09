@@ -48,6 +48,7 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       # Identity servislerinin servis hesabı (gise-identity); realm JSON'undaki yer tutucu ilk kurulumda bununla dolar.
       IDENTITY_CLIENT_SECRET: ${IDENTITY_CLIENT_SECRET:?deploy/.env içinde IDENTITY_CLIENT_SECRET tanımlı olmalı}
+      IDENTITY_ROLES_CLIENT_SECRET: ${IDENTITY_ROLES_CLIENT_SECRET:?deploy/.env içinde IDENTITY_ROLES_CLIENT_SECRET tanımlı olmalı}
     # Yalnızca yönetim konsolu için ve yalnızca bu makineden (http://localhost:8180/auth/admin); uygulama trafiği
     # gateway'den. Canlıda bu port açılmaz.
     ports:
@@ -738,8 +739,9 @@ services:
       reservation-api:
         condition: service_healthy
 
-  # Hesap: giriş geçmişi (Keycloak olayları). Veritabanı yok; Keycloak yönetim API'sini yalnızca olay okuma yetkili servis
-  # hesabıyla (gise-identity) çağırır.
+  # Hesap ve kullanıcılar: giriş geçmişi (Keycloak olayları) ve admin'in rol verme/alma işleri. Veritabanı yok. Keycloak
+  # yönetim API'sini iki ayrı servis hesabıyla çağırır: gise-identity (yalnızca olay okuma) ve gise-identity-roles
+  # (kullanıcı arama, rol verme).
   identity-api:
     image: gise/identity-api:dev
     build:
@@ -752,6 +754,7 @@ services:
       Keycloak__PublicAuthority: http://localhost:8000/auth/realms/gise
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__ServiceClientSecret: ${IDENTITY_CLIENT_SECRET}
+      Keycloak__RolesClientSecret: ${IDENTITY_ROLES_CLIENT_SECRET}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
       interval: 10s

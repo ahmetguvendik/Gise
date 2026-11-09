@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Gise.Authentication;
+using Gise.Identity.Api.Authentication;
 using Gise.Identity.Api.ErrorHandling;
 using Gise.Identity.Application;
 using Gise.Identity.Infrastructure;
@@ -29,10 +30,11 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
     context.ProblemDetails.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
 });
 
-// Uçların hepsi yalnızca giriş ister; role bağlı policy yok.
-builder.Services.AddKeycloakAuthentication(builder.Configuration);
+builder.Services.AddKeycloakAuthentication(builder.Configuration).AddIdentityPolicies();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+// Rol yönetimi ayrı servis hesabıyla (gise-identity-roles); yalnızca bu API'de.
+builder.Services.AddRoleAdministration(builder.Configuration);
 
 // Veritabanı yok; kullanıcılar ve olaylar Keycloak'ta.
 builder.Services.AddHealthChecks()

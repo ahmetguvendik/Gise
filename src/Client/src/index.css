@@ -575,3 +575,30 @@ a:hover { color: var(--link-hover); }
 .activity__label { font-weight: 600; }
 .activity__meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); font-size: 15px; }
 .activity__item--failed .activity__label { color: var(--warning-text); }
+
+/* Kullanıcılar (admin) */
+.users-search { max-width: 640px; }
+.user-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.user-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; padding: 20px 24px; }
+.user-row__who { display: grid; gap: 4px; min-width: 0; }
+.user-row__who .muted { overflow-wrap: anywhere; }
+.user-row__badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.user-row__badges:empty { display: none; }
+.user-row__roles { display: flex; flex-wrap: wrap; gap: 8px; }
+.role-toggle {
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 2px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+.role-toggle:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+.role-toggle.is-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.role-toggle.is-on:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--on-accent); }
+.role-toggle:disabled { opacity: 0.55; cursor: not-allowed; }

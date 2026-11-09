@@ -163,6 +163,9 @@ endpoint search-suggest GET /api/search/suggest search search "Yazarken öneri"
 
 echo "Identity: hesap"
 endpoint account-activity GET /api/account/activity identity account "Son girişler ve hesap güvenliği hareketleri"
+endpoint users-search      GET    /api/users                  identity users "Kullanıcı arama (admin)"
+endpoint users-role-grant  PUT    /api/users/:id/roles/:role  identity users "Rol verme (admin)"
+endpoint users-role-revoke DELETE /api/users/:id/roles/:role  identity users "Rol alma (admin)"
 
 echo "SeatMap"
 # Koltuk haritasının anlık güncellenmesi: SignalR, yalnızca WebSocket (istemci negotiate adımını atlar). Her bağlantı

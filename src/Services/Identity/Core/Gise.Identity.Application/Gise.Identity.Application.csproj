@@ -3,6 +3,10 @@
     <ProjectReference Include="..\..\..\..\Shared\Gise.Exceptions\Gise.Exceptions.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="MediatR" />
+    <!-- Denetim satırının alanları LogContext ile eklenir (bkz. Behaviors/CommandLoggingBehavior). -->
+    <PackageReference Include="Serilog" />
   </ItemGroup>
 </Project>

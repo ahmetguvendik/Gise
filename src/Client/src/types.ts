@@ -409,3 +409,14 @@ export interface AccountActivity {
   credentialType: string | null
   ipAddress: string | null
 }
+
+/** Admin'in kullanıcı aramasındaki kayıt (identity-api). roles: uygulamadan yönetilen rollerden kullanıcıda olanlar. */
+export interface ManagedUser {
+  id: string
+  email: string
+  firstName: string | null
+  lastName: string | null
+  enabled: boolean
+  emailVerified: boolean
+  roles: string[]
+}

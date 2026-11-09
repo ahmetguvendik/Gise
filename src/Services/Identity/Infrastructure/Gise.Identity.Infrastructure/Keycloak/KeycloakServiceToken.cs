@@ -1,12 +1,12 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Gise.Exceptions;
-using Microsoft.Extensions.Configuration;
 
 namespace Gise.Identity.Infrastructure.Keycloak;
 
-// gise-identity servis hesabının token'ı (client credentials). Süresi bitmeden 30 sn önce yenilenir; her çağrıda yeni token
-// istenmez. Gizli anahtar compose'dan ortam değişkeniyle gelir (deploy/.env, IDENTITY_CLIENT_SECRET).
+// Bir servis hesabının token'ı (client credentials). Süresi bitmeden 30 sn önce yenilenir; her çağrıda yeni token
+// istenmez. İki hesap var, her biri ayrı örnek (ServiceRegistration): gise-identity (olayları okur) ve
+// gise-identity-roles (kullanıcı arar, rol verir). Gizli anahtarlar compose'dan ortam değişkeniyle gelir (deploy/.env).
 public sealed class KeycloakServiceToken
 {
     private static readonly TimeSpan RenewBefore = TimeSpan.FromSeconds(30);
@@ -21,19 +21,13 @@ public sealed class KeycloakServiceToken
     private string? _token;
     private DateTimeOffset _renewAt;
 
-    public KeycloakServiceToken(IHttpClientFactory httpClientFactory, TimeProvider clock, IConfiguration configuration)
+    public KeycloakServiceToken(IHttpClientFactory httpClientFactory, TimeProvider clock, string tokenUrl, string clientId, string clientSecret)
     {
         _httpClientFactory = httpClientFactory;
         _clock = clock;
-
-        var keycloak = configuration.GetRequiredSection("Keycloak");
-        string Required(string key) => keycloak[key] is { Length: > 0 } value
-            ? value
-            : throw new InvalidOperationException($"Keycloak:{key} ayarı eksik.");
-
-        _tokenUrl = $"{Required("InternalAuthority")}/protocol/openid-connect/token";
-        _clientId = Required("ServiceClientId");
-        _clientSecret = Required("ServiceClientSecret");
+        _tokenUrl = tokenUrl;
+        _clientId = clientId;
+        _clientSecret = clientSecret;
     }
 
     public async Task<string> GetAsync(CancellationToken cancellationToken)
@@ -67,7 +61,7 @@ public sealed class KeycloakServiceToken
 
             using (response)
             {
-                // 401: gizli anahtar Keycloak'takiyle aynı değil (bkz. deploy/.env IDENTITY_CLIENT_SECRET).
+                // 401: gizli anahtar Keycloak'takiyle aynı değil (bkz. deploy/.env).
                 if (!response.IsSuccessStatusCode)
                     throw ServiceUnavailableException.Keycloak($"Servis hesabı token'ı alınamadı (HTTP {(int)response.StatusCode}).");
 

@@ -1,10 +1,9 @@
-using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Gise.Exceptions;
 using Gise.Identity.Application.Auditing;
 using Gise.Identity.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Gise.Identity.Infrastructure.Keycloak;
 
@@ -16,7 +15,10 @@ public sealed class KeycloakAdminClient : IKeycloakAdminClient
     private readonly KeycloakServiceToken _token;
     private readonly string _adminUrl;
 
-    public KeycloakAdminClient(IHttpClientFactory httpClientFactory, KeycloakServiceToken token, IConfiguration configuration)
+    public KeycloakAdminClient(
+        IHttpClientFactory httpClientFactory,
+        [FromKeyedServices(ServiceRegistration.EventsAccount)] KeycloakServiceToken token,
+        IConfiguration configuration)
     {
         _httpClientFactory = httpClientFactory;
         _token = token;
@@ -38,29 +40,13 @@ public sealed class KeycloakAdminClient : IKeycloakAdminClient
             query.Add($"user={Uri.EscapeDataString(userId)}");
 
         using var request = new HttpRequestMessage(HttpMethod.Get, $"{_adminUrl}/events?{string.Join('&', query)}");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _token.GetAsync(cancellationToken));
+        using var response = await KeycloakAdminHttp.SendAsync(_httpClientFactory, _token, request, cancellationToken);
 
-        HttpResponseMessage response;
-        try
-        {
-            response = await _httpClientFactory.CreateClient(ServiceRegistration.HttpClientName).SendAsync(request, cancellationToken);
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
-        {
-            throw ServiceUnavailableException.Keycloak($"Keycloak olayları okunamadı: {ex.Message}");
-        }
+        if (!response.IsSuccessStatusCode)
+            throw ServiceUnavailableException.Keycloak($"Keycloak olayları okunamadı (HTTP {(int)response.StatusCode}).");
 
-        using (response)
-        {
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-                _token.Invalidate();
-
-            if (!response.IsSuccessStatusCode)
-                throw ServiceUnavailableException.Keycloak($"Keycloak olayları okunamadı (HTTP {(int)response.StatusCode}).");
-
-            var events = await response.Content.ReadFromJsonAsync<List<EventRepresentation>>(cancellationToken) ?? [];
-            return events.Select(ToSecurityEvent).ToList();
-        }
+        var events = await response.Content.ReadFromJsonAsync<List<EventRepresentation>>(cancellationToken) ?? [];
+        return events.Select(ToSecurityEvent).ToList();
     }
 
     private static KeycloakSecurityEvent ToSecurityEvent(EventRepresentation e) => new()

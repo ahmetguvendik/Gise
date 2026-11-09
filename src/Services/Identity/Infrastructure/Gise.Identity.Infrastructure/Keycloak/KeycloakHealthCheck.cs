@@ -1,14 +1,15 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Gise.Identity.Infrastructure.Keycloak;
 
-// Servis hesabıyla token alınabiliyor mu: Keycloak açık ve gizli anahtar doğru. Token önbellekte olduğundan çoğu kontrol
-// Keycloak'a gitmez.
+// Olay okuyan servis hesabıyla (gise-identity) token alınabiliyor mu: Keycloak açık ve gizli anahtar doğru. Token
+// önbellekte olduğundan çoğu kontrol Keycloak'a gitmez.
 public sealed class KeycloakHealthCheck : IHealthCheck
 {
     private readonly KeycloakServiceToken _token;
 
-    public KeycloakHealthCheck(KeycloakServiceToken token)
+    public KeycloakHealthCheck([FromKeyedServices(ServiceRegistration.EventsAccount)] KeycloakServiceToken token)
     {
         _token = token;
     }

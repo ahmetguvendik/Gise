@@ -98,6 +98,12 @@ public static class ErrorCodes
         public const string TransferNotPending = "TICKET_TRANSFER_NOT_PENDING";
     }
 
+    public static class User
+    {
+        public const string NotFound = "USER_NOT_FOUND";
+        public const string CannotRevokeOwnAdmin = "USER_CANNOT_REVOKE_OWN_ADMIN";
+    }
+
     public static class Price
     {
         public const string SectionNotInVenue = "PRICE_SECTION_NOT_IN_VENUE";

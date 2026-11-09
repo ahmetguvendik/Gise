@@ -8,6 +8,11 @@ public class NotFoundException : AppException
     {
     }
 
+    public static NotFoundException User(string id) => new(
+        ErrorCodes.User.NotFound,
+        "Kullanıcı bulunamadı.",
+        $"'{id}' ID'li kullanıcı Keycloak'ta yok.");
+
     public static NotFoundException Venue(Guid id) => new(
         ErrorCodes.Venue.NotFound,
         "Mekân bulunamadı.",

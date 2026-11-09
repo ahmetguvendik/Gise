@@ -15,7 +15,7 @@ public class ServiceUnavailableException : AppException
 
     public static ServiceUnavailableException Keycloak(string description) => new(
         ErrorCodes.General.ServiceUnavailable,
-        "Hesap hareketleri şu an alınamıyor; biraz sonra tekrar deneyin.",
+        "Kimlik sistemine şu an ulaşılamıyor; biraz sonra tekrar deneyin.",
         description);
 
     public static ServiceUnavailableException PaymentProvider() => new(
