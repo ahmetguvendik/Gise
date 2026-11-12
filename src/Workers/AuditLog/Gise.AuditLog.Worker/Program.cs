@@ -1,4 +1,4 @@
-using Gise.Audit.StoreWorker;
+using Gise.AuditLog.Worker;
 using Gise.HealthChecks;
 using Gise.Logging;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -7,8 +7,8 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Loglar Kafka üzerinden Elasticsearch'e, izler Elastic APM'e (bkz. tasarım 8).
-builder.UseAppLogging("audit-store-worker");
-builder.UseAppApm("audit-store-worker");
+builder.UseAppLogging("audit-log-worker");
+builder.UseAppApm("audit-log-worker");
 
 builder.Services.AddDbContext<AuditDbContext>(options => options
     .UseNpgsql(builder.Configuration.GetConnectionString("Audit"))

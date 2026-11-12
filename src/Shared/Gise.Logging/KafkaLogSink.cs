@@ -58,7 +58,7 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
                     NumPartitions = partitions,
                     ReplicationFactor = 1,
                     // Logstash okuduktan sonra Kafka'da tutmaya gerek yok; kısa saklama. Denetim topic'i iki tüketici okur
-                    // (Logstash ve audit-store-worker); biri günlerce kapalı kalırsa satır kaybolmasın diye daha uzun.
+                    // (Logstash ve audit-log-worker); biri günlerce kapalı kalırsa satır kaybolmasın diye daha uzun.
                     Configs = new Dictionary<string, string> { ["retention.ms"] = ((long)(name == _auditTopic ? auditRetention : retention).TotalMilliseconds).ToString() }
                 }));
             }

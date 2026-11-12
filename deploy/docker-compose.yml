@@ -790,11 +790,11 @@ services:
 
   # Denetim satırlarını (logs.audit, kim ne yaptı) kalıcı denetim veritabanına (gise_audit) yazar. Elasticsearch'e giden akışla
   # (Logstash) aynı topic'i ayrı tüketici grubuyla okur. Veritabanının şemasını kendisi kurur (açılışta migration).
-  audit-store-worker:
-    image: gise/audit-store-worker:dev
+  audit-log-worker:
+    image: gise/audit-log-worker:dev
     build:
       context: ..
-      dockerfile: src/Workers/Audit/Gise.Audit.StoreWorker/Dockerfile
+      dockerfile: src/Workers/AuditLog/Gise.AuditLog.Worker/Dockerfile
     restart: unless-stopped
     init: true
     environment:

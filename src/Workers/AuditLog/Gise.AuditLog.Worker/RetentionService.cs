@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Gise.Audit.StoreWorker;
+namespace Gise.AuditLog.Worker;
 
 // Saklama süresi dolan denetim kayıtlarını siler (kişisel veri: kullanıcı kimliği ve IP; KVKK süresiz saklamaya izin vermez).
 // Tablodaki tek silme budur. Ayarlar appsettings'teki Retention bölümünden.

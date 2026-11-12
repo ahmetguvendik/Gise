@@ -4,7 +4,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Workers\Audit\Gise.Audit.StoreWorker\Gise.Audit.StoreWorker.csproj" />
+    <ProjectReference Include="..\..\..\src\Workers\AuditLog\Gise.AuditLog.Worker\Gise.AuditLog.Worker.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

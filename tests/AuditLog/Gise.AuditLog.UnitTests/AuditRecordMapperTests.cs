@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Gise.Audit.StoreWorker;
+using Gise.AuditLog.Worker;
 
-namespace Gise.Audit.UnitTests;
+namespace Gise.AuditLog.UnitTests;
 
 // Kafka'daki gerçek ECS satırlarının (Elastic.CommonSchema.Serilog) kolonlara çevrilmesi. Örnekler canlı akıştan alınıp
 // kısaltıldı: bilinen alanlar iç içe, diğerleri labels/metadata altında düz anahtarla.

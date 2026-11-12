@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Gise.Audit.StoreWorker;
+namespace Gise.AuditLog.Worker;
 
 // Denetim veritabanı (gise_audit). Şemayı bu worker kurar: başka servis bu veritabanına dokunmaz.
 public sealed class AuditDbContext(DbContextOptions<AuditDbContext> options) : DbContext(options)

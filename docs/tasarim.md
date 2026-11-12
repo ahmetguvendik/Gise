@@ -94,7 +94,7 @@ Desen bu projede **bilerek iki farklı şekilde** kullanılır:
 | Notification | `notification-inbox-worker` | Kafka'dan okur (`catalog.events`, `ticket.events`), inbox'a yazar ve işler (e-postalar) |
 | Search | `search-sync-worker` | Arama dizinini Catalog'dan (etkinlikler) ve Reservation'dan (koltuk durumu) gRPC ile dakikada bir baştan kurar; Kafka dinlemez |
 | Identity | `identity-audit-worker` | Keycloak'ın giriş ve hesap güvenliği olaylarını 30 sn'de bir okur, denetim loguna yazar; Kafka dinlemez |
-| Audit | `audit-store-worker` | Kafka'dan okur (`logs.audit`, kim ne yaptı), denetim veritabanına (`gise_audit`) yazar; offset yazma onaylanınca ilerler, tekrar gelen satır ikinci kez yazılmaz |
+| AuditLog | `audit-log-worker` | Kafka'dan okur (`logs.audit`, kim ne yaptı), denetim veritabanına (`gise_audit`) yazar; offset yazma onaylanınca ilerler, tekrar gelen satır ikinci kez yazılmaz |
 
 Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 
@@ -650,7 +650,7 @@ Bütün API ve worker'lar (Gise.Logging)
   │     API'ler: istekler, uyarı ve hatalar       logs.api      → logs-gise.api-default     (7 gün)
   │     worker'lar: loglar ve sistem adımları      logs.workers  → logs-gise.workers-default (7 gün)
   │     insanların yaptığı işlemler (denetim)      logs.audit    → logs-gise.audit-default   (1 yıl)
-  │                                                              → gise_audit.audit_records   (2 yıl, audit-store-worker)
+  │                                                              → gise_audit.audit_records   (2 yıl, audit-log-worker)
   └─ izler:  Elastic APM .NET ajanı → APM Server → traces-apm*, metrics-apm*
                                                          ↓
                                           Kibana (127.0.0.1:5601): Discover, APM
@@ -668,8 +668,8 @@ Bütün API ve worker'lar (Gise.Logging)
   - Her command bitince tek satır: **kim** (`actor.id`, `actor.roles`), **ne** (`event.action`, ör. `PublishEvent`), **hangi kayıt** (command ve yanıttaki kimlikler: `target.event.id`, `target.order.id`, `target.seat.ids`…; etkinlik başlığı ve mekân adı), **ne değişti** (EF Core'un kayıttan önceki değerleri: `Değişenler: Event.Status: Draft → Published`; aynı değişiklik birden çok satırdaysa adediyle), **sonuç** (`event.outcome`), `client.ip`, `trace.id`. Query'ler yazılmaz.
   - Telgraf'tan farkı: başarısız denemeler de yazılır (Warning, `event.outcome: failure`, `error.code`, istemcinin aldığı `http.response.status_code`: `CheckInTicket başarısız: TICKET_CHECKIN_NOT_OPEN (422, 9 ms)`), doğrulamaya takılanlar dahil.
   - Kişisel ve gizli veri girmez: e-posta, kişi adı, kart ve bilet kodu command'dan hiç alınmaz; değişikliklerde e-posta, kişi adı, bilet kodu ve PDF anahtarı için yalnızca "değişti" yazılır.
-  - `event.dataset: gise.audit` taşır; kullanıcısı olanlar `logs.audit` topic'ine gider ve **iki yere** yazılır (Telgraf'ta ayrı akış yoktu): **Elasticsearch**'e (Logstash, `logs-gise.audit-default`, 1 yıl; Kibana'da "Gişe denetim kayıtları", hızlı arama) ve **denetim veritabanına** (`audit-store-worker`, `gise_audit`, 2 yıl; kalıcı kayıt). İki tüketici aynı topic'i ayrı tüketici grubuyla okur, biri durunca öteki etkilenmez. Aynı aralıkta ikisinde de aynı olaylar bulunur (denendi: 27 olay, işlem ve sonuç kırılımı birebir aynı).
-  - **Kayıpsız yol:** denetim satırları öteki loglardan ayrı gider (`AuditKafkaSink`): onaylı yazma (`acks=all`, idempotent üretici), Serilog'un 10.000'lik kuyruğundan geçmez (kuyruk dolunca olay düşerdi), iletim 2 dakika denenir; iletilemezse satır tam metniyle stderr'e yazılır (konteyner loglarından kurtarılır). İşlemi bekletmez. Topic'te 7 gün saklanır (öteki log topic'leri 24 saat): `audit-store-worker` günlerce kapalı kalsa da satır kaybolmaz. Kalan boşluk: satır Kafka'ya gitmeden process çökerse kaybolur (birkaç milisaniyelik aralık); Kafka'ya hiç ulaşılamazsa satır yalnızca konsol logunda kalır.
+  - `event.dataset: gise.audit` taşır; kullanıcısı olanlar `logs.audit` topic'ine gider ve **iki yere** yazılır (Telgraf'ta ayrı akış yoktu): **Elasticsearch**'e (Logstash, `logs-gise.audit-default`, 1 yıl; Kibana'da "Gişe denetim kayıtları", hızlı arama) ve **denetim veritabanına** (`audit-log-worker`, `gise_audit`, 2 yıl; kalıcı kayıt). İki tüketici aynı topic'i ayrı tüketici grubuyla okur, biri durunca öteki etkilenmez. Aynı aralıkta ikisinde de aynı olaylar bulunur (denendi: 27 olay, işlem ve sonuç kırılımı birebir aynı).
+  - **Kayıpsız yol:** denetim satırları öteki loglardan ayrı gider (`AuditKafkaSink`): onaylı yazma (`acks=all`, idempotent üretici), Serilog'un 10.000'lik kuyruğundan geçmez (kuyruk dolunca olay düşerdi), iletim 2 dakika denenir; iletilemezse satır tam metniyle stderr'e yazılır (konteyner loglarından kurtarılır). İşlemi bekletmez. Topic'te 7 gün saklanır (öteki log topic'leri 24 saat): `audit-log-worker` günlerce kapalı kalsa da satır kaybolmaz. Kalan boşluk: satır Kafka'ya gitmeden process çökerse kaybolur (birkaç milisaniyelik aralık); Kafka'ya hiç ulaşılamazsa satır yalnızca konsol logunda kalır.
   - **Denetim veritabanı** (`audit_records`): kolonlar sorgu içindir (zaman, servis, `actor_id`, rol, işlem, sonuç, hata kodu, HTTP durumu, IP, `trace_id`, `target.*` alanları JSON olarak, özet mesaj: değişenler burada); satırın tamamı da ham `payload` (jsonb) olarak saklanır. Tekil kimlik Kafka konumu (topic, bölüm, offset): `event.id` satırlar arasında tekrar ediyor, kullanılmaz. Tablo yalnızca eklenir; tek silme saklama süresi dolanlardır (günde bir, 730 gün; IP ve kullanıcı kimliği kişisel veri, KVKK süresiz saklamaya izin vermez). Keycloak olaylarında zaman, olayın Keycloak'taki zamanıdır (`occurred_at`); satırın yazıldığı an `logged_at`. Şemayı worker kurar (açılışta migration; başka servis bu veritabanına dokunmaz).
   - **Güvence:** offset yalnızca satırlar veritabanına yazılıp transaction onaylandıktan sonra onaylanır; arada çökülürse mesajlar yeniden gelir, Kafka konumu tekil olduğu için ikinci kez yazılmaz (`ON CONFLICT DO NOTHING`). Yazılamayan parti geri sarılır ve yeniden denenir; bozuk JSON satırı bile ham metin olarak yazılır (hiçbir satır atılmaz, tüketici de tıkanmaz). Denendi: topic baştan oynatıldı (satır sayısı değişmedi), worker kapalıyken olan 4 işlem açılışta eksiksiz yazıldı, veritabanı erişilemezken olan işlemler bağlantı gelince eksiksiz ve bir kez yazıldı (bu sürede `/health/ready` 503, `/health/live` 200). Sağlık: heartbeat ve veritabanı.
   - **Kapsam dışı:** var olmayan hesapla denenen giriş (`user_not_found`) kullanıcısız olduğu için denetim akışına girmez (worker logunda kalır). Worker kurulmadan önce Kafka'dan silinmiş eski satırlar (24 saatlik eski saklama) veritabanına aktarılmadı; yalnızca Elasticsearch'te duruyorlar.
@@ -737,7 +737,7 @@ Gişe/
 │   │   ├── Payment/               # Gise.Payment.CommandWorker
 │   │   ├── Ticket/                # Gise.Ticket.CommandWorker, Gise.Ticket.InboxWorker, Gise.Ticket.OutboxWorker
 │   │   ├── Notification/          # Gise.Notification.InboxWorker
-│   │   ├── Audit/                 # Gise.Audit.StoreWorker (servisi yok; şemayı kendisi kurar)
+│   │   ├── AuditLog/              # Gise.AuditLog.Worker (servisi yok; şemayı kendisi kurar)
 │   │   ├── Search/                # Gise.Search.SyncWorker
 │   │   └── Identity/              # Gise.Identity.AuditWorker
 │   ├── Services/
@@ -745,7 +745,7 @@ Gişe/
 │   │   ├── Ticket/   Notification/  Search/  SeatMap/  Identity/
 │   └── Client/                    # React + Vite + React Router (Telgraf gibi): api/, auth/, components/, lib/, pages/
 ├── tests/
-│   ├── Audit/                     # Gise.Audit.UnitTests
+│   ├── AuditLog/                  # Gise.AuditLog.UnitTests
 │   ├── Catalog/                   # Gise.Catalog.UnitTests, Gise.Catalog.IntegrationTests
 │   └── Identity/                  # Gise.Identity.UnitTests
 └── Gise.slnx · global.json · Directory.Build.props · Directory.Packages.props

@@ -14,11 +14,11 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY Directory.Build.props Directory.Packages.props ./
 COPY src/Shared/ src/Shared/
-COPY src/Workers/Audit/Gise.Audit.StoreWorker/ src/Workers/Audit/Gise.Audit.StoreWorker/
+COPY src/Workers/AuditLog/Gise.AuditLog.Worker/ src/Workers/AuditLog/Gise.AuditLog.Worker/
 # NuGet paketleri build'ler arasında önbellekte kalır; kod değişince restore saniyeler sürer.
 RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet publish src/Workers/Audit/Gise.Audit.StoreWorker/Gise.Audit.StoreWorker.csproj -c Release -o /app/publish
+    dotnet publish src/Workers/AuditLog/Gise.AuditLog.Worker/Gise.AuditLog.Worker.csproj -c Release -o /app/publish
 
 FROM base AS final
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "Gise.Audit.StoreWorker.dll"]
+ENTRYPOINT ["dotnet", "Gise.AuditLog.Worker.dll"]

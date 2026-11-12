@@ -2,7 +2,7 @@ using Confluent.Kafka;
 using Gise.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
-namespace Gise.Audit.StoreWorker;
+namespace Gise.AuditLog.Worker;
 
 // Kafka'daki denetim satırlarını (logs.audit) denetim veritabanına yazar. Elasticsearch'e giden akış (Logstash) aynı topic'i
 // kendi tüketici grubuyla okur; ikisi birbirini etkilemez. Güvence: offset yalnızca satırlar veritabanına yazılıp transaction

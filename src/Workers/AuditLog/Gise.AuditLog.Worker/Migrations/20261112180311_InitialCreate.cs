@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Gise.Audit.StoreWorker.Migrations
+namespace Gise.AuditLog.Worker.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

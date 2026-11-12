@@ -1,4 +1,4 @@
-namespace Gise.Audit.StoreWorker;
+namespace Gise.AuditLog.Worker;
 
 // Bir denetim satırı (kim ne yaptı), bkz. tasarım 8. Sorgulanan alanlar kolon; satırın tamamı Payload'da (kanıt: sonradan
 // başka alan gerekirse kaybolmaz). Kafka konumu (topic, bölüm, offset) satırın tekil kimliği: aynı mesaj ikinci kez

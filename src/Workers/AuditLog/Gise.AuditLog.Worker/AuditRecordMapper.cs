@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Confluent.Kafka;
 
-namespace Gise.Audit.StoreWorker;
+namespace Gise.AuditLog.Worker;
 
 // Kafka'daki ECS satırını (Elastic.CommonSchema.Serilog) AuditRecord'a çevirir. Biçimlendirici alanları iki yere koyuyor:
 // bilinen ECS alanları iç içe (event.action → "event": {"action"}), diğerleri düz anahtarla "labels" (metinler) ya da
