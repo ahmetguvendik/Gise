@@ -61,6 +61,15 @@ call PUT "$ES/_security/role/apm_writer" '{
 }'
 call PUT "$ES/_security/user/apm_writer" "{\"password\":\"${APM_PASSWORD}\",\"roles\":[\"apm_writer\"]}"
 
+# Sağlık paneli (healthcheck-api): küme durumunu okur ve son dakikalardaki hata loglarını sayar; hiçbir şey yazmaz. Denetim
+# akışına (kişisel veri) erişemez: yalnızca API ve worker logları.
+echo "health_reader rolü ve kullanıcısı"
+call PUT "$ES/_security/role/health_reader" '{
+  "cluster": ["monitor"],
+  "indices": [{ "names": ["logs-gise.api-*", "logs-gise.workers-*"], "privileges": ["read", "view_index_metadata"] }]
+}'
+call PUT "$ES/_security/user/health_reader" "{\"password\":\"${HEALTH_PASSWORD}\",\"roles\":[\"health_reader\"]}"
+
 # Log akışı şablonu: $1 akış adı (sonuna -default eklenir), $2 saklama, $3 açıklama. Yerleşik logs-*-* şablonundan önce
 # gelir (öncelik 200); ECS alan eşlemeleri yerleşik bileşenlerden. Tek düğüm: kopya yok. Var olan akış şablon değişikliğini
 # yalnızca sonraki indekslerinde gördüğü için saklama süresi akışa da yazılır.

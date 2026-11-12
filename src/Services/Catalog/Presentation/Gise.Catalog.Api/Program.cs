@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Gise.HealthChecks;
 using Gise.Authentication;
 using Gise.Catalog.Api.Authentication;
 using Gise.Catalog.Api.ErrorHandling;
@@ -8,7 +9,6 @@ using Gise.Catalog.Infrastructure;
 using Gise.Catalog.Persistence;
 using Gise.Catalog.Persistence.Contexts;
 using Gise.Logging;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -68,7 +68,6 @@ app.UseAuthorization();
 app.MapControllers();
 // gRPC yalnızca iç porttan (8081); gateway'in yönlendirdiği 8080'den erişilemez.
 app.MapGrpcService<CatalogGrpcService>().RequireHost("*:8081");
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapAppHealthChecks();
 
 app.Run();

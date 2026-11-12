@@ -2,6 +2,7 @@
   <!-- Ayrı process: satın alma saga'sı, zaman aşımları (Quartz) ve outbox'tan RabbitMQ'ya gönderim. order-api çökse de
        siparişler ilerlemeye devam eder. Web host yalnızca sağlık ucu için. -->
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Gise.HealthChecks\Gise.HealthChecks.csproj" />
     <ProjectReference Include="..\..\..\Shared\Gise.Logging\Gise.Logging.csproj" />
     <ProjectReference Include="..\..\..\Services\Order\Core\Gise.Order.Application\Gise.Order.Application.csproj" />
     <ProjectReference Include="..\..\..\Services\Order\Infrastructure\Gise.Order.Persistence\Gise.Order.Persistence.csproj" />

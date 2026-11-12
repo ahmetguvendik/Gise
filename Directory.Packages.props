@@ -30,6 +30,13 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
+    <PackageVersion Include="AspNetCore.HealthChecks.UI" Version="9.0.0" />
+    <!-- HealthChecks.UI'nin getirdiği KubernetesClient 15.0.1'de CVE-2025-9708 (sertifika zinciri doğrulanmıyor) var; 17.0.14'te
+         düzeltildi. Panel bu istemciyi yalnızca Kubernetes servis keşfi açıksa kullanır (bizde kapalı). -->
+    <PackageVersion Include="KubernetesClient" Version="17.0.14" />
+    <PackageVersion Include="IdentityModel.OidcClient" Version="5.2.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.UI.InMemory.Storage" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />

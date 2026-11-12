@@ -1,3 +1,4 @@
+using Gise.HealthChecks;
 using Gise.Contracts.Commands;
 using Gise.Logging;
 using Gise.Reservation.Application;
@@ -6,7 +7,6 @@ using Gise.Reservation.Infrastructure;
 using Gise.Reservation.Persistence;
 using Gise.Reservation.Persistence.Contexts;
 using MassTransit;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,7 +60,6 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapAppHealthChecks();
 
 app.Run();

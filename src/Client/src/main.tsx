@@ -17,6 +17,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { OrderPage } from './pages/OrderPage'
 import { PendingEventsPage } from './pages/PendingEventsPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { SystemHealthPage } from './pages/SystemHealthPage'
 import { UsersPage } from './pages/UsersPage'
 import { VenueEditorPage } from './pages/VenueEditorPage'
 import { VenuesPage } from './pages/VenuesPage'
@@ -104,6 +105,14 @@ createRoot(document.getElementById('root')!).render(
                 element={
                   <Guard roles={['admin']}>
                     <UsersPage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="sistem-durumu"
+                element={
+                  <Guard roles={['admin']}>
+                    <SystemHealthPage />
                   </Guard>
                 }
               />

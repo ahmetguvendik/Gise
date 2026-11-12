@@ -5,7 +5,6 @@ using Gise.Logging;
 using Gise.Search.Infrastructure;
 using Gise.Search.Infrastructure.Elasticsearch;
 using Gise.Search.SyncWorker;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,7 +36,6 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapAppHealthChecks();
 
 app.Run();

@@ -1,7 +1,7 @@
+using Gise.HealthChecks;
 using Gise.Logging;
 using Gise.Notification.Persistence;
 using Gise.Notification.Persistence.Contexts;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,7 +27,6 @@ await using (var scope = app.Services.CreateAsyncScope())
 // Her istek için tek satır (bkz. tasarım 8); en başta: hata yanıtları da yazılır.
 app.UseAppRequestLogging();
 
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapAppHealthChecks();
 
 app.Run();

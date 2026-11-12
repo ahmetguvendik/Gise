@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Gise.HealthChecks;
 using Gise.Authentication;
 using Gise.Identity.Api.Authentication;
 using Gise.Identity.Api.ErrorHandling;
@@ -6,7 +7,6 @@ using Gise.Identity.Application;
 using Gise.Identity.Infrastructure;
 using Gise.Identity.Infrastructure.Keycloak;
 using Gise.Logging;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,7 +53,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapAppHealthChecks();
 
 app.Run();

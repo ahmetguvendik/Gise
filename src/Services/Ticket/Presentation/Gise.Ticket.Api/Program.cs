@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Gise.HealthChecks;
 using Gise.Authentication;
 using Gise.Logging;
 using Gise.Ticket.Api.Authentication;
@@ -7,7 +8,6 @@ using Gise.Ticket.Application;
 using Gise.Ticket.Infrastructure;
 using Gise.Ticket.Persistence;
 using Gise.Ticket.Persistence.Contexts;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,7 +60,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapAppHealthChecks();
 
 app.Run();

@@ -1,7 +1,7 @@
+using Gise.HealthChecks;
 using Gise.Logging;
 using Gise.SeatMap.Api.Hubs;
 using Gise.SeatMap.Infrastructure;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,7 +23,6 @@ app.UseAppRequestLogging();
 
 // Tarayıcı gateway üzerinden WebSocket ile bağlanır (/hubs/seatmap).
 app.MapHub<SeatMapHub>("/hubs/seatmap");
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapAppHealthChecks();
 
 app.Run();

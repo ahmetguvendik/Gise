@@ -52,6 +52,10 @@
   <Folder Name="/src/Services/Catalog/Presentation/">
     <Project Path="src/Services/Catalog/Presentation/Gise.Catalog.Api/Gise.Catalog.Api.csproj" />
   </Folder>
+  <Folder Name="/src/Services/HealthCheck/" />
+  <Folder Name="/src/Services/HealthCheck/Presentation/">
+    <Project Path="src/Services/HealthCheck/Presentation/Gise.HealthCheck.Api/Gise.HealthCheck.Api.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Identity/" />
   <Folder Name="/src/Services/Identity/Core/">
     <Project Path="src/Services/Identity/Core/Gise.Identity.Application/Gise.Identity.Application.csproj" />
@@ -150,6 +154,9 @@
   <Folder Name="/tests/Catalog/">
     <Project Path="tests/Catalog/Gise.Catalog.IntegrationTests/Gise.Catalog.IntegrationTests.csproj" />
     <Project Path="tests/Catalog/Gise.Catalog.UnitTests/Gise.Catalog.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/HealthCheck/">
+    <Project Path="tests/HealthCheck/Gise.HealthCheck.UnitTests/Gise.HealthCheck.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tests/Identity/">
     <Project Path="tests/Identity/Gise.Identity.UnitTests/Gise.Identity.UnitTests.csproj" />

@@ -1,10 +1,10 @@
 using System.Diagnostics;
+using Gise.HealthChecks;
 using Gise.Logging;
 using Gise.Search.Api.ErrorHandling;
 using Gise.Search.Application;
 using Gise.Search.Infrastructure;
 using Gise.Search.Infrastructure.Elasticsearch;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,7 +43,6 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 
 app.MapControllers();
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapAppHealthChecks();
 
 app.Run();

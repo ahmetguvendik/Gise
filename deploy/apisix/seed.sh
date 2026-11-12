@@ -102,6 +102,7 @@ upstream ticket ticket-api:8080
 upstream search search-api:8080
 upstream seatmap seatmap-api:8080
 upstream identity identity-api:8080
+upstream healthcheck healthcheck-api:8080
 upstream client client:80
 upstream keycloak keycloak:8080
 
@@ -167,6 +168,10 @@ endpoint users-search      GET    /api/users                  identity users "Ku
 endpoint users-role-grant  PUT    /api/users/:id/roles/:role  identity users "Rol verme (admin)"
 endpoint users-role-revoke DELETE /api/users/:id/roles/:role  identity users "Rol alma (admin)"
 
+echo "Sistem durumu"
+# Admin sayfasının verisi (healthcheck-api, JWT ister: yalnızca admin).
+endpoint system-health GET /api/system/health healthcheck system "Sistem durumu (admin)"
+
 echo "SeatMap"
 # Koltuk haritasının anlık güncellenmesi: SignalR, yalnızca WebSocket (istemci negotiate adımını atlar). Her bağlantı
 # kurulurken bir istek sayılır.
@@ -225,6 +230,16 @@ put routes/auth-not-found '{
 }'
 
 echo "Diğer"
+# Gateway'in kendi sağlığı (docker healthcheck ve sağlık paneli): yukarı akışsız, APISIX kendisi "ok" der. Yanıt route'un
+# etcd'den yüklendiğini de kanıtlar. Gizli bir şey söylemez.
+put routes/gateway-health '{
+  "name": "GET /gateway-health",
+  "desc": "Gateway sağlığı (yukarı akışsız)",
+  "methods": ["GET"],
+  "uri": "/gateway-health",
+  "priority": 20,
+  "plugins": {"fault-injection": {"abort": {"http_status": 200, "body": "ok"}}}
+}'
 # Tanımlı olmayan API yolu ya da yöntemi istemciye (index.html) düşmesin: 404 ProblemDetails.
 put routes/api-not-found '{
   "name": "Tanımsız API yolu",

@@ -428,3 +428,29 @@ export interface ManagedUser {
   emailVerified: boolean
   roles: string[]
 }
+
+/** Sağlık panelinin (healthcheck-api) durumu; Unknown: henüz yoklanmadı. */
+export type HealthStatus = 'Healthy' | 'Degraded' | 'Unhealthy' | 'Unknown'
+
+export interface SystemHealthCheck {
+  name: string
+  status: HealthStatus
+  description: string | null
+  durationMs: number
+}
+
+export interface SystemHealthItem {
+  name: string
+  group: string
+  status: HealthStatus
+  lastExecuted: string | null
+  /** Bu durumda olduğu andan beri (Healthy'den değiştiği an). */
+  onStateFrom: string | null
+  checks: SystemHealthCheck[]
+}
+
+export interface SystemHealth {
+  status: HealthStatus
+  checkedAt: string
+  groups: { name: string; items: SystemHealthItem[] }[]
+}

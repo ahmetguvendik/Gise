@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- Sağlık paneli (Telgraf'taki HealthCheck.Api): bütün servislerin /health ucunu yoklar, altyapıyı kendisi yoklar, düşünce
+       Slack'e yazar ve admin sayfasına durumu verir. Ayrı konteyner: izlediği servisler çökünce kendisi de erişilemez olmasın. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Shared\Gise.Authentication\Gise.Authentication.csproj" />
+    <ProjectReference Include="..\..\..\..\Shared\Gise.HealthChecks\Gise.HealthChecks.csproj" />
+    <ProjectReference Include="..\..\..\..\Shared\Gise.Logging\Gise.Logging.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Gise.HealthCheck.UnitTests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.UI" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.InMemory.Storage" />
+    <!-- Geçişli KubernetesClient'ın güvenlik açığı olan sürümünü ezer (bkz. Directory.Packages.props). -->
+    <PackageReference Include="KubernetesClient" />
+    <PackageReference Include="IdentityModel.OidcClient" />
+  </ItemGroup>
+</Project>

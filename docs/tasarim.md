@@ -112,6 +112,7 @@ Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 | **Notification** | E-posta | PostgreSQL (inbox, bilet sahipleri, gönderilenler) | — | — | Kafka: `TicketsIssued`, `EventCancelled`, `EventUpdated` |
 | **Search** | Ana sayfadaki liste, Türkçe tam metin arama, yazarken öneri | Elasticsearch | REST (herkese açık) | — | — (Catalog'dan ve Reservation'dan gRPC ile dakikada bir alır) |
 | **SeatMap** | Koltuk haritasında anlık güncelleme | — | SignalR (`/hubs/seatmap`) | — | Redis yayını: `SeatsChanged` (Reservation'dan) |
+| **HealthCheck** | Sağlık paneli: servislerin ve altyapının durumu, düşünce Slack uyarısı, admin sayfası | — (durum bellekte) | REST (`/api/system/health`, admin) | Slack webhook | — (servislerin `/health` ucunu yoklar) |
 | **Identity** | Hesap hareketleri (giriş geçmişi, Keycloak olaylarının denetim loguna aktarılması) ve rol yönetimi (admin) | — (kullanıcılar ve olaylar Keycloak'ta) | REST (`/api/account/activity` giriş yapmış kullanıcı; `/api/users` admin) | — | — (Keycloak yönetim API'si) |
 
 ### 3.1 Mimari
@@ -395,6 +396,22 @@ Kullanıcılar, parolalar ve oturumlar Keycloak'ta; Identity'nin kullanıcı tab
 
 ---
 
+### 3.13 HealthCheck: sağlık paneli ve uyarılar
+
+Telgraf'taki `HealthCheck.Api` düzeni: uyarılar **yalnızca buradan** çıkar (Grafana ya da Kibana kuralı değil: aynı arızanın iki sistemden haber vermesi karışıklık yaratıyor). Açık kaynak `AspNetCore.HealthChecks.UI` paketi kullanılır (pano, yoklama, düştü/düzeldi bildirimi). Ayrı konteyner (`healthcheck-api`): izlediği servisler çökünce kendisi de gitmesin; bu yüzden `depends_on` yok.
+
+- **Yoklama:** 30 sn'de bir (`HealthChecksUI:EvaluationSeconds`; Telgraf'ta 100 sn'ydi çünkü sağlık istekleri loga yazılıyordu, bizde `/health` istekleri loglanmaz). 24 kalem: 22 servis (9 API, 13 worker) kendi `/health`'iyle, artı `altyapi` ve `hata-orani`.
+- **Sağlık uçları** (`Gise.HealthChecks.MapAppHealthChecks`, 22 process'te aynı): `/health/live` (süreç ayakta, kontrol çalıştırmaz), `/health/ready` (vazgeçilmez bağımlılıklar; compose ve orkestratör), `/health` (hepsi; panel bunu yoklar). `ready` ve `/health` panelin okuduğu JSON biçiminde; kontroller adıyla ve açıklamasıyla görünür. Sağlıksız 503, sağlıklı ve Degraded 200. Gateway'de rotaları yok; yalnızca Docker ağından erişilir (dışarıdan `/health` istemcinin `index.html`'ine düşer).
+- **Altyapı** (`/health/infrastructure`, appsettings `Infrastructure:Targets`; hedefler ayarda, orkestratör değişince yalnızca ayar değişir): PostgreSQL, Kafka, RabbitMQ, Redis (TCP bağlantısı); MinIO, Keycloak (`:9000/health/ready`), APISIX (`/gateway-health`), etcd, istemci (HTTP); Elasticsearch (`_cluster/health`, yalnızca kırmızı sağlıksız: tek düğümde sarı normal). **Kimlik bilgisi gerekmez:** altyapı hesapları panele verilmez; Elasticsearch için salt okunur `health_reader` (`HEALTH_PASSWORD`, yalnızca API ve worker logları, denetim akışı yok). Vital olmayanlar (Logstash, Kibana, APM Server) düşünce Degraded: sistem çalışır, panelde sarı görünür, Slack'e yazılmaz.
+- **Hata oranı** (`/health/error-rate`, Telgraf'taki `ErrorRateHealthCheck`): Elasticsearch'te son 5 dakikada Error seviyesinde kaç API/worker logu var; 10'u aşarsa sağlıksız (`Alerting:ErrorRate`). Servis çalışıp sürekli hata veriyorsa `/health` yeşil kalır, bu yakalar. Sorgu yapılamazsa "hata yok" denmez, sağlıksız olur (uyarının kör kaldığı da bilinmeli). **Not:** bütün servisleri birlikte yeniden başlatmak (`compose up -d`) bağlantı hataları yüzünden kısa süre bu eşiği aşabilir; 5 dakika sonra yeşile döner.
+- **Slack** (`SlackHealthNotifier`): düştü ve düzeldi mesajları. Mesaj ortam adını (`ALERT_ENVIRONMENT`; aynı kanala birden çok ortam bağlanırsa karışmasın), neden satırlarını ("• *rabbitmq*: rabbitmq:5672 bağlantı kurulamadı") ve panel/Kibana bağlantısını taşır. Kütüphanenin kendi webhook bildirimcisi bırakıldı: onun `[[DESCRIPTIONS]]` yer tutucusu nedeni değil sabit bir İngilizce kalıp ("X healthcheck is failing") yazıyor ve nöbetçinin ihtiyacı olan neden mesajda olmuyordu. Düştü/düzeldi kararını kütüphane vermeye devam eder; yalnızca mesajı biz yazıp göndeririz (gövde uzunluğu belli gider: bazı webhook alıcıları parça parça gönderimi kabul etmez). Kütüphane Degraded'de de bildirim gönderir (işlenemeyen olay, RabbitMQ'ya bağlanamayan worker, kapalı Kibana: sistem çalışıyor ama bakılmalı); başlık seviyeyi ayırır: Unhealthy ":rotating_light: sağlıksız", Degraded ":warning: uyarı veriyor", düzelince ikisi için ":white_check_mark: düzeldi". Webhook adresi `HEALTH_WEBHOOK_URL` (`deploy/.env`, gizli bilgi, repoya girmez); boşsa uyarı gitmez (açılışta Warning yazılır), panel ve admin sayfası çalışır. Gönderim hatası yoklamayı bozmaz: uyarı loglanır. Bir arıza birden çok kalemi etkileyebilir (RabbitMQ düşünce dört worker ve `altyapi` birlikte, 5 mesaj).
+- **Denendi** (sahte Slack alıcısıyla; gerçek Slack adresiyle denenmedi): her şey sağlıklıyken mesaj yok. `notification-api` durdurulunca birkaç saniyede ":rotating_light: sağlıksız" ("Connection refused (notification-api:8080)"), açılınca yaklaşık yarım dakikada ":white_check_mark: düzeldi". RabbitMQ durdurulunca `altyapi` sağlıksız ("rabbitmq:5672 bağlantı kurulamadı") ve dört worker `masstransit-bus` Degraded (toplam 5 mesaj). Vital olmayan Kibana durdurulunca ":warning: uyarı veriyor", docker sağlığı etkilenmedi.
+- **Panelin kendi arayüzü** `http://127.0.0.1:9095` (yalnızca bu makineden; Kibana gibi), gateway'de rotası yok. Geçmiş bellekte tutulur: panel yeniden başlayınca sıfırlanır (kalıcı geçmiş istenirse Postgres sağlayıcısına geçilir).
+- **Admin sayfası** (Yönetim → Sistem durumu, `/sistem-durumu`): `GET /api/system/health` (gateway'de yalnızca admin: tokensız 401, müşteri 403). Her kalem yeşil/sarı/kırmızı, son kontrol zamanı ve (sorunluysa) nedeni; sorunlu kalemler açık gelir, sayfa 15 sn'de bir yenilenir. Telgraf'tan farkı: oradaki durum ucu kimliksizdi; servis adları, hata metinleri ve altyapı adresleri saldırgana keşif verdiği için burada yalnızca admin.
+- **Bağımlılık notu:** `AspNetCore.HealthChecks.UI` Kubernetes servis keşfi için `KubernetesClient 15.0.1` getiriyor ve o sürümde CVE-2025-9708 (Kubernetes API sunucusunun sertifika zinciri doğrulanmıyor) var. Panel o istemciyi yalnızca Kubernetes keşfi açıksa kullanır (bizde kapalı); yine de tarayıcılar uyarmasın diye 17.0.14'e sabitlendi (`Directory.Packages.props`). Tek başına sabitleme paneli bozuyor (eski sürüme göre derlenmiş kod `IdentityModel`'i istiyor); `IdentityModel.OidcClient` de doğrudan eklenerek çözüldü. Paket yükseltilince bu iki satır gözden geçirilmeli.
+
+---
+
 ## 4. Satın alma saga'sı
 
 Order servisi akışı **yöneten** taraftır (orkestrasyon). Diğer servisler yalnızca kendilerine gelen komutu yapar ve sonucu bildirir; birbirlerini tanımazlar.
@@ -607,6 +624,7 @@ stateDiagram-v2
 ## 7. Gateway (APISIX)
 
 - Dışarıya açık tek uygulama portu gateway'dir (`localhost:8000`). İstemci ve Keycloak (`/auth`) da gateway'in arkasından sunulur; tarayıcı tek bir adresle konuşur, CORS gerekmez.
+- **Sistem durumu:** `GET /api/system/health` (healthcheck-api, JWT ister: yalnızca admin) ve gateway'in kendi sağlığı `GET /gateway-health` (APISIX'in yukarı akışsız "ok" yanıtı: docker sağlık kontrolü bunu kullanır, route'un etcd'den yüklendiğini de kanıtlar).
 - **Keycloak rotaları:** yalnızca `gise` realm'i (`/auth/realms/gise/*`) ve tema dosyaları (`/auth/resources/*`) yayınlanır; `/auth` altındaki geri kalan her şey (yönetim konsolu, `master` realm) 404. Giriş, kayıt ve parola sıfırlama formlarının gönderildiği uç (`POST …/login-actions/*`) dakikada 30 ile sınırlı: Keycloak'ın brute-force koruması hesap başına, bu IP başına (çok hesaba deneme, kayıt botu, e-posta bombardımanı).
 - **Tarayıcı güvenlik başlıkları** istemcinin nginx'inde (`src/Client/security-headers.conf`, bkz. `docs/threat-model.md` T5): Content-Security-Policy (betik ve stil yalnızca bu siteden, yazı tipleri Google Fonts'tan; Keycloak'a token istekleri ve sessiz giriş çerçevesi, MinIO'ya afiş okuma ve yükleme; websocket aynı adreste), `frame-ancestors 'self'` ve `X-Frame-Options: SAMEORIGIN` (başka siteler çerçeveye alamaz; sessiz giriş sayfası kendi sitemizde çerçevelenebilmeli, `'none'` onu bozar), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (kamera, mikrofon, konum kapalı). Keycloak aynı adreste (`/auth`, `'self'`); MinIO adresi `MINIO_ORIGIN` ortam değişkeninden gelir (varsayılan yerel), canlıda compose'dan verilir ve `Strict-Transport-Security` eklenir. `Server` başlığı sürüm göstermez (APISIX `enable_server_tokens: false`, nginx `server_tokens off`). API'lerin JSON yanıtlarına bu başlıklar eklenmez.
 - APISIX **etcd ile** çalışır (`deploy/apisix/config.yaml`): route'lar, upstream'ler ve eklentiler etcd'de durur ve **dashboard**'dan yönetilir: `http://127.0.0.1:9180/ui/`. Dashboard ile yönetim API'si aynı porttadır. Port yalnızca makinenin `127.0.0.1`'ine açıktır ve `deploy/.env`'deki `APISIX_ADMIN_KEY` olmadan açılmaz.
@@ -695,9 +713,9 @@ Bütün API ve worker'lar (Gise.Logging)
   - İndeks şablonlarını Elasticsearch'ün apm-data eklentisi kurar; Fleet gerekmez.
 - **Kibana:** yalnızca `127.0.0.1:5601`'den erişilir; giriş `elastic` kullanıcısıyla (parola `deploy/.env`'deki `ELASTIC_PASSWORD`). Kendisi Elasticsearch'e `kibana_system` hesabıyla bağlanır. Veri görünümleri: "Gişe API logları" (varsayılan), "Gişe worker logları", "Gişe denetim kayıtları"; izler Observability → APM'dedir.
 - **Kurulum:** hesaplar, saklama süresi ve veri görünümü `deploy/elasticsearch/setup.sh`'ta; yeni kurulumda bir kez `docker compose -f deploy/docker-compose.yml --profile setup up elastic-init`. Tekrar çalıştırılabilir. Parolalar `deploy/.env`'de (`KIBANA_PASSWORD`, `KIBANA_ENCRYPTION_KEY`, `LOGSTASH_PASSWORD`, `APM_PASSWORD`).
-- **Sağlık uçları:** `/health/live`, `/health/ready` (yalnızca vazgeçilmez bağımlılıklar). Log ve iz altyapısı vazgeçilmez değildir: çökmesi hiçbir servisi "hazır değil" yapmaz.
+- **Sağlık uçları:** `/health/live`, `/health/ready` (yalnızca vazgeçilmez bağımlılıklar), `/health` (hepsi); ortak eşleme `Gise.HealthChecks.MapAppHealthChecks`. Log ve iz altyapısı vazgeçilmez değildir: çökmesi hiçbir servisi "hazır değil" yapmaz. Bütün konteynerlerin (APISIX ve istemci dahil) compose sağlık kontrolü vardır; durumu toplu gösteren panel, Slack uyarıları ve admin sayfası için bkz. 3.13.
 - **Çöken servisin yeniden başlaması:** compose'daki her .NET servisinde `init: true` vardır. .NET süreci konteynerin PID 1'i olunca yakalanmamış bir hatada kapanamıyor (çekirdek PID 1'e gelen SIGABRT'yi yok sayar), asılı kalıyor ve `restart` devreye girmiyordu: Docker yeniden başlayınca Postgres'ten önce açılan order-api migration'da hata alıp takılı kalmıştı. Init süreciyle çöken servis kapanır, Docker yeniden başlatır.
-- **Henüz yok:** metrik panoları ve uyarılar (hata oranı, takılan saga), canlıda APM Server için secret token ve TLS.
+- **Henüz yok:** metrik panoları ve takılan saga uyarısı, canlıda APM Server için secret token ve TLS. (Hata oranı uyarısı artık var: bkz. 3.13.) RabbitMQ'yu dinleyen 4 worker'da (`order-saga`, `payment-command`, `reservation-command`, `ticket-command`) nabız yok; RabbitMQ düşünce MassTransit'in kendi `masstransit-bus` kontrolü `Degraded` olur (panelde sarı, Slack'te uyarı; denendi) ve `altyapi` içindeki `rabbitmq` sağlıksız olur. `/health/ready` ise 200 kalır (Degraded 200), yani docker sağlığı düşmez. Tüketicisi bağlantı kopmadan sessizce asılan bir worker yine yakalanmaz.
 
 ---
 
@@ -742,11 +760,12 @@ Gişe/
 │   │   └── Identity/              # Gise.Identity.AuditWorker
 │   ├── Services/
 │   │   ├── Catalog/  Reservation/  Order/  Payment/
-│   │   ├── Ticket/   Notification/  Search/  SeatMap/  Identity/
+│   │   ├── Ticket/   Notification/  Search/  SeatMap/  Identity/  HealthCheck/
 │   └── Client/                    # React + Vite + React Router (Telgraf gibi): api/, auth/, components/, lib/, pages/
 ├── tests/
 │   ├── AuditLog/                  # Gise.AuditLog.UnitTests
 │   ├── Catalog/                   # Gise.Catalog.UnitTests, Gise.Catalog.IntegrationTests
+│   ├── HealthCheck/               # Gise.HealthCheck.UnitTests
 │   └── Identity/                  # Gise.Identity.UnitTests
 └── Gise.slnx · global.json · Directory.Build.props · Directory.Packages.props
 ```

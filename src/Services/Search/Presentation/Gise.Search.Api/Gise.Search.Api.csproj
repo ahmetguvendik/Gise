@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Shared\Gise.HealthChecks\Gise.HealthChecks.csproj" />
     <ProjectReference Include="..\..\..\..\Shared\Gise.Logging\Gise.Logging.csproj" />
     <ProjectReference Include="..\..\Core\Gise.Search.Application\Gise.Search.Application.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Gise.Search.Infrastructure\Gise.Search.Infrastructure.csproj" />

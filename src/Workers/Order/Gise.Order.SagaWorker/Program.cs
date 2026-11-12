@@ -1,9 +1,9 @@
+using Gise.HealthChecks;
 using Gise.Logging;
 using Gise.Order.Application.Sagas;
 using Gise.Order.Persistence;
 using Gise.Order.Persistence.Contexts;
 using MassTransit;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -95,7 +95,6 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapAppHealthChecks();
 
 app.Run();

@@ -284,6 +284,7 @@ services:
       KIBANA_PASSWORD: ${KIBANA_PASSWORD}
       LOGSTASH_PASSWORD: ${LOGSTASH_PASSWORD}
       APM_PASSWORD: ${APM_PASSWORD}
+      HEALTH_PASSWORD: ${HEALTH_PASSWORD}
     entrypoint: ["/bin/sh", "/setup.sh"]
     volumes:
       - ./elasticsearch/setup.sh:/setup.sh:ro
@@ -788,6 +789,43 @@ services:
       keycloak:
         condition: service_healthy
 
+  # Sağlık paneli (Telgraf'taki healthcheck-api, bkz. tasarım 8): bütün servislerin /health ucunu 30 sn'de bir yoklar, altyapıyı
+  # (PostgreSQL, Kafka, RabbitMQ, Redis, MinIO, Keycloak, APISIX, Elasticsearch...) kendisi yoklar, Elasticsearch'te son 5
+  # dakikanın hata sayısını izler. Düşen ya da düzelen kalem Slack'e yazılır; admin sayfası (Yönetim → Sistem durumu) durumu
+  # buradan alır. Bağımsız konteyner: izlediği servisler çökünce kendisi de gitmesin. Bilerek depends_on yok: izlenenler
+  # sağlıksızken de açık olmalı, sağlıklı olmalarını beklerse tam gerektiği anda açılmaz.
+  healthcheck-api:
+    image: gise/healthcheck-api:dev
+    build:
+      context: ..
+      dockerfile: src/Services/HealthCheck/Presentation/Gise.HealthCheck.Api/Dockerfile
+    restart: unless-stopped
+    init: true
+    ports:
+      # Panelin kendi arayüzü: yalnızca bu makineden (http://127.0.0.1:9095). Gateway'de rotası yok; admin sayfası yetkili
+      # /api/system/health ucunu kullanır.
+      - "127.0.0.1:9095:8080"
+    environment:
+      Keycloak__InternalAuthority: http://keycloak:8080/auth/realms/gise
+      Keycloak__PublicAuthority: http://localhost:8000/auth/realms/gise
+      Keycloak__RequireHttpsMetadata: "false"
+      # Salt okunur hesap (setup.sh: health_reader). Parola yanlışsa hata oranı kontrolü sağlıksız olur: sessizce körleşmez.
+      Elasticsearch__Password: ${HEALTH_PASSWORD}
+      Alerting__ErrorRate__WindowMinutes: 5
+      Alerting__ErrorRate__Threshold: 10
+      # Slack: düştü ve düzeldi mesajları (SlackHealthNotifier). HEALTH_WEBHOOK_URL deploy/.env'de (gizli bilgi, repoya girmez);
+      # boşsa uyarı gitmez. Mesaj hangi ortamdan geldiğini söyler, kontrolün nedenini yazar ve paneli açacak bağlantıyı verir.
+      Alerting__Slack__WebhookUrl: ${HEALTH_WEBHOOK_URL:-}
+      Alerting__Environment: ${ALERT_ENVIRONMENT:-Development}
+      Alerting__PanelUrl: ${HEALTH_PANEL_URL:-http://localhost:9095}
+      Alerting__LogsUrl: ${LOGS_URL:-http://localhost:5601/app/discover}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
   # Denetim satırlarını (logs.audit, kim ne yaptı) kalıcı denetim veritabanına (gise_audit) yazar. Elasticsearch'e giden akışla
   # (Logstash) aynı topic'i ayrı tüketici grubuyla okur. Veritabanının şemasını kendisi kurur (açılışta migration).
   audit-log-worker:
@@ -837,6 +875,13 @@ services:
     build:
       context: ../src/Client
     restart: unless-stopped
+    healthcheck:
+      # nginx alpine imajında wget var, curl yok.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   # APISIX'in route ve ayar deposu; dashboard'dan yapılan değişiklikler burada durur. Dışarıya açık değil.
   etcd:
@@ -868,13 +913,21 @@ services:
       - "127.0.0.1:9180:9180"
     volumes:
       - ./apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    healthcheck:
+      # İmajda curl ve wget yok; bash'in /dev/tcp'siyle gateway'in kendi sağlık rotasına (seed.sh: gateway-health) GET. Rota
+      # etcd'den yüklendiği için bu aynı zamanda "APISIX ayakta ve route'ları görüyor" demek.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /gateway-health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && read -r status <&3 && [[ $$status == *' 200 '* ]]"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
     depends_on:
       etcd:
         condition: service_healthy
       catalog-api:
         condition: service_healthy
       client:
-        condition: service_started
+        condition: service_healthy
 
   # Başlangıç route'larını etcd'ye yazar; sonrası dashboard'dan yönetilir (bkz. deploy/apisix/seed.sh).
   apisix-init:
