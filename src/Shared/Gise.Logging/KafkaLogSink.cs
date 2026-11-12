@@ -8,7 +8,8 @@ using Serilog.Events;
 namespace Gise.Logging;
 
 // Asla exception fırlatmaz ve çağıranı bekletmez: Kafka çökünce istekler etkilenmemeli. Kendi hataları Serilog'un SelfLog'una
-// yazılır; ILogger'a yazmak sonsuz döngü yaratırdı.
+// yazılır; ILogger'a yazmak sonsuz döngü yaratırdı. Yalnızca denetim dışındaki loglar: insanların yaptığı işlemler
+// (IsHumanAudit) kayıp göze alınmadığı için AuditKafkaSink'ten gider.
 internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
 {
     private readonly IProducer<Null, string> _producer;
@@ -16,7 +17,7 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
     private readonly string _topic;
     private readonly string _auditTopic;
 
-    public KafkaLogSink(string bootstrapServers, string topic, string auditTopic, int partitions, TimeSpan retention)
+    public KafkaLogSink(string bootstrapServers, string topic, string auditTopic, int partitions, TimeSpan retention, TimeSpan auditRetention)
     {
         _topic = topic;
         _auditTopic = auditTopic;
@@ -38,27 +39,49 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
             .Build();
 
         // Kafka'da topic otomatik oluşturulmuyor (bkz. tasarım 3.5); her process açılışta dener, uygulamayı bekletmez.
-        _ = EnsureTopicsAsync(bootstrapServers, partitions, retention);
+        _ = EnsureTopicsAsync(bootstrapServers, partitions, retention, auditRetention);
     }
 
-    private async Task EnsureTopicsAsync(string bootstrapServers, int partitions, TimeSpan retention)
+    private async Task EnsureTopicsAsync(string bootstrapServers, int partitions, TimeSpan retention, TimeSpan auditRetention)
     {
         try
         {
             using var admin = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = bootstrapServers })
                 .SetLogHandler((_, message) => SelfLog.WriteLine("Kafka log sink: {0}", message.Message))
                 .Build();
-            await admin.CreateTopicsAsync(new[] { _topic, _auditTopic }.Distinct().Select(name => new TopicSpecification
+
+            try
             {
-                Name = name,
-                NumPartitions = partitions,
-                ReplicationFactor = 1,
-                // Logstash okuduktan sonra Kafka'da tutmaya gerek yok; kısa saklama.
-                Configs = new Dictionary<string, string> { ["retention.ms"] = ((long)retention.TotalMilliseconds).ToString() }
-            }));
-        }
-        catch (CreateTopicsException ex) when (ex.Results.All(r => r.Error.Code is ErrorCode.TopicAlreadyExists or ErrorCode.NoError))
-        {
+                await admin.CreateTopicsAsync(new[] { _topic, _auditTopic }.Distinct().Select(name => new TopicSpecification
+                {
+                    Name = name,
+                    NumPartitions = partitions,
+                    ReplicationFactor = 1,
+                    // Logstash okuduktan sonra Kafka'da tutmaya gerek yok; kısa saklama. Denetim topic'i iki tüketici okur
+                    // (Logstash ve audit-store-worker); biri günlerce kapalı kalırsa satır kaybolmasın diye daha uzun.
+                    Configs = new Dictionary<string, string> { ["retention.ms"] = ((long)(name == _auditTopic ? auditRetention : retention).TotalMilliseconds).ToString() }
+                }));
+            }
+            catch (CreateTopicsException ex) when (ex.Results.All(r => r.Error.Code is ErrorCode.TopicAlreadyExists or ErrorCode.NoError))
+            {
+            }
+
+            // Denetim topic'i önceden daha kısa saklamayla açılmış olabilir: saklama süresi her açılışta ayarla uyumlu tutulur.
+            if (_auditTopic != _topic)
+            {
+                await admin.IncrementalAlterConfigsAsync(new Dictionary<ConfigResource, List<ConfigEntry>>
+                {
+                    [new ConfigResource { Type = ResourceType.Topic, Name = _auditTopic }] =
+                    [
+                        new ConfigEntry
+                        {
+                            Name = "retention.ms",
+                            Value = ((long)auditRetention.TotalMilliseconds).ToString(),
+                            IncrementalOperation = AlterConfigOpType.Set
+                        }
+                    ]
+                });
+            }
         }
         catch (Exception ex)
         {
@@ -74,7 +97,7 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
             {
                 var payload = new StringWriter();
                 _formatter.Format(logEvent, payload);
-                _producer.Produce(TopicFor(logEvent), new Message<Null, string> { Value = payload.ToString() });
+                _producer.Produce(_topic, new Message<Null, string> { Value = payload.ToString() });
             }
             catch (ProduceException<Null, string> ex)
             {
@@ -89,14 +112,12 @@ internal sealed class KafkaLogSink : IBatchedLogEventSink, IDisposable
         return Task.CompletedTask;
     }
 
-    // İnsanların yaptığı işlem (kullanıcısı olan denetim satırı, bkz. CommandLoggingBehavior) denetim topic'ine; worker'daki
-    // sistem adımları ve diğer her şey process'in kendi topic'ine (bkz. tasarım 8).
-    private string TopicFor(LogEvent logEvent) =>
+    // İnsanların yaptığı işlem (kullanıcısı olan denetim satırı, bkz. CommandLoggingBehavior): denetim topic'ine, AuditKafkaSink
+    // ile. Worker'daki sistem adımları ve diğer her şey process'in kendi topic'ine (bkz. tasarım 8).
+    public static bool IsHumanAudit(LogEvent logEvent) =>
         logEvent.Properties.TryGetValue("event.dataset", out var dataset)
         && dataset is ScalarValue { Value: "gise.audit" }
-        && logEvent.Properties.ContainsKey("actor.id")
-            ? _auditTopic
-            : _topic;
+        && logEvent.Properties.ContainsKey("actor.id");
 
     public void Dispose()
     {

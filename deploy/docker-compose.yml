@@ -788,6 +788,30 @@ services:
       keycloak:
         condition: service_healthy
 
+  # Denetim satırlarını (logs.audit, kim ne yaptı) kalıcı denetim veritabanına (gise_audit) yazar. Elasticsearch'e giden akışla
+  # (Logstash) aynı topic'i ayrı tüketici grubuyla okur. Veritabanının şemasını kendisi kurur (açılışta migration).
+  audit-store-worker:
+    image: gise/audit-store-worker:dev
+    build:
+      context: ..
+      dockerfile: src/Workers/Audit/Gise.Audit.StoreWorker/Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      ConnectionStrings__Audit: Host=postgres;Database=gise_audit;Username=gise;Password=${POSTGRES_PASSWORD}
+    healthcheck:
+      # Döngü asılı kalırsa (heartbeat eskirse) ya da veritabanına ulaşılamazsa ready kontrolü düşer.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
   # Koltuk haritasının anlık güncellenmesi: Reservation'ın Redis yayınlarını SignalR'la tarayıcılara iletir. Kalıcı verisi yok.
   seatmap-api:
     image: gise/seatmap-api:dev

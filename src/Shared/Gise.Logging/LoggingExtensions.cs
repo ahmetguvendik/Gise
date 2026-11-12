@@ -54,20 +54,29 @@ public static class LoggingExtensions
 
         // API'ler logs.api'ye, worker'lar logs.workers'a (appsettings); unutulan bir process'in logları kaybolmaz, API
         // akışında görünür.
+        var auditTopic = kafka["AuditTopic"] ?? "logs.audit";
         var sink = new KafkaLogSink(
             bootstrapServers,
             kafka["Topic"] ?? "logs.api",
-            kafka["AuditTopic"] ?? "logs.audit",
+            auditTopic,
             kafka.GetValue("Partitions", 3),
-            TimeSpan.FromHours(kafka.GetValue("RetentionHours", 24)));
+            TimeSpan.FromHours(kafka.GetValue("RetentionHours", 24)),
+            TimeSpan.FromHours(kafka.GetValue("AuditRetentionHours", 168)));
 
-        logger.WriteTo.Sink(sink, new BatchingOptions
-        {
-            BatchSizeLimit = kafka.GetValue("BatchSize", 500),
-            BufferingTimeLimit = TimeSpan.FromSeconds(kafka.GetValue("FlushSeconds", 2)),
-            // Kuyruk dolunca yeni olaylar düşürülür: log kaybı, isteklerin yavaşlamasından iyidir.
-            QueueLimit = kafka.GetValue("QueueLimit", 10_000),
-            EagerlyEmitFirstEvent = false
-        });
+        // İki ayrı yol: denetim satırları onaylı ve kuyruksuz (AuditKafkaSink), geri kalanı toplu ve kayıp göze alınarak.
+        logger.WriteTo.Logger(other => other
+            .Filter.ByExcluding(KafkaLogSink.IsHumanAudit)
+            .WriteTo.Sink(sink, new BatchingOptions
+            {
+                BatchSizeLimit = kafka.GetValue("BatchSize", 500),
+                BufferingTimeLimit = TimeSpan.FromSeconds(kafka.GetValue("FlushSeconds", 2)),
+                // Kuyruk dolunca yeni olaylar düşürülür: log kaybı, isteklerin yavaşlamasından iyidir.
+                QueueLimit = kafka.GetValue("QueueLimit", 10_000),
+                EagerlyEmitFirstEvent = false
+            }));
+
+        logger.WriteTo.Logger(audit => audit
+            .Filter.ByIncludingOnly(KafkaLogSink.IsHumanAudit)
+            .WriteTo.Sink(new AuditKafkaSink(bootstrapServers, auditTopic)));
     }
 }

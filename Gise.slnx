@@ -8,6 +8,9 @@
     <Project Path="src/Shared/Gise.Logging/Gise.Logging.csproj" />
   </Folder>
   <Folder Name="/src/Workers/" />
+  <Folder Name="/src/Workers/Audit/">
+    <Project Path="src/Workers/Audit/Gise.Audit.StoreWorker/Gise.Audit.StoreWorker.csproj" />
+  </Folder>
   <Folder Name="/src/Workers/Catalog/">
     <Project Path="src/Workers/Catalog/Gise.Catalog.OutboxWorker/Gise.Catalog.OutboxWorker.csproj" />
   </Folder>
@@ -141,6 +144,9 @@
     <Project Path="src/Services/Ticket/Presentation/Gise.Ticket.Api/Gise.Ticket.Api.csproj" />
   </Folder>
   <Folder Name="/tests/" />
+  <Folder Name="/tests/Audit/">
+    <Project Path="tests/Audit/Gise.Audit.UnitTests/Gise.Audit.UnitTests.csproj" />
+  </Folder>
   <Folder Name="/tests/Catalog/">
     <Project Path="tests/Catalog/Gise.Catalog.IntegrationTests/Gise.Catalog.IntegrationTests.csproj" />
     <Project Path="tests/Catalog/Gise.Catalog.UnitTests/Gise.Catalog.UnitTests.csproj" />
