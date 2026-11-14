@@ -86,6 +86,7 @@ configMapGenerator:
       - email__messages__messages_tr.properties=../../keycloak/themes/gise/email/messages/messages_tr.properties
       - email__theme.properties=../../keycloak/themes/gise/email/theme.properties
       - login__login-otp.ftl=../../keycloak/themes/gise/login/login-otp.ftl
+      - login__login.ftl=../../keycloak/themes/gise/login/login.ftl
       - login__messages__messages_tr.properties=../../keycloak/themes/gise/login/messages/messages_tr.properties
       - login__resources__css__gise.css=../../keycloak/themes/gise/login/resources/css/gise.css
       - login__resources__img__favicon.ico=../../keycloak/themes/gise/login/resources/img/favicon.ico

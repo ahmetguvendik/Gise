@@ -1,15 +1,19 @@
 <#-- Girişteki doğrulama kodu ekranı. Keycloak'ın keycloak.v2/login/login-otp.ftl'inden (26.8) türetildi; farkı: başlık ve
      açıklama, 2 dakikalık geri sayım (js/otp-timer.js) ve "Girişe dön" düğmesi. Üstteki e-posta satırını sayfa düzeni
-     (template.ftl) çizer; bu sayfada gise.css gizler. Keycloak yükseltilince üst temadaki dosyayla karşılaştırılmalı. -->
+     (template.ftl) çizer; bu sayfada gise.css gizler. Hesap kilitlenince (kaba kuvvet koruması) kod kutusu, geri sayım ve
+     "Giriş yap" kalkar: yalnızca uyarı ve "Girişe dön" kalır. Keycloak yükseltilince üst temadaki dosyayla karşılaştırılmalı. -->
 <#import "template.ftl" as layout>
 <#import "field.ftl" as field>
 <#import "buttons.ftl" as buttons>
-<@layout.registrationLayout displayMessage=!messagesPerField.existsError('totp'); section>
+<#-- Kilit mesajı alan hatası olarak gelir; alanın altında değil, üstteki uyarıda gösterilir ve kod formu çizilmez. -->
+<#assign locked = messagesPerField.existsError('totp') && messagesPerField.get('totp') == msg("accountTemporarilyDisabledMessageTotp")>
+<@layout.registrationLayout displayMessage=(!messagesPerField.existsError('totp') || locked); section>
 <!-- template: login-otp.ftl (gise) -->
 
     <#if section="header">
         ${msg("giseOtpTitle")}
     <#elseif section="form">
+        <#if !locked>
         <p class="gise-otp-hint">${msg("giseOtpHint")}</p>
         <form id="kc-otp-login-form" class="${properties.kcFormClass!}" onsubmit="login.disabled = true; return true;" action="${url.loginAction}" method="post">
             <input id="selectedCredentialId" type="hidden" name="selectedCredentialId" value="${otpLogin.selectedCredentialId!''}">
@@ -41,6 +45,7 @@
 
             <@buttons.loginButton />
         </form>
+        </#if>
         <a class="${properties.kcButtonSecondaryClass!} ${properties.kcButtonBlockClass!} gise-otp-back" href="${url.loginRestartFlowUrl}" data-otp-back>${msg("giseOtpBack")}</a>
         <script>
             <#outputformat "JavaScript">
