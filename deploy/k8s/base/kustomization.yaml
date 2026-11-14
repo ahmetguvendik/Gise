@@ -27,6 +27,7 @@ resources:
   - infra/minio-init.yaml
   - infra/elastic-init.yaml
   - infra/apisix-init.yaml
+  - apps/audit-api.yaml
   - apps/audit-log-worker.yaml
   - apps/catalog-api.yaml
   - apps/catalog-outbox-worker.yaml

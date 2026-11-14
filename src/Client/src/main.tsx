@@ -17,6 +17,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { OrderPage } from './pages/OrderPage'
 import { PendingEventsPage } from './pages/PendingEventsPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { AuditPage } from './pages/AuditPage'
 import { SystemHealthPage } from './pages/SystemHealthPage'
 import { UsersPage } from './pages/UsersPage'
 import { VenueEditorPage } from './pages/VenueEditorPage'
@@ -105,6 +106,14 @@ createRoot(document.getElementById('root')!).render(
                 element={
                   <Guard roles={['admin']}>
                     <UsersPage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="denetim-kayitlari"
+                element={
+                  <Guard roles={['admin']}>
+                    <AuditPage />
                   </Guard>
                 }
               />

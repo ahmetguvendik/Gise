@@ -24,6 +24,7 @@ jobs:
       max-parallel: 6
       matrix:
         include:
+          - { name: audit-api, context: ., dockerfile: src/Services/Audit/Presentation/Gise.Audit.Api/Dockerfile }
           - { name: catalog-api, context: ., dockerfile: src/Services/Catalog/Presentation/Gise.Catalog.Api/Dockerfile }
           - { name: catalog-outbox-worker, context: ., dockerfile: src/Workers/Catalog/Gise.Catalog.OutboxWorker/Dockerfile }
           - { name: reservation-api, context: ., dockerfile: src/Services/Reservation/Presentation/Gise.Reservation.Api/Dockerfile }

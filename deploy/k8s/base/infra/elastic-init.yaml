@@ -25,6 +25,8 @@ spec:
               valueFrom: { secretKeyRef: { name: gise-secrets, key: APM_PASSWORD } }
             - name: HEALTH_PASSWORD
               valueFrom: { secretKeyRef: { name: gise-secrets, key: HEALTH_PASSWORD } }
+            - name: AUDIT_PASSWORD
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: AUDIT_PASSWORD } }
           volumeMounts:
             - { name: setup, mountPath: /setup }
       volumes:

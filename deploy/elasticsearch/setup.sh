@@ -70,6 +70,14 @@ call PUT "$ES/_security/role/health_reader" '{
 }'
 call PUT "$ES/_security/user/health_reader" "{\"password\":\"${HEALTH_PASSWORD}\",\"roles\":[\"health_reader\"]}"
 
+# Denetim sayfası (audit-api): yalnızca denetim akışını (kişisel veri: kimlik, IP) okur; hiçbir şey yazmaz. health_reader'ın
+# göremediği tek akış bu; iki hesap bilerek ayrı.
+echo "audit_reader rolü ve kullanıcısı"
+call PUT "$ES/_security/role/audit_reader" '{
+  "indices": [{ "names": ["logs-gise.audit-*"], "privileges": ["read", "view_index_metadata"] }]
+}'
+call PUT "$ES/_security/user/audit_reader" "{\"password\":\"${AUDIT_PASSWORD}\",\"roles\":[\"audit_reader\"]}"
+
 # Log akışı şablonu: $1 akış adı (sonuna -default eklenir), $2 saklama, $3 açıklama. Yerleşik logs-*-* şablonundan önce
 # gelir (öncelik 200); ECS alan eşlemeleri yerleşik bileşenlerden. Tek düğüm: kopya yok. Var olan akış şablon değişikliğini
 # yalnızca sonraki indekslerinde gördüğü için saklama süresi akışa da yazılır.

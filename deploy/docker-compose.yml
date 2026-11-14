@@ -285,6 +285,7 @@ services:
       LOGSTASH_PASSWORD: ${LOGSTASH_PASSWORD}
       APM_PASSWORD: ${APM_PASSWORD}
       HEALTH_PASSWORD: ${HEALTH_PASSWORD}
+      AUDIT_PASSWORD: ${AUDIT_PASSWORD}
     entrypoint: ["/bin/sh", "/setup.sh"]
     volumes:
       - ./elasticsearch/setup.sh:/setup.sh:ro
@@ -756,6 +757,29 @@ services:
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__ServiceClientSecret: ${IDENTITY_CLIENT_SECRET}
       Keycloak__RolesClientSecret: ${IDENTITY_ROLES_CLIENT_SECRET}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  # Denetim kayıtları sayfası (admin): logs-gise.audit akışını Elasticsearch'ten okur, yalnızca okuma hesabıyla (audit_reader).
+  audit-api:
+    image: gise/audit-api:dev
+    build:
+      context: ..
+      dockerfile: src/Services/Audit/Presentation/Gise.Audit.Api/Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      Keycloak__InternalAuthority: http://keycloak:8080/auth/realms/gise
+      Keycloak__PublicAuthority: http://localhost:8000/auth/realms/gise
+      Keycloak__RequireHttpsMetadata: "false"
+      Elasticsearch__Password: ${AUDIT_PASSWORD:?deploy/.env içinde AUDIT_PASSWORD tanımlı olmalı}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
       interval: 10s

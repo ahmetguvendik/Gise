@@ -12,6 +12,9 @@ configMapGenerator:
     envs: [public.env]
 
 images:
+  - name: gise/audit-api
+    newName: ghcr.io/ahmetguvendik/gise-audit-api
+    newTag: latest
   - name: gise/audit-log-worker
     newName: ghcr.io/ahmetguvendik/gise-audit-log-worker
     newTag: latest

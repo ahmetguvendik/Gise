@@ -10,7 +10,7 @@ import { Menu } from './Menu'
 const here = () => window.location.origin + window.location.pathname
 
 // "Yönetim" menüsündeki sayfalar; bunlardan birindeyken menü düğmesi seçili görünür.
-const MANAGEMENT_PATHS = ['/kapi', '/etkinliklerim', '/onay-bekleyenler', '/mekan', '/kullanicilar', '/sistem-durumu']
+const MANAGEMENT_PATHS = ['/kapi', '/etkinliklerim', '/onay-bekleyenler', '/mekan', '/kullanicilar', '/denetim-kayitlari', '/sistem-durumu']
 
 export function Layout() {
   const auth = useAuth()
@@ -70,6 +70,9 @@ export function Layout() {
                     </NavLink>
                     <NavLink to="/kullanicilar" className={itemClass}>
                       Kullanıcılar
+                    </NavLink>
+                    <NavLink to="/denetim-kayitlari" className={itemClass}>
+                      Denetim kayıtları
                     </NavLink>
                     <NavLink to="/sistem-durumu" className={itemClass}>
                       Sistem durumu

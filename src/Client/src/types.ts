@@ -454,3 +454,21 @@ export interface SystemHealth {
   checkedAt: string
   groups: { name: string; items: SystemHealthItem[] }[]
 }
+
+/** Denetim kaydı (audit-api): yetkilendirme, giriş ve iş işlemleri. */
+export interface AuditRecord {
+  id: string
+  timestamp: string
+  action: string
+  outcome: 'success' | 'failure' | 'unknown' | string
+  service: string
+  actorId?: string
+  actorRoles: string[]
+  clientIp?: string
+  path?: string
+  message?: string
+  /** Alanda değişenler, ör. "Event.PosterKey: boş → '...'". */
+  changes?: string
+  /** İşlemin hedefi, düzleştirilmiş: "user.id", "role.name"... */
+  target: Record<string, string>
+}

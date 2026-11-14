@@ -112,6 +112,7 @@ Telgraf'tan farkı: orada Kafka tüketicisi API'nin içindeydi.
 | **Notification** | E-posta | PostgreSQL (inbox, bilet sahipleri, gönderilenler) | — | — | Kafka: `TicketsIssued`, `EventCancelled`, `EventUpdated` |
 | **Search** | Ana sayfadaki liste, Türkçe tam metin arama, yazarken öneri | Elasticsearch | REST (herkese açık) | — | — (Catalog'dan ve Reservation'dan gRPC ile dakikada bir alır) |
 | **SeatMap** | Koltuk haritasında anlık güncelleme | — | SignalR (`/hubs/seatmap`) | — | Redis yayını: `SeatsChanged` (Reservation'dan) |
+| **Audit** | Denetim kayıtları sayfası: kim, ne zaman, neyi yaptı (girişler, rol değişiklikleri, iş işlemleri) | — (kayıtlar Elasticsearch'te, `logs-gise.audit`) | REST (`/api/audit/records`, admin) | — | — |
 | **HealthCheck** | Sağlık paneli: servislerin ve altyapının durumu, düşünce Slack uyarısı, admin sayfası | — (durum bellekte) | REST (`/api/system/health`, admin) | Slack webhook | — (servislerin `/health` ucunu yoklar) |
 | **Identity** | Hesap hareketleri (giriş geçmişi, Keycloak olaylarının denetim loguna aktarılması) ve rol yönetimi (admin) | — (kullanıcılar ve olaylar Keycloak'ta) | REST (`/api/account/activity` giriş yapmış kullanıcı; `/api/users` admin) | — | — (Keycloak yönetim API'si) |
 
@@ -411,6 +412,16 @@ Telgraf'taki `HealthCheck.Api` düzeni: uyarılar **yalnızca buradan** çıkar 
 - **Bağımlılık notu:** `AspNetCore.HealthChecks.UI` Kubernetes servis keşfi için `KubernetesClient 15.0.1` getiriyor ve o sürümde CVE-2025-9708 (Kubernetes API sunucusunun sertifika zinciri doğrulanmıyor) var. Panel o istemciyi yalnızca Kubernetes keşfi açıksa kullanır (bizde kapalı); yine de tarayıcılar uyarmasın diye 17.0.14'e sabitlendi (`Directory.Packages.props`). Tek başına sabitleme paneli bozuyor (eski sürüme göre derlenmiş kod `IdentityModel`'i istiyor); `IdentityModel.OidcClient` de doğrudan eklenerek çözüldü. Paket yükseltilince bu iki satır gözden geçirilmeli.
 
 ---
+
+### 3.14 Audit: denetim kayıtları sayfası
+
+- **Ne:** admin için Yönetim → Denetim kayıtları (`/denetim-kayitlari`). Girişler, çıkışlar, parola/e-posta/iki aşamalı doğrulama değişiklikleri (Keycloak olayları), rol verme/alma ve iş işlemleri (etkinlik, sipariş, ödeme, bilet aktarma) yeniden eskiye, sayfada 20.
+- **Kaynak:** Elasticsearch'in `logs-gise.audit-*` akışı (365 gün saklanır). Aynı kayıtlar `gise_audit` veritabanına da yazılır (`audit-log-worker`); sayfa Elasticsearch'ten okur (Elasticsearch kapalıyken sayfa 503 verir, servis ayakta kalır: sağlık Degraded).
+- **Servis:** `audit-api` (`src/Services/Audit`, Application / Infrastructure / Presentation; Identity gibi veritabanı yok). Tek uç: `GET /api/audit/records?action&outcome&actorId&from&to&page&pageSize`. pageSize en fazla 100 (varsayılan 20); Elasticsearch'in sınırı yüzünden en fazla ilk 10.000 kayda ulaşılır, ötesi için tarihle daraltılır. Yanıt `PagedResult` (Kullanıcılar sayfasıyla aynı kalıp).
+- **Yetki:** yalnızca admin (tokensız 401, müşteri 403); gateway'de ve serviste. Kayıtlar kişisel veri içerir (kimlik, IP).
+- **Hesap:** `audit_reader` (`AUDIT_PASSWORD`): yalnızca `logs-gise.audit-*` okuyabilir, yazamaz (`deploy/elasticsearch/setup.sh`). `health_reader` denetim akışını bilerek göremez; iki hesap ayrı.
+- **Alanlar:** zaman, işlem (`event.action`), sonuç (`event.outcome`), kaydı yazan servis, işlemi yapan (`actor.id`, rolleri), IP, yol, ileti, alanda değişenler ve hedef (`target.*`, düzleştirilmiş: `user.id`, `role.name`). Listedeki kullanıcı kimliğine tıklamak o kullanıcının kayıtlarına daraltır; kimlik e-postaya çevrilmez (Keycloak kimliği gösterilir).
+- **Kapsam dışı:** uygulama logları (hatalar) bu sayfada yok; onlar Kibana'da.
 
 ## 4. Satın alma saga'sı
 
@@ -760,7 +771,7 @@ Gişe/
 │   │   └── Identity/              # Gise.Identity.AuditWorker
 │   ├── Services/
 │   │   ├── Catalog/  Reservation/  Order/  Payment/
-│   │   ├── Ticket/   Notification/  Search/  SeatMap/  Identity/  HealthCheck/
+│   │   ├── Ticket/   Notification/  Search/  SeatMap/  Identity/  HealthCheck/  Audit/
 │   └── Client/                    # React + Vite + React Router (Telgraf gibi): api/, auth/, components/, lib/, pages/
 ├── tests/
 │   ├── AuditLog/                  # Gise.AuditLog.UnitTests
@@ -839,3 +850,16 @@ Kodda ve konteyner adlarında ASCII **`gise`** kullanılır; klasör adındaki `
 **Karara bağlananlar (2026-10-28):** MassTransit 8.5.x (Apache-2.0) kullanılır; 9.x ticari lisanslı. Saga zaman aşımları için RabbitMQ'nun gecikmeli mesaj eklentisi yerine Quartz (Order veritabanında) kullanılır.
 
 **Karara bağlananlar (2026-10-17):** Kafka olayları için kendi outbox/inbox'ımız yazılır ve entity'leri her servisin kendi içinde durur; Kafka KRaft modunda çalışır; ödeme test sağlayıcıyla yapılır (bkz. 3.2).
+
+---
+
+## 14. Kubernetes ve ortamlar
+
+Demo için tek makineli k3s (Ubuntu Server; ev ağı). Tanım `deploy/k8s` (Kustomize: `base/` + `overlays/homelab/`, kurulum `deploy.sh`, ayrıntı `deploy/k8s/README.md`).
+
+- **Ortamlar:** local = `deploy/docker-compose.yml` (`localhost`); staging = bu küme (`https://192.168.1.8:8443`). Staging'de `ASPNETCORE_ENVIRONMENT` ve `DOTNET_ENVIRONMENT` `Staging`; dış adresler (Keycloak yayın adresi, MinIO imzalı adres, e-posta bağlantısı, afiş adresi) ilgili projedeki `appsettings.Staging.json` dosyasında. IP değişirse o dosyalar güncellenir ve imajlar yeniden derlenir; client CSP'si, MinIO CORS'u ve Keycloak'ın yayın adresi ise `public.env`'den okunur (ikisi aynı IP'yi göstermeli).
+- **İmajlar:** GitHub Actions (`.github/workflows/images.yml`), linux/amd64, `ghcr.io/ahmetguvendik/gise-<ad>`. MinIO'nun eski sürüm imajları Docker Hub'dan kaldırıldığı için `minio` ve `mc` aynı sürümlerle kaynaktan derlenir (`deploy/minio/Dockerfile.*`).
+- **Veri:** PostgreSQL, Kafka, RabbitMQ, Redis, MinIO, Elasticsearch, etcd ve Keycloak PVC'li (local-path); makine yeniden başlayınca her şey kendiliğinden döner, veri durur (denendi: 37 pod, veritabanları, kullanıcılar, afiş aynı).
+- **HTTPS:** tarayıcıda giriş (OIDC/PKCE) güvenli bağlam ister; `tls-proxy` (nginx) 8443 (uygulama → APISIX) ve 9000 (MinIO) portlarında TLS'i sonlandırır, küme içi trafik düz HTTP kalır. Sertifikayı yerel bir CA imzalar (`tls.sh`; CA cihaza bir kez kurulur). APISIX `trusted_addresses` ile proxy'nin `X-Forwarded-*` başlıklarına güvenir; yoksa Keycloak çerezleri `Secure` işaretlenmez.
+- **Ubuntu 26.04 notu:** varsayılan AppArmor profili Postgres (`gosu`) ve Elasticsearch'in (JVM ajanı) açılışını engelliyor; ikisi `appArmorProfile: Unconfined` ile çalışır.
+- **Erişim:** yalnızca ev ağı. Keycloak yönetimi, Kibana, APISIX dashboard ve sağlık paneli `kubectl port-forward` ile.

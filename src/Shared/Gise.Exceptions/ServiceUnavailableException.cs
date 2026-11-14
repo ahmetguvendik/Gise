@@ -18,6 +18,11 @@ public class ServiceUnavailableException : AppException
         "Kimlik sistemine şu an ulaşılamıyor; biraz sonra tekrar deneyin.",
         description);
 
+    public static ServiceUnavailableException Elasticsearch(string description) => new(
+        ErrorCodes.General.ServiceUnavailable,
+        "Denetim kayıtlarına şu an ulaşılamıyor; biraz sonra tekrar deneyin.",
+        description);
+
     public static ServiceUnavailableException PaymentProvider() => new(
         ErrorCodes.General.ServiceUnavailable,
         "Ödeme sağlayıcısına şu an ulaşılamıyor.",

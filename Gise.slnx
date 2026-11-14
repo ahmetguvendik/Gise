@@ -56,6 +56,16 @@
   <Folder Name="/src/Services/HealthCheck/Presentation/">
     <Project Path="src/Services/HealthCheck/Presentation/Gise.HealthCheck.Api/Gise.HealthCheck.Api.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Audit/" />
+  <Folder Name="/src/Services/Audit/Core/">
+    <Project Path="src/Services/Audit/Core/Gise.Audit.Application/Gise.Audit.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Audit/Infrastructure/">
+    <Project Path="src/Services/Audit/Infrastructure/Gise.Audit.Infrastructure/Gise.Audit.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Audit/Presentation/">
+    <Project Path="src/Services/Audit/Presentation/Gise.Audit.Api/Gise.Audit.Api.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Identity/" />
   <Folder Name="/src/Services/Identity/Core/">
     <Project Path="src/Services/Identity/Core/Gise.Identity.Application/Gise.Identity.Application.csproj" />

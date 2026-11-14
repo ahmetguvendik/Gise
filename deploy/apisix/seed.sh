@@ -102,6 +102,7 @@ upstream ticket ticket-api:8080
 upstream search search-api:8080
 upstream seatmap seatmap-api:8080
 upstream identity identity-api:8080
+upstream audit audit-api:8080
 upstream healthcheck healthcheck-api:8080
 upstream client client:80
 upstream keycloak keycloak:8080
@@ -167,6 +168,9 @@ endpoint account-activity GET /api/account/activity identity account "Son giriş
 endpoint users-search      GET    /api/users                  identity users "Kullanıcı arama (admin)"
 endpoint users-role-grant  PUT    /api/users/:id/roles/:role  identity users "Rol verme (admin)"
 endpoint users-role-revoke DELETE /api/users/:id/roles/:role  identity users "Rol alma (admin)"
+
+echo "Audit"
+endpoint audit-records GET /api/audit/records audit audit "Denetim kayıtları (admin)"
 
 echo "Sistem durumu"
 # Admin sayfasının verisi (healthcheck-api, JWT ister: yalnızca admin).
