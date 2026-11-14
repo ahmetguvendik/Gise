@@ -42,6 +42,12 @@ internal sealed class ErrorRateHealthCheck : IHealthCheck
                         {
                             new { term = new Dictionary<string, string> { ["log.level"] = "Error" } },
                             new { range = new Dictionary<string, object> { ["@timestamp"] = new { gte = $"now-{_windowMinutes}m" } } }
+                        },
+                        // Bu servis başarısız bir kontrolü kendisi Error olarak loglar; sayılırsa bir kesinti hata oranını şişirir,
+                        // hata oranı uyarısı da kendi logunu üretir ve kök neden kalksa bile sönmez.
+                        must_not = new object[]
+                        {
+                            new { term = new Dictionary<string, string> { ["service.name"] = "healthcheck-api" } }
                         }
                     }
                 }
