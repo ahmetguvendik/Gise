@@ -37,3 +37,7 @@ apisix:
   dns_resolver_valid: 10
   # Server başlığı sürümsüz ("APISIX"); sürüm, bilinen açıkları aramayı kolaylaştırır (bkz. docs/threat-model.md T5).
   enable_server_tokens: false
+  # Önündeki TLS proxy'nin (Kubernetes'te tls-proxy, pod ağı 10.42.0.0/16) X-Forwarded-Proto/Host/Port başlıklarına güvenir;
+  # yoksa APISIX bunları kendi (http) değerleriyle ezer ve Keycloak çerezleri Secure işaretlemez. Compose'ta etkisi yok.
+  trusted_addresses:
+    - 10.42.0.0/16
