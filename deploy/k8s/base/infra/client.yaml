@@ -17,7 +17,7 @@ spec:
       containers:
         - name: client
           image: gise/client
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - { name: http, containerPort: 80 }
           env:

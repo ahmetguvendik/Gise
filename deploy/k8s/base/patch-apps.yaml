@@ -14,7 +14,7 @@ spec:
         - name: ghcr-pull
       containers:
         - name: app
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           # Bu küme staging ortamı: appsettings.Staging.json yüklenir (dış adresler orada). Web uygulamaları
           # ASPNETCORE_ENVIRONMENT'ı, işçi servisler DOTNET_ENVIRONMENT'ı okur.
           env:
