@@ -19,10 +19,6 @@ spec:
         ports:
           - { name: http, containerPort: 8080 }
         env:
-        - name: PUBLIC_URL
-          valueFrom: { configMapKeyRef: { name: gise-public, key: PUBLIC_URL } }
-        - name: MINIO_PUBLIC_URL
-          valueFrom: { configMapKeyRef: { name: gise-public, key: MINIO_PUBLIC_URL } }
         - name: POSTGRES_PASSWORD
           valueFrom: { secretKeyRef: { name: gise-secrets, key: POSTGRES_PASSWORD } }
         - name: MINIO_ROOT_PASSWORD
@@ -31,16 +27,12 @@ spec:
           value: "Host=postgres;Database=gise_ticket;Username=gise;Password=$(POSTGRES_PASSWORD)"
         - name: Keycloak__InternalAuthority
           value: "http://keycloak:8080/auth/realms/gise"
-        - name: Keycloak__PublicAuthority
-          value: "$(PUBLIC_URL)/auth/realms/gise"
         - name: Keycloak__RequireHttpsMetadata
           value: "false"
         - name: Storage__AccessKey
           value: "gise"
         - name: Storage__SecretKey
           value: "$(MINIO_ROOT_PASSWORD)"
-        - name: Storage__PublicEndpoint
-          value: "$(MINIO_PUBLIC_URL)"
 ---
 apiVersion: v1
 kind: Service

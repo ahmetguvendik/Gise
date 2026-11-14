@@ -19,8 +19,6 @@ spec:
         ports:
           - { name: http, containerPort: 8080 }
         env:
-        - name: MINIO_PUBLIC_URL
-          valueFrom: { configMapKeyRef: { name: gise-public, key: MINIO_PUBLIC_URL } }
         - name: POSTGRES_PASSWORD
           valueFrom: { secretKeyRef: { name: gise-secrets, key: POSTGRES_PASSWORD } }
         - name: RABBITMQ_PASSWORD
@@ -35,8 +33,6 @@ spec:
           value: "gise"
         - name: Storage__SecretKey
           value: "$(MINIO_ROOT_PASSWORD)"
-        - name: Storage__PublicEndpoint
-          value: "$(MINIO_PUBLIC_URL)"
 ---
 apiVersion: v1
 kind: Service

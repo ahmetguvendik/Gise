@@ -15,6 +15,11 @@ spec:
       containers:
         - name: app
           imagePullPolicy: IfNotPresent
+          # Bu küme staging ortamı: appsettings.Staging.json yüklenir (dış adresler orada). Web uygulamaları
+          # ASPNETCORE_ENVIRONMENT'ı, işçi servisler DOTNET_ENVIRONMENT'ı okur.
+          env:
+            - { name: ASPNETCORE_ENVIRONMENT, value: Staging }
+            - { name: DOTNET_ENVIRONMENT, value: Staging }
           resources:
             requests:
               cpu: 20m

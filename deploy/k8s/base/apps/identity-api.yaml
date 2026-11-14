@@ -19,16 +19,12 @@ spec:
         ports:
           - { name: http, containerPort: 8080 }
         env:
-        - name: PUBLIC_URL
-          valueFrom: { configMapKeyRef: { name: gise-public, key: PUBLIC_URL } }
         - name: IDENTITY_CLIENT_SECRET
           valueFrom: { secretKeyRef: { name: gise-secrets, key: IDENTITY_CLIENT_SECRET } }
         - name: IDENTITY_ROLES_CLIENT_SECRET
           valueFrom: { secretKeyRef: { name: gise-secrets, key: IDENTITY_ROLES_CLIENT_SECRET } }
         - name: Keycloak__InternalAuthority
           value: "http://keycloak:8080/auth/realms/gise"
-        - name: Keycloak__PublicAuthority
-          value: "$(PUBLIC_URL)/auth/realms/gise"
         - name: Keycloak__RequireHttpsMetadata
           value: "false"
         - name: Keycloak__ServiceClientSecret

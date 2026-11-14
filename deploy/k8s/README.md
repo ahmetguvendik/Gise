@@ -10,6 +10,19 @@ Yapı: `base/` her şeyin tanımı, `overlays/homelab/` ev ağı adresi ve imaj 
 ortaktır (`deploy/apisix`, `deploy/keycloak`...), bu yüzden derleme `--load-restrictor LoadRestrictionsNone` ile yapılır
 (betikler bunu kendisi yapar).
 
+## Ortamlar
+
+| | Local | Staging (bu küme) |
+|---|---|---|
+| Çalıştıran | `deploy/docker-compose.yml` | `deploy/k8s` (k3s) |
+| Adres | `http://localhost:8000` | `https://192.168.1.8:8443` |
+| Ayarlar | `appsettings.json` + compose ortam değişkenleri | `appsettings.Staging.json` (`ASPNETCORE_ENVIRONMENT=Staging`) |
+
+Dış adresler (Keycloak yayın adresi, MinIO imzalı adres, e-posta bağlantısı, afiş adresi) staging'de kodda,
+ilgili projedeki `appsettings.Staging.json` dosyasındadır. IP ya da port değişirse o dosyalar güncellenip imajlar yeniden
+derlenir; ayrıca client'ın CSP'si, MinIO CORS'u, Keycloak yayın adresi ve realm'i `overlays/homelab/public.env`'den okunur
+(`deploy.sh <IP>` bunu yazar). İkisi aynı IP'yi göstermelidir.
+
 ## 1. İmajlar
 
 GitHub Actions (`.github/workflows/images.yml`) `main`'e her `src/**` değişikliğinde 24 imajı derleyip

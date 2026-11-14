@@ -19,8 +19,6 @@ spec:
         ports:
           - { name: http, containerPort: 8080 }
         env:
-        - name: PUBLIC_URL
-          valueFrom: { configMapKeyRef: { name: gise-public, key: PUBLIC_URL } }
         - name: POSTGRES_PASSWORD
           valueFrom: { secretKeyRef: { name: gise-secrets, key: POSTGRES_PASSWORD } }
         - name: SMTP_USERNAME
@@ -33,8 +31,6 @@ spec:
           value: "$(SMTP_USERNAME)"
         - name: Smtp__Password
           value: "$(SMTP_PASSWORD)"
-        - name: Notification__WebBaseUrl
-          value: "$(PUBLIC_URL)"
 ---
 apiVersion: v1
 kind: Service
