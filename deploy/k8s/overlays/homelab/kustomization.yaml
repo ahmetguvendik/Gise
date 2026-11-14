@@ -84,3 +84,9 @@ images:
   - name: gise/client
     newName: ghcr.io/ahmetguvendik/gise-client
     newTag: latest
+  - name: gise/minio
+    newName: ghcr.io/ahmetguvendik/gise-minio
+    newTag: latest
+  - name: gise/minio-mc
+    newName: ghcr.io/ahmetguvendik/gise-minio-mc
+    newTag: latest

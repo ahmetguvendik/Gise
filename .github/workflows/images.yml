@@ -5,7 +5,7 @@ name: images
 on:
   push:
     branches: [main]
-    paths: ["src/**", ".github/workflows/images.yml"]
+    paths: ["src/**", "deploy/minio/Dockerfile.*", ".github/workflows/images.yml"]
   workflow_dispatch:
 
 permissions:
@@ -48,6 +48,8 @@ jobs:
           - { name: audit-log-worker, context: ., dockerfile: src/Workers/AuditLog/Gise.AuditLog.Worker/Dockerfile }
           - { name: seatmap-api, context: ., dockerfile: src/Services/SeatMap/Presentation/Gise.SeatMap.Api/Dockerfile }
           - { name: client, context: src/Client, dockerfile: src/Client/Dockerfile }
+          - { name: minio, context: deploy/minio, dockerfile: deploy/minio/Dockerfile.minio }
+          - { name: minio-mc, context: deploy/minio, dockerfile: deploy/minio/Dockerfile.mc }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3

@@ -17,6 +17,8 @@ spec:
       containers:
         - name: elasticsearch
           image: elasticsearch:9.5.5
+          # Ubuntu 26.04'ün varsayılan AppArmor profili JVM'in kendi sürecine sinyal göndermesini (entitlement ajanı) engelliyor.
+          securityContext: { appArmorProfile: { type: Unconfined } }
           ports:
             - { name: http, containerPort: 9200 }
           env:

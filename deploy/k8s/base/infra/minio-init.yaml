@@ -12,7 +12,7 @@ spec:
       enableServiceLinks: false
       containers:
         - name: mc
-          image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+          image: gise/minio-mc
           command: ["/bin/sh", "/setup/setup.sh"]
           env:
             - { name: MINIO_ROOT_USER, value: gise }

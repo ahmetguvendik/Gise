@@ -27,8 +27,10 @@ spec:
             tcpSocket: { port: 8000 }
             periodSeconds: 5
             failureThreshold: 36
+          # /gateway-health rotası apisix-init ile yazılır ve init, yönetim API'sine Service üzerinden (yalnızca hazır pod'a
+          # yönlenir) ulaşır: hazırlık bu rotaya bağlanırsa ikisi birbirini bekler. Bu yüzden yalnızca port açık mı bakılır.
           readinessProbe:
-            httpGet: { path: /gateway-health, port: 8000 }
+            tcpSocket: { port: 9180 }
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 6
