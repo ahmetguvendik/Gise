@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak
+  labels: { app.kubernetes.io/name: keycloak, app.kubernetes.io/part-of: gise, tier: infra }
+spec:
+  serviceName: keycloak
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: keycloak }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: keycloak, app.kubernetes.io/part-of: gise, tier: infra }
+    spec:
+      enableServiceLinks: false
+      securityContext: { fsGroup: 1000 }
+      initContainers:
+        # ConfigMap anahtarlarında "/" olamaz: tema dosyaları "login__css__gise.css" gibi düzleştirilmiş adlarla gelir,
+        # burada klasör yapısına geri kurulur. Realm'deki localhost:8000 adresi ev ağı adresiyle değiştirilir
+        # (yalnızca ilk kurulumda içe aktarılır).
+        - name: prepare
+          image: busybox:1.37
+          env:
+            - name: PUBLIC_URL
+              valueFrom: { configMapKeyRef: { name: gise-public, key: PUBLIC_URL } }
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              for f in /theme-src/*; do
+                rel=$(basename "$f" | sed 's#__#/#g')
+                mkdir -p "/theme/$(dirname "$rel")"
+                cp "$f" "/theme/$rel"
+              done
+              sed "s#http://localhost:8000#${PUBLIC_URL}#g" /realm-src/gise-realm.json > /import/gise-realm.json
+          volumeMounts:
+            - { name: theme-src, mountPath: /theme-src }
+            - { name: realm-src, mountPath: /realm-src }
+            - { name: theme, mountPath: /theme }
+            - { name: import, mountPath: /import }
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:26.8.1
+          args: ["start-dev", "--import-realm"]
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: management, containerPort: 9000 }
+          env:
+            - { name: KC_BOOTSTRAP_ADMIN_USERNAME, value: admin }
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: KEYCLOAK_ADMIN_PASSWORD } }
+            - { name: KC_HEALTH_ENABLED, value: "true" }
+            - { name: KC_HTTP_RELATIVE_PATH, value: /auth }
+            - name: PUBLIC_URL
+              valueFrom: { configMapKeyRef: { name: gise-public, key: PUBLIC_URL } }
+            - { name: KC_HOSTNAME, value: "$(PUBLIC_URL)/auth" }
+            # Yönetim konsolu yayınlanmaz: kubectl -n gise port-forward svc/keycloak 8180:8080 → http://localhost:8180/auth/admin
+            - { name: KC_HOSTNAME_ADMIN, value: "http://localhost:8180/auth" }
+            - { name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC, value: "true" }
+            - { name: KC_PROXY_HEADERS, value: xforwarded }
+            - { name: KC_HTTP_MANAGEMENT_RELATIVE_PATH, value: / }
+            - name: SMTP_USERNAME
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: SMTP_USERNAME } }
+            - name: SMTP_PASSWORD
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: SMTP_PASSWORD } }
+            - name: IDENTITY_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: IDENTITY_CLIENT_SECRET } }
+            - name: IDENTITY_ROLES_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: IDENTITY_ROLES_CLIENT_SECRET } }
+          volumeMounts:
+            - { name: data, mountPath: /opt/keycloak/data }
+            - { name: import, mountPath: /opt/keycloak/data/import }
+            - { name: theme, mountPath: /opt/keycloak/themes/gise }
+            - { name: blacklists, mountPath: /opt/keycloak/data/password-blacklists }
+          startupProbe:
+            httpGet: { path: /health/ready, port: 9000 }
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 9000 }
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet: { path: /health/live, port: 9000 }
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { memory: 1280Mi }
+      volumes:
+        - name: theme-src
+          configMap: { name: keycloak-theme }
+        - name: realm-src
+          configMap: { name: keycloak-realm }
+        - name: blacklists
+          configMap: { name: keycloak-blacklists }
+        - { name: theme, emptyDir: {} }
+        - { name: import, emptyDir: {} }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: 2Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+spec:
+  selector: { app.kubernetes.io/name: keycloak }
+  ports:
+    - { name: http, port: 8080 }
+    - { name: management, port: 9000 }

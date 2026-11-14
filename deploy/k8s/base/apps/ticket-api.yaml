@@ -1,0 +1,53 @@
+# Üretildi: deploy/docker-compose.yml'deki ticket-api tanımından (ortam değişkenleri aynı; gizliler Secret'tan, genel adresler gise-public'ten).
+# Ortak kısımlar (sağlık probları, kaynak limitleri, enableServiceLinks...) ../patch-apps.yaml'da.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-api
+  labels: { app.kubernetes.io/name: ticket-api, app.kubernetes.io/part-of: gise, tier: app }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: ticket-api }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: ticket-api, app.kubernetes.io/part-of: gise, tier: app }
+    spec:
+      containers:
+      - name: app
+        image: gise/ticket-api
+        ports:
+          - { name: http, containerPort: 8080 }
+        env:
+        - name: PUBLIC_URL
+          valueFrom: { configMapKeyRef: { name: gise-public, key: PUBLIC_URL } }
+        - name: MINIO_PUBLIC_URL
+          valueFrom: { configMapKeyRef: { name: gise-public, key: MINIO_PUBLIC_URL } }
+        - name: POSTGRES_PASSWORD
+          valueFrom: { secretKeyRef: { name: gise-secrets, key: POSTGRES_PASSWORD } }
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom: { secretKeyRef: { name: gise-secrets, key: MINIO_ROOT_PASSWORD } }
+        - name: ConnectionStrings__Ticket
+          value: "Host=postgres;Database=gise_ticket;Username=gise;Password=$(POSTGRES_PASSWORD)"
+        - name: Keycloak__InternalAuthority
+          value: "http://keycloak:8080/auth/realms/gise"
+        - name: Keycloak__PublicAuthority
+          value: "$(PUBLIC_URL)/auth/realms/gise"
+        - name: Keycloak__RequireHttpsMetadata
+          value: "false"
+        - name: Storage__AccessKey
+          value: "gise"
+        - name: Storage__SecretKey
+          value: "$(MINIO_ROOT_PASSWORD)"
+        - name: Storage__PublicEndpoint
+          value: "$(MINIO_PUBLIC_URL)"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-api
+  labels: { app.kubernetes.io/name: ticket-api, app.kubernetes.io/part-of: gise }
+spec:
+  selector: { app.kubernetes.io/name: ticket-api }
+  ports:
+    - { name: http, port: 8080, targetPort: http }

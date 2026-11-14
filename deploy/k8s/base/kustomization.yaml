@@ -1,0 +1,91 @@
+# Gişe'nin tüm Kubernetes tanımı. Doğrudan değil, overlays/homelab üzerinden uygulanır (deploy.sh).
+# Yapılandırma dosyaları docker-compose'taki dosyalarla aynıdır (deploy/apisix, keycloak...): iki ortam tek kaynaktan beslenir;
+# bu yüzden derleme --load-restrictor LoadRestrictionsNone ile yapılır.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: gise
+
+resources:
+  - namespace.yaml
+  - gise-public.yaml
+  - infra/postgres.yaml
+  - infra/redis.yaml
+  - infra/kafka.yaml
+  - infra/rabbitmq.yaml
+  - infra/minio.yaml
+  - infra/elasticsearch.yaml
+  - infra/logstash.yaml
+  - infra/apm-server.yaml
+  - infra/kibana.yaml
+  - infra/keycloak.yaml
+  - infra/etcd.yaml
+  - infra/apisix.yaml
+  - infra/client.yaml
+  # Kurulum işleri: deploy.sh çalıştırır; hazır olmalarını bekler.
+  - infra/minio-init.yaml
+  - infra/elastic-init.yaml
+  - infra/apisix-init.yaml
+  - apps/audit-log-worker.yaml
+  - apps/catalog-api.yaml
+  - apps/catalog-outbox-worker.yaml
+  - apps/healthcheck-api.yaml
+  - apps/identity-api.yaml
+  - apps/identity-audit-worker.yaml
+  - apps/notification-api.yaml
+  - apps/notification-inbox-worker.yaml
+  - apps/order-api.yaml
+  - apps/order-inbox-worker.yaml
+  - apps/order-saga-worker.yaml
+  - apps/payment-api.yaml
+  - apps/payment-command-worker.yaml
+  - apps/reservation-api.yaml
+  - apps/reservation-command-worker.yaml
+  - apps/reservation-inbox-worker.yaml
+  - apps/search-api.yaml
+  - apps/search-sync-worker.yaml
+  - apps/seatmap-api.yaml
+  - apps/ticket-api.yaml
+  - apps/ticket-command-worker.yaml
+  - apps/ticket-inbox-worker.yaml
+  - apps/ticket-outbox-worker.yaml
+
+patches:
+  - path: patch-apps.yaml
+    target:
+      kind: Deployment
+      labelSelector: tier=app
+
+configMapGenerator:
+  - name: apisix-config
+    files: [config.yaml=../../apisix/config.yaml]
+  - name: apisix-seed
+    files: [seed.sh=../../apisix/seed.sh]
+  - name: minio-setup
+    files: [setup.sh=../../minio/setup.sh]
+  - name: elastic-setup
+    files: [setup.sh=../../elasticsearch/setup.sh]
+  - name: logstash-pipeline
+    files: [logs.conf=../../logstash/pipeline/logs.conf]
+  - name: logstash-config
+    files: [logstash.yml=../../logstash/config/logstash.yml]
+  - name: apm-server-config
+    files: [apm-server.yml=../../apm-server/apm-server.yml]
+  - name: keycloak-realm
+    files: [gise-realm.json=../../keycloak/gise-realm.json]
+  - name: keycloak-blacklists
+    files: [gise-common-passwords.txt=../../keycloak/password-blacklists/gise-common-passwords.txt]
+  # ConfigMap anahtarlarında "/" olamaz: klasör ayırıcı "__" yazılır, Keycloak'ın init konteyneri geri çevirir.
+  - name: keycloak-theme
+    files:
+      - email__html__template.ftl=../../keycloak/themes/gise/email/html/template.ftl
+      - email__messages__messages_tr.properties=../../keycloak/themes/gise/email/messages/messages_tr.properties
+      - email__theme.properties=../../keycloak/themes/gise/email/theme.properties
+      - login__login-otp.ftl=../../keycloak/themes/gise/login/login-otp.ftl
+      - login__messages__messages_tr.properties=../../keycloak/themes/gise/login/messages/messages_tr.properties
+      - login__resources__css__gise.css=../../keycloak/themes/gise/login/resources/css/gise.css
+      - login__resources__img__favicon.ico=../../keycloak/themes/gise/login/resources/img/favicon.ico
+      - login__resources__img__gise-mark.svg=../../keycloak/themes/gise/login/resources/img/gise-mark.svg
+      - login__resources__js__otp-boxes.js=../../keycloak/themes/gise/login/resources/js/otp-boxes.js
+      - login__resources__js__otp-timer.js=../../keycloak/themes/gise/login/resources/js/otp-timer.js
+      - login__theme.properties=../../keycloak/themes/gise/login/theme.properties

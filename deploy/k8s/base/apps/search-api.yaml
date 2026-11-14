@@ -1,0 +1,39 @@
+# Üretildi: deploy/docker-compose.yml'deki search-api tanımından (ortam değişkenleri aynı; gizliler Secret'tan, genel adresler gise-public'ten).
+# Ortak kısımlar (sağlık probları, kaynak limitleri, enableServiceLinks...) ../patch-apps.yaml'da.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-api
+  labels: { app.kubernetes.io/name: search-api, app.kubernetes.io/part-of: gise, tier: app }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: search-api }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: search-api, app.kubernetes.io/part-of: gise, tier: app }
+    spec:
+      containers:
+      - name: app
+        image: gise/search-api
+        ports:
+          - { name: http, containerPort: 8080 }
+        env:
+        - name: MINIO_PUBLIC_URL
+          valueFrom: { configMapKeyRef: { name: gise-public, key: MINIO_PUBLIC_URL } }
+        - name: ELASTIC_PASSWORD
+          valueFrom: { secretKeyRef: { name: gise-secrets, key: ELASTIC_PASSWORD } }
+        - name: Elasticsearch__Password
+          value: "$(ELASTIC_PASSWORD)"
+        - name: Posters__PublicBaseUrl
+          value: "$(MINIO_PUBLIC_URL)/gise-media"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: search-api
+  labels: { app.kubernetes.io/name: search-api, app.kubernetes.io/part-of: gise }
+spec:
+  selector: { app.kubernetes.io/name: search-api }
+  ports:
+    - { name: http, port: 8080, targetPort: http }

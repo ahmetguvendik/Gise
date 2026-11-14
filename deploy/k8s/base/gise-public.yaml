@@ -1,0 +1,8 @@
+# Tarayıcının gördüğü adresler. Taban değerler yerel geliştirme içindir; ev ağı adresi overlays/homelab'da yazılır.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gise-public
+data:
+  PUBLIC_URL: http://localhost:8000
+  MINIO_PUBLIC_URL: http://localhost:9000

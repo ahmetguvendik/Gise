@@ -1,0 +1,43 @@
+# Üretildi: deploy/docker-compose.yml'deki reservation-command-worker tanımından (ortam değişkenleri aynı; gizliler Secret'tan, genel adresler gise-public'ten).
+# Ortak kısımlar (sağlık probları, kaynak limitleri, enableServiceLinks...) ../patch-apps.yaml'da.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservation-command-worker
+  labels: { app.kubernetes.io/name: reservation-command-worker, app.kubernetes.io/part-of: gise, tier: app }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: reservation-command-worker }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: reservation-command-worker, app.kubernetes.io/part-of: gise, tier: app }
+    spec:
+      containers:
+      - name: app
+        image: gise/reservation-command-worker
+        ports:
+          - { name: http, containerPort: 8080 }
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom: { secretKeyRef: { name: gise-secrets, key: POSTGRES_PASSWORD } }
+        - name: REDIS_PASSWORD
+          valueFrom: { secretKeyRef: { name: gise-secrets, key: REDIS_PASSWORD } }
+        - name: RABBITMQ_PASSWORD
+          valueFrom: { secretKeyRef: { name: gise-secrets, key: RABBITMQ_PASSWORD } }
+        - name: ConnectionStrings__Reservation
+          value: "Host=postgres;Database=gise_reservation;Username=gise;Password=$(POSTGRES_PASSWORD)"
+        - name: Redis__Connection
+          value: "redis:6379,password=$(REDIS_PASSWORD)"
+        - name: RabbitMq__Password
+          value: "$(RABBITMQ_PASSWORD)"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservation-command-worker
+  labels: { app.kubernetes.io/name: reservation-command-worker, app.kubernetes.io/part-of: gise }
+spec:
+  selector: { app.kubernetes.io/name: reservation-command-worker }
+  ports:
+    - { name: http, port: 8080, targetPort: http }

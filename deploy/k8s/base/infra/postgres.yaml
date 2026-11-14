@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  labels: { app.kubernetes.io/name: postgres, app.kubernetes.io/part-of: gise, tier: infra }
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: postgres }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: postgres, app.kubernetes.io/part-of: gise, tier: infra }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - { name: pg, containerPort: 5432 }
+          env:
+            - { name: POSTGRES_USER, value: gise }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: POSTGRES_PASSWORD } }
+            - { name: POSTGRES_DB, value: gise_catalog }
+            # Volume'un kökündeki lost+found initdb'yi bozmasın.
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "gise", "-d", "gise_catalog"] }
+            periodSeconds: 5
+            failureThreshold: 20
+          livenessProbe:
+            exec: { command: ["pg_isready", "-U", "gise", "-d", "gise_catalog"] }
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 1Gi }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: 10Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector: { app.kubernetes.io/name: postgres }
+  ports:
+    - { name: pg, port: 5432 }

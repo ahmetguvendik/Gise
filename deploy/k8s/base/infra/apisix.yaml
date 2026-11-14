@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix
+  labels: { app.kubernetes.io/name: apisix, app.kubernetes.io/part-of: gise, tier: infra }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: apisix }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: apisix, app.kubernetes.io/part-of: gise, tier: infra }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: apisix
+          image: apache/apisix:3.16.0-debian
+          ports:
+            - { name: gateway, containerPort: 8000 }
+            - { name: admin, containerPort: 9180 }
+          env:
+            - name: APISIX_ADMIN_KEY
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: APISIX_ADMIN_KEY } }
+          volumeMounts:
+            - { name: config, mountPath: /usr/local/apisix/conf/config.yaml, subPath: config.yaml, readOnly: true }
+          startupProbe:
+            tcpSocket: { port: 8000 }
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet: { path: /gateway-health, port: 8000 }
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket: { port: 8000 }
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+      volumes:
+        - name: config
+          configMap: { name: apisix-config }
+---
+# Küme içi: apisix:8000 (gateway), apisix:9180 (yönetim API'si; dışarı açık değil).
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix
+spec:
+  selector: { app.kubernetes.io/name: apisix }
+  ports:
+    - { name: gateway, port: 8000 }
+    - { name: admin, port: 9180 }
+---
+# Ev ağından giriş noktası: http://<makine IP>:8000. k3s ServiceLB 8000'i makinenin portuna açar.
+apiVersion: v1
+kind: Service
+metadata:
+  name: apisix-public
+spec:
+  type: LoadBalancer
+  selector: { app.kubernetes.io/name: apisix }
+  ports:
+    - { name: gateway, port: 8000, targetPort: 8000 }

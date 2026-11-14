@@ -1,0 +1,47 @@
+# Üretildi: deploy/docker-compose.yml'deki identity-api tanımından (ortam değişkenleri aynı; gizliler Secret'tan, genel adresler gise-public'ten).
+# Ortak kısımlar (sağlık probları, kaynak limitleri, enableServiceLinks...) ../patch-apps.yaml'da.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-api
+  labels: { app.kubernetes.io/name: identity-api, app.kubernetes.io/part-of: gise, tier: app }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: identity-api }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: identity-api, app.kubernetes.io/part-of: gise, tier: app }
+    spec:
+      containers:
+      - name: app
+        image: gise/identity-api
+        ports:
+          - { name: http, containerPort: 8080 }
+        env:
+        - name: PUBLIC_URL
+          valueFrom: { configMapKeyRef: { name: gise-public, key: PUBLIC_URL } }
+        - name: IDENTITY_CLIENT_SECRET
+          valueFrom: { secretKeyRef: { name: gise-secrets, key: IDENTITY_CLIENT_SECRET } }
+        - name: IDENTITY_ROLES_CLIENT_SECRET
+          valueFrom: { secretKeyRef: { name: gise-secrets, key: IDENTITY_ROLES_CLIENT_SECRET } }
+        - name: Keycloak__InternalAuthority
+          value: "http://keycloak:8080/auth/realms/gise"
+        - name: Keycloak__PublicAuthority
+          value: "$(PUBLIC_URL)/auth/realms/gise"
+        - name: Keycloak__RequireHttpsMetadata
+          value: "false"
+        - name: Keycloak__ServiceClientSecret
+          value: "$(IDENTITY_CLIENT_SECRET)"
+        - name: Keycloak__RolesClientSecret
+          value: "$(IDENTITY_ROLES_CLIENT_SECRET)"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-api
+  labels: { app.kubernetes.io/name: identity-api, app.kubernetes.io/part-of: gise }
+spec:
+  selector: { app.kubernetes.io/name: identity-api }
+  ports:
+    - { name: http, port: 8080, targetPort: http }

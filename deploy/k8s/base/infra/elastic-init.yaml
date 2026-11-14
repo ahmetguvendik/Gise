@@ -1,0 +1,32 @@
+# Elasticsearch hesapları (Kibana, Logstash, APM Server, health_reader), 7 günlük log saklama ve Kibana log görünümü.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: elastic-init
+  labels: { app.kubernetes.io/part-of: gise, tier: setup }
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      enableServiceLinks: false
+      containers:
+        - name: curl
+          image: curlimages/curl:8.11.1
+          command: ["/bin/sh", "/setup/setup.sh"]
+          env:
+            - name: ELASTIC_PASSWORD
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: ELASTIC_PASSWORD } }
+            - name: KIBANA_PASSWORD
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: KIBANA_PASSWORD } }
+            - name: LOGSTASH_PASSWORD
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: LOGSTASH_PASSWORD } }
+            - name: APM_PASSWORD
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: APM_PASSWORD } }
+            - name: HEALTH_PASSWORD
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: HEALTH_PASSWORD } }
+          volumeMounts:
+            - { name: setup, mountPath: /setup }
+      volumes:
+        - name: setup
+          configMap: { name: elastic-setup }

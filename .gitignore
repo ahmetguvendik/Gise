@@ -23,3 +23,7 @@ dist/
 
 # Kişisel Claude Code ayarları
 .claude/settings.local.json
+
+# Kubernetes: üretilen parolalar ve makineye özel adresler
+deploy/k8s/.secrets.env
+deploy/k8s/overlays/homelab/public.env

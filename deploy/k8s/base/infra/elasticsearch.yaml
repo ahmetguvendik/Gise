@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  labels: { app.kubernetes.io/name: elasticsearch, app.kubernetes.io/part-of: gise, tier: infra }
+spec:
+  serviceName: elasticsearch
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: elasticsearch }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: elasticsearch, app.kubernetes.io/part-of: gise, tier: infra }
+    spec:
+      enableServiceLinks: false
+      securityContext: { fsGroup: 1000 }
+      containers:
+        - name: elasticsearch
+          image: elasticsearch:9.5.5
+          ports:
+            - { name: http, containerPort: 9200 }
+          env:
+            - { name: discovery.type, value: single-node }
+            - { name: xpack.security.enabled, value: "true" }
+            - { name: xpack.security.http.ssl.enabled, value: "false" }
+            - name: ELASTIC_PASSWORD
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: ELASTIC_PASSWORD } }
+            - { name: ES_JAVA_OPTS, value: "-Xms512m -Xmx512m" }
+          volumeMounts:
+            - { name: data, mountPath: /usr/share/elasticsearch/data }
+          startupProbe:
+            tcpSocket: { port: 9200 }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "curl -fsu elastic:$ELASTIC_PASSWORD http://localhost:9200/_cluster/health > /dev/null"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket: { port: 9200 }
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 200m, memory: 1Gi }
+            limits: { memory: 1536Mi }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: 20Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+spec:
+  selector: { app.kubernetes.io/name: elasticsearch }
+  ports:
+    - { name: http, port: 9200 }

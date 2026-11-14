@@ -1,0 +1,24 @@
+# Başlangıç upstream ve route'larını etcd'ye yazar; sonrası dashboard'dan yönetilir (bkz. deploy/apisix/seed.sh).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: apisix-init
+  labels: { app.kubernetes.io/part-of: gise, tier: setup }
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      enableServiceLinks: false
+      containers:
+        - name: curl
+          image: curlimages/curl:8.11.1
+          command: ["/bin/sh", "/setup/seed.sh"]
+          env:
+            - name: APISIX_ADMIN_KEY
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: APISIX_ADMIN_KEY } }
+          volumeMounts:
+            - { name: setup, mountPath: /setup }
+      volumes:
+        - name: setup
+          configMap: { name: apisix-seed }

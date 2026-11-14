@@ -1,0 +1,35 @@
+# Üretildi: deploy/docker-compose.yml'deki search-sync-worker tanımından (ortam değişkenleri aynı; gizliler Secret'tan, genel adresler gise-public'ten).
+# Ortak kısımlar (sağlık probları, kaynak limitleri, enableServiceLinks...) ../patch-apps.yaml'da.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-sync-worker
+  labels: { app.kubernetes.io/name: search-sync-worker, app.kubernetes.io/part-of: gise, tier: app }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: search-sync-worker }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: search-sync-worker, app.kubernetes.io/part-of: gise, tier: app }
+    spec:
+      containers:
+      - name: app
+        image: gise/search-sync-worker
+        ports:
+          - { name: http, containerPort: 8080 }
+        env:
+        - name: ELASTIC_PASSWORD
+          valueFrom: { secretKeyRef: { name: gise-secrets, key: ELASTIC_PASSWORD } }
+        - name: Elasticsearch__Password
+          value: "$(ELASTIC_PASSWORD)"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: search-sync-worker
+  labels: { app.kubernetes.io/name: search-sync-worker, app.kubernetes.io/part-of: gise }
+spec:
+  selector: { app.kubernetes.io/name: search-sync-worker }
+  ports:
+    - { name: http, port: 8080, targetPort: http }

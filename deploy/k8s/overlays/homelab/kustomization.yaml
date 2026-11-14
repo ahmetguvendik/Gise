@@ -1,0 +1,86 @@
+# Ev ağındaki k3s makinesi. Adresler public.env'den gelir (deploy.sh yazar, git'e girmez).
+# Sunucudaki imajlar GitHub Actions ile derlenip ghcr.io'ya gider (.github/workflows/images.yml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+configMapGenerator:
+  - name: gise-public
+    behavior: replace
+    envs: [public.env]
+
+images:
+  - name: gise/audit-log-worker
+    newName: ghcr.io/ahmetguvendik/gise-audit-log-worker
+    newTag: latest
+  - name: gise/catalog-api
+    newName: ghcr.io/ahmetguvendik/gise-catalog-api
+    newTag: latest
+  - name: gise/catalog-outbox-worker
+    newName: ghcr.io/ahmetguvendik/gise-catalog-outbox-worker
+    newTag: latest
+  - name: gise/healthcheck-api
+    newName: ghcr.io/ahmetguvendik/gise-healthcheck-api
+    newTag: latest
+  - name: gise/identity-api
+    newName: ghcr.io/ahmetguvendik/gise-identity-api
+    newTag: latest
+  - name: gise/identity-audit-worker
+    newName: ghcr.io/ahmetguvendik/gise-identity-audit-worker
+    newTag: latest
+  - name: gise/notification-api
+    newName: ghcr.io/ahmetguvendik/gise-notification-api
+    newTag: latest
+  - name: gise/notification-inbox-worker
+    newName: ghcr.io/ahmetguvendik/gise-notification-inbox-worker
+    newTag: latest
+  - name: gise/order-api
+    newName: ghcr.io/ahmetguvendik/gise-order-api
+    newTag: latest
+  - name: gise/order-inbox-worker
+    newName: ghcr.io/ahmetguvendik/gise-order-inbox-worker
+    newTag: latest
+  - name: gise/order-saga-worker
+    newName: ghcr.io/ahmetguvendik/gise-order-saga-worker
+    newTag: latest
+  - name: gise/payment-api
+    newName: ghcr.io/ahmetguvendik/gise-payment-api
+    newTag: latest
+  - name: gise/payment-command-worker
+    newName: ghcr.io/ahmetguvendik/gise-payment-command-worker
+    newTag: latest
+  - name: gise/reservation-api
+    newName: ghcr.io/ahmetguvendik/gise-reservation-api
+    newTag: latest
+  - name: gise/reservation-command-worker
+    newName: ghcr.io/ahmetguvendik/gise-reservation-command-worker
+    newTag: latest
+  - name: gise/reservation-inbox-worker
+    newName: ghcr.io/ahmetguvendik/gise-reservation-inbox-worker
+    newTag: latest
+  - name: gise/search-api
+    newName: ghcr.io/ahmetguvendik/gise-search-api
+    newTag: latest
+  - name: gise/search-sync-worker
+    newName: ghcr.io/ahmetguvendik/gise-search-sync-worker
+    newTag: latest
+  - name: gise/seatmap-api
+    newName: ghcr.io/ahmetguvendik/gise-seatmap-api
+    newTag: latest
+  - name: gise/ticket-api
+    newName: ghcr.io/ahmetguvendik/gise-ticket-api
+    newTag: latest
+  - name: gise/ticket-command-worker
+    newName: ghcr.io/ahmetguvendik/gise-ticket-command-worker
+    newTag: latest
+  - name: gise/ticket-inbox-worker
+    newName: ghcr.io/ahmetguvendik/gise-ticket-inbox-worker
+    newTag: latest
+  - name: gise/ticket-outbox-worker
+    newName: ghcr.io/ahmetguvendik/gise-ticket-outbox-worker
+    newTag: latest
+  - name: gise/client
+    newName: ghcr.io/ahmetguvendik/gise-client
+    newTag: latest

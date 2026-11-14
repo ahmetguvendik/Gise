@@ -1,0 +1,71 @@
+# Uygulama imajlarını derler ve ghcr.io/<sahip>/gise-<ad>:latest olarak yayınlar (linux/amd64: ev ağındaki k3s makinesi x86_64).
+# Kubernetes tanımı bu adları kullanır (deploy/k8s/overlays/homelab). Elle de başlatılabilir (Actions sekmesi).
+name: images
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", ".github/workflows/images.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: images
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - { name: catalog-api, context: ., dockerfile: src/Services/Catalog/Presentation/Gise.Catalog.Api/Dockerfile }
+          - { name: catalog-outbox-worker, context: ., dockerfile: src/Workers/Catalog/Gise.Catalog.OutboxWorker/Dockerfile }
+          - { name: reservation-api, context: ., dockerfile: src/Services/Reservation/Presentation/Gise.Reservation.Api/Dockerfile }
+          - { name: reservation-inbox-worker, context: ., dockerfile: src/Workers/Reservation/Gise.Reservation.InboxWorker/Dockerfile }
+          - { name: reservation-command-worker, context: ., dockerfile: src/Workers/Reservation/Gise.Reservation.CommandWorker/Dockerfile }
+          - { name: order-api, context: ., dockerfile: src/Services/Order/Presentation/Gise.Order.Api/Dockerfile }
+          - { name: order-inbox-worker, context: ., dockerfile: src/Workers/Order/Gise.Order.InboxWorker/Dockerfile }
+          - { name: order-saga-worker, context: ., dockerfile: src/Workers/Order/Gise.Order.SagaWorker/Dockerfile }
+          - { name: payment-api, context: ., dockerfile: src/Services/Payment/Presentation/Gise.Payment.Api/Dockerfile }
+          - { name: payment-command-worker, context: ., dockerfile: src/Workers/Payment/Gise.Payment.CommandWorker/Dockerfile }
+          - { name: ticket-api, context: ., dockerfile: src/Services/Ticket/Presentation/Gise.Ticket.Api/Dockerfile }
+          - { name: ticket-command-worker, context: ., dockerfile: src/Workers/Ticket/Gise.Ticket.CommandWorker/Dockerfile }
+          - { name: ticket-outbox-worker, context: ., dockerfile: src/Workers/Ticket/Gise.Ticket.OutboxWorker/Dockerfile }
+          - { name: ticket-inbox-worker, context: ., dockerfile: src/Workers/Ticket/Gise.Ticket.InboxWorker/Dockerfile }
+          - { name: notification-api, context: ., dockerfile: src/Services/Notification/Presentation/Gise.Notification.Api/Dockerfile }
+          - { name: notification-inbox-worker, context: ., dockerfile: src/Workers/Notification/Gise.Notification.InboxWorker/Dockerfile }
+          - { name: search-api, context: ., dockerfile: src/Services/Search/Presentation/Gise.Search.Api/Dockerfile }
+          - { name: search-sync-worker, context: ., dockerfile: src/Workers/Search/Gise.Search.SyncWorker/Dockerfile }
+          - { name: identity-api, context: ., dockerfile: src/Services/Identity/Presentation/Gise.Identity.Api/Dockerfile }
+          - { name: identity-audit-worker, context: ., dockerfile: src/Workers/Identity/Gise.Identity.AuditWorker/Dockerfile }
+          - { name: healthcheck-api, context: ., dockerfile: src/Services/HealthCheck/Presentation/Gise.HealthCheck.Api/Dockerfile }
+          - { name: audit-log-worker, context: ., dockerfile: src/Workers/AuditLog/Gise.AuditLog.Worker/Dockerfile }
+          - { name: seatmap-api, context: ., dockerfile: src/Services/SeatMap/Presentation/Gise.SeatMap.Api/Dockerfile }
+          - { name: client, context: src/Client, dockerfile: src/Client/Dockerfile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Küçük harfli sahip adı
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER }}/gise-${{ matrix.name }}:latest
+            ghcr.io/${{ env.OWNER }}/gise-${{ matrix.name }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

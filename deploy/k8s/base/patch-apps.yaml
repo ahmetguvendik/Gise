@@ -1,0 +1,37 @@
+# tier=app olan tüm Deployment'lara uygulanır (kustomization.yaml'daki hedef seçici).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: not-used
+spec:
+  template:
+    spec:
+      # Kubernetes'in KAFKA_PORT, POSTGRES_PORT gibi servis ortam değişkenleri uygulama ayarlarıyla karışmasın.
+      enableServiceLinks: false
+      # Compose'ta olduğu gibi tek süreç görünümü; uygulama süreçleri birbirini görmez ama pod içi araçlar çalışır.
+      shareProcessNamespace: true
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: app
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 20m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          startupProbe:
+            httpGet: { path: /health/live, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 72
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 8080 }
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /health/live, port: 8080 }
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3

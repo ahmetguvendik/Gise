@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  labels: { app.kubernetes.io/name: rabbitmq, app.kubernetes.io/part-of: gise, tier: infra }
+spec:
+  serviceName: rabbitmq
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: rabbitmq }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: rabbitmq, app.kubernetes.io/part-of: gise, tier: infra }
+    spec:
+      enableServiceLinks: false
+      # RabbitMQ veriyi düğüm adına göre saklar; StatefulSet'in pod adı (rabbitmq-0) hep aynı kalır.
+      hostname: rabbitmq
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:4.3.6-management-alpine
+          ports:
+            - { name: amqp, containerPort: 5672 }
+            - { name: management, containerPort: 15672 }
+          env:
+            - { name: RABBITMQ_DEFAULT_USER, value: gise }
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom: { secretKeyRef: { name: gise-secrets, key: RABBITMQ_PASSWORD } }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/rabbitmq }
+          readinessProbe:
+            exec: { command: ["rabbitmq-diagnostics", "-q", "ping"] }
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 20
+          livenessProbe:
+            exec: { command: ["rabbitmq-diagnostics", "-q", "ping"] }
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests: { cpu: 50m, memory: 256Mi }
+            limits: { memory: 768Mi }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: 2Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+spec:
+  selector: { app.kubernetes.io/name: rabbitmq }
+  ports:
+    - { name: amqp, port: 5672 }
+    - { name: management, port: 15672 }
