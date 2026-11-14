@@ -29,7 +29,7 @@ public sealed class SearchAuditRecordsQueryValidator : AbstractValidator<SearchA
 
         RuleFor(x => x.Page)
             .InclusiveBetween(1, MaxWindow)
-            .WithMessage($"Sayfa 1 ile {MaxWindow:N0} arasında olmalı.");
+            .WithMessage("Sayfa 1 ile 10.000 arasında olmalı.");
 
         RuleFor(x => x.PageSize)
             .InclusiveBetween(1, 100)
@@ -38,6 +38,6 @@ public sealed class SearchAuditRecordsQueryValidator : AbstractValidator<SearchA
         RuleFor(x => x)
             .Must(x => (long)x.Page * x.PageSize <= MaxWindow)
             .WithName(nameof(SearchAuditRecordsQuery.Page))
-            .WithMessage($"En fazla ilk {MaxWindow:N0} kayda ulaşılabilir; tarih ya da olay türüyle daraltın.");
+            .WithMessage("En fazla ilk 10.000 kayda ulaşılabilir; tarih ya da olay türüyle daraltın.");
     }
 }
