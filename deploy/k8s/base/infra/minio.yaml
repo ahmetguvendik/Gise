@@ -56,15 +56,3 @@ spec:
   ports:
     - { name: api, port: 9000 }
     - { name: console, port: 9001 }
----
-# Tarayıcı afişi imzalı adresle doğrudan buraya yükler ve buradan okur (MINIO_PUBLIC_URL). k3s'in ServiceLB'si 9000'i
-# makinenin kendi portuna açar. Konsol (9001) açılmaz; gerekirse: kubectl -n gise port-forward svc/minio 9001.
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio-public
-spec:
-  type: LoadBalancer
-  selector: { app.kubernetes.io/name: minio }
-  ports:
-    - { name: api, port: 9000, targetPort: 9000 }

@@ -27,3 +27,4 @@ dist/
 # Kubernetes: üretilen parolalar ve makineye özel adresler
 deploy/k8s/.secrets.env
 deploy/k8s/overlays/homelab/public.env
+deploy/k8s/.tls/

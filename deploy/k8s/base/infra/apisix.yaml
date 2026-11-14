@@ -55,14 +55,3 @@ spec:
   ports:
     - { name: gateway, port: 8000 }
     - { name: admin, port: 9180 }
----
-# Ev ağından giriş noktası: http://<makine IP>:8000. k3s ServiceLB 8000'i makinenin portuna açar.
-apiVersion: v1
-kind: Service
-metadata:
-  name: apisix-public
-spec:
-  type: LoadBalancer
-  selector: { app.kubernetes.io/name: apisix }
-  ports:
-    - { name: gateway, port: 8000, targetPort: 8000 }

@@ -20,6 +20,11 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - { name: http, containerPort: 80 }
+          env:
+            - name: MINIO_PUBLIC_URL
+              valueFrom: { configMapKeyRef: { name: gise-public, key: MINIO_PUBLIC_URL } }
+            # Güvenlik başlıklarındaki (CSP) MinIO adresi: tarayıcı afişleri buradan yükler/okur.
+            - { name: MINIO_ORIGIN, value: "$(MINIO_PUBLIC_URL)" }
           readinessProbe:
             httpGet: { path: /, port: 80 }
             periodSeconds: 10

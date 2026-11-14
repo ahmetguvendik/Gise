@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 OVERLAY=overlays/homelab
 
 if [ $# -ge 1 ]; then
-  printf 'PUBLIC_URL=http://%s:8000\nMINIO_PUBLIC_URL=http://%s:9000\n' "$1" "$1" > $OVERLAY/public.env
+  printf 'PUBLIC_URL=https://%s:8443\nMINIO_PUBLIC_URL=https://%s:9000\n' "$1" "$1" > $OVERLAY/public.env
 elif ! grep -q 'PUBLIC_URL' $OVERLAY/public.env 2>/dev/null || grep -q '192.168.1.50' $OVERLAY/public.env 2>/dev/null; then
   echo "İlk kurulumda makinenin IP'sini verin: ./deploy/k8s/deploy.sh 192.168.x.y" >&2; exit 1
 fi
@@ -17,6 +17,7 @@ cat $OVERLAY/public.env
 
 kubectl apply -f base/namespace.yaml
 ./secrets.sh
+./tls.sh "$(grep ^PUBLIC_URL $OVERLAY/public.env | sed 's#.*//##;s#:.*##')"
 
 if [ -n "${GHCR_TOKEN:-}" ]; then
   kubectl -n gise create secret docker-registry ghcr-pull --docker-server=ghcr.io \
