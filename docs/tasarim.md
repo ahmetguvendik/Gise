@@ -179,6 +179,7 @@ Fiyat **bölüm başına** belirlenir: her bölümün bir etkinlikte tek fiyatı
 **Mekân** (yalnızca admin; ön yüzde "Mekânlar" sayfası):
 
 - `PUT /api/venues/{id}`: ad ve şehir her zaman değişir.
+- **Şehir serbest metin değildir:** mekân formunda Türkiye'nin 81 ilinden biri açılır listeden seçilir (Türkçe alfabe sırasıyla); mekâna il adı yazılır. Liste değişmeyen referans verisi olduğu için **ön yüzde sabit** durur (`src/Client/src/lib/cities.ts`), sunucudan çekilmez; Redis ya da ayrı bir uç yoktur. Böylece "ankara", "Ankara " gibi yazım farkları Search'teki şehir filtresini ve önerilerini bölmez. Sunucu şehri yalnızca uzunluk açısından denetler (`CityMaxLength`): API'yi doğrudan çağıran biri listede olmayan bir şehir yazabilir; mekân oluşturmak admin'e açık olduğu ve form listeyi zorunlu kıldığı için kabul edildi.
 - `PUT /api/venues/{id}/layout`: bölüm düzeni yalnızca mekânda **hiç etkinlik yokken** (taslak dahil) değişir; varsa 422 `VENUE_HAS_EVENTS`. Fiyatlar ve Reservation'ın koltuk stoğu bölümlere bağlıdır.
 - `DELETE /api/venues/{id}`: yalnızca etkinliği olmayan mekân silinir (aynı kural).
 

@@ -7,6 +7,7 @@ import { venuesApi } from '../api/venues'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { LayoutEditor } from '../components/LayoutEditor'
 import { SeatPreview } from '../components/SeatPreview'
+import { CITIES } from '../lib/cities'
 import type { VenueSectionInput } from '../types'
 
 const emptyLayout = (): VenueSectionInput[] => [{ name: '', rows: [{ row: '1', seatCount: 10 }] }]
@@ -131,7 +132,18 @@ export function VenueEditorPage() {
               </label>
               <label>
                 Şehir
-                <input value={city} onChange={(e) => setCity(e.target.value)} maxLength={100} required />
+                <select value={city} onChange={(e) => setCity(e.target.value)} required>
+                  <option value="" disabled>
+                    Şehir seçin
+                  </option>
+                  {/* Eski bir kayıt listede olmayan bir şehir taşıyorsa görünsün; kaydederken listeden seçilir. */}
+                  {city && !CITIES.includes(city) && <option value={city}>{city} (listede yok)</option>}
+                  {CITIES.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
           </div>
