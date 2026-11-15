@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Features.Commands.Event.Response;
 using Gise.Catalog.Application.Interfaces;
@@ -15,19 +16,21 @@ public sealed class UpdateEventCommandHandler : IRequestHandler<UpdateEventComma
     private readonly IVenueRepository _venueRepository;
     private readonly IOutboxMessageRepository _outboxMessageRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
     private readonly TimeProvider _timeProvider;
 
     public UpdateEventCommandHandler(
         IEventRepository eventRepository,
         IVenueRepository venueRepository,
         IOutboxMessageRepository outboxMessageRepository,
-        IUnitOfWork unitOfWork,
+        IUnitOfWork unitOfWork, ICacheService cache,
         TimeProvider timeProvider)
     {
         _eventRepository = eventRepository;
         _venueRepository = venueRepository;
         _outboxMessageRepository = outboxMessageRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
         _timeProvider = timeProvider;
     }
 
@@ -51,6 +54,8 @@ public sealed class UpdateEventCommandHandler : IRequestHandler<UpdateEventComma
 
         if (entity.StartsAt <= _timeProvider.GetUtcNow().UtcDateTime)
             throw BusinessException.EventStarted(entity.Id);
+
+        var previousVenueId = entity.VenueId;
 
         if (request.VenueId != entity.VenueId)
         {
@@ -91,6 +96,13 @@ public sealed class UpdateEventCommandHandler : IRequestHandler<UpdateEventComma
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        await _cache.RemoveAsync(CacheKeys.ForEvent(request.EventId), cancellationToken);
+
+        // Taslak başka bir mekâna taşındıysa iki mekânın "etkinliği var" (HasEvents) bilgisi de değişti.
+        if (previousVenueId != entity.VenueId)
+            await _cache.RemoveAsync(CacheKeys.ForVenue(previousVenueId).Concat(CacheKeys.ForVenue(entity.VenueId)).ToArray(), cancellationToken);
 
         return new UpdateEventResponse
         {

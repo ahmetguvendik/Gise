@@ -1,6 +1,10 @@
+using System.Text.Json.Serialization;
+using Gise.Catalog.Application.Caching;
+using Gise.Catalog.Domain.Enums;
+
 namespace Gise.Catalog.Application.Features.Queries.Event.Response;
 
-public sealed class GetEventByIdResponse
+public sealed class GetEventByIdResponse : ICacheableResponse
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
@@ -21,6 +25,11 @@ public sealed class GetEventByIdResponse
     public DateTime? CancelledAt { get; set; }
     public string? CancellationReason { get; set; }
     public List<EventPriceResponse> Prices { get; set; } = [];
+
+    // Yayındaki ve iptal edilmiş etkinlik herkese aynı görünür; taslak ve onay bekleyen yalnızca sahibine ve admin'e,
+    // o yüzden önbelleğe yazılmaz. API yanıtına ve önbellek kaydına girmez.
+    [JsonIgnore]
+    public bool CanBeCached => Status is nameof(EventStatus.Published) or nameof(EventStatus.Cancelled);
 }
 
 public sealed class EventPriceResponse

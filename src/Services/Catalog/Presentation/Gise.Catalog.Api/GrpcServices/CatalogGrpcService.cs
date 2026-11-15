@@ -12,10 +12,12 @@ namespace Gise.Catalog.Api.GrpcServices;
 public sealed class CatalogGrpcService : CatalogGrpc.CatalogGrpcBase
 {
     private readonly IMediator _mediator;
+    private readonly TimeProvider _timeProvider;
 
-    public CatalogGrpcService(IMediator mediator)
+    public CatalogGrpcService(IMediator mediator, TimeProvider timeProvider)
     {
         _mediator = mediator;
+        _timeProvider = timeProvider;
     }
 
     public override async Task<GetEventSeatsReply> GetEventSeats(GetEventSeatsRequest request, ServerCallContext context)
@@ -54,6 +56,10 @@ public sealed class CatalogGrpcService : CatalogGrpc.CatalogGrpcBase
         try
         {
             var result = await _mediator.Send(new GetEventSummaryQuery { EventId = eventId }, context.CancellationToken);
+
+            // "Başladı mı" önbelleğe girmez: özet önbellekten gelse de saate her çağrıda bakılır.
+            if (result.StartsAt <= _timeProvider.GetUtcNow().UtcDateTime)
+                throw BusinessException.EventStarted(result.EventId);
 
             return new GetEventSummaryReply
             {

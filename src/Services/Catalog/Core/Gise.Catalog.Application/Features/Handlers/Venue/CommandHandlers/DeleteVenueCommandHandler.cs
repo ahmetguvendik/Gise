@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Venue.Request;
 using Gise.Catalog.Application.Interfaces;
 using Gise.Catalog.Application.UnitOfWorks;
@@ -11,12 +12,14 @@ public sealed class DeleteVenueCommandHandler : IRequestHandler<DeleteVenueComma
     private readonly IVenueRepository _venueRepository;
     private readonly IEventRepository _eventRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
-    public DeleteVenueCommandHandler(IVenueRepository venueRepository, IEventRepository eventRepository, IUnitOfWork unitOfWork)
+    public DeleteVenueCommandHandler(IVenueRepository venueRepository, IEventRepository eventRepository, IUnitOfWork unitOfWork, ICacheService cache)
     {
         _venueRepository = venueRepository;
         _eventRepository = eventRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task Handle(DeleteVenueCommand request, CancellationToken cancellationToken)
@@ -30,5 +33,8 @@ public sealed class DeleteVenueCommandHandler : IRequestHandler<DeleteVenueComma
         // Bölümler ve koltuklar veritabanında zincirleme silinir.
         _venueRepository.Remove(venue);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        await _cache.RemoveAsync(CacheKeys.ForVenue(request.Id), cancellationToken);
     }
 }

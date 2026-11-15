@@ -308,6 +308,9 @@ services:
       # Afişler: Endpoint konteyner ağı içindir; imzalı adresler tarayıcının eriştiği appsettings'teki PublicEndpoint ile üretilir.
       Storage__AccessKey: gise
       Storage__SecretKey: ${MINIO_ROOT_PASSWORD}
+      # Önbellek (etkinlik detayı, mekânlar, etkinlik özeti): koltuk kilitleriyle aynı Redis, anahtarlar "catalog:" önekli.
+      # Redis düşerse API çalışır, istekler veritabanından döner; bu yüzden depends_on'da beklenmez.
+      Redis__Connection: redis:6379,password=${REDIS_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
       interval: 10s

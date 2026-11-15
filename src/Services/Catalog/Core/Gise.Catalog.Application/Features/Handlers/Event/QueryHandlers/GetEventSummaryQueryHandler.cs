@@ -11,13 +11,11 @@ public sealed class GetEventSummaryQueryHandler : IRequestHandler<GetEventSummar
 {
     private readonly IEventRepository _eventRepository;
     private readonly IVenueRepository _venueRepository;
-    private readonly TimeProvider _timeProvider;
 
-    public GetEventSummaryQueryHandler(IEventRepository eventRepository, IVenueRepository venueRepository, TimeProvider timeProvider)
+    public GetEventSummaryQueryHandler(IEventRepository eventRepository, IVenueRepository venueRepository)
     {
         _eventRepository = eventRepository;
         _venueRepository = venueRepository;
-        _timeProvider = timeProvider;
     }
 
     public async Task<GetEventSummaryResponse> Handle(GetEventSummaryQuery request, CancellationToken cancellationToken)
@@ -32,9 +30,7 @@ public sealed class GetEventSummaryQueryHandler : IRequestHandler<GetEventSummar
         if (entity.Status != EventStatus.Published)
             throw BusinessException.EventNotPublished(entity.Id);
 
-        if (entity.StartsAt <= _timeProvider.GetUtcNow().UtcDateTime)
-            throw BusinessException.EventStarted(entity.Id);
-
+        // "Başladı mı" burada değil: yanıt önbellekten gelse de saate her çağrıda bakılsın diye CatalogGrpcService denetler.
         var venue = await _venueRepository.GetByIdAsync(entity.VenueId, cancellationToken)
             ?? throw NotFoundException.Venue(entity.VenueId);
 

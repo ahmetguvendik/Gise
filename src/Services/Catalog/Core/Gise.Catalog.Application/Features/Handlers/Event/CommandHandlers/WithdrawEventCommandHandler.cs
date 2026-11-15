@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Interfaces;
 using Gise.Catalog.Application.UnitOfWorks;
@@ -11,11 +12,13 @@ public sealed class WithdrawEventCommandHandler : IRequestHandler<WithdrawEventC
 {
     private readonly IEventRepository _eventRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
-    public WithdrawEventCommandHandler(IEventRepository eventRepository, IUnitOfWork unitOfWork)
+    public WithdrawEventCommandHandler(IEventRepository eventRepository, IUnitOfWork unitOfWork, ICacheService cache)
     {
         _eventRepository = eventRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task Handle(WithdrawEventCommand request, CancellationToken cancellationToken)
@@ -31,5 +34,8 @@ public sealed class WithdrawEventCommandHandler : IRequestHandler<WithdrawEventC
 
         entity.Status = EventStatus.Draft;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        await _cache.RemoveAsync(CacheKeys.ForEvent(request.EventId), cancellationToken);
     }
 }

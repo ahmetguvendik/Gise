@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Features.Commands.Event.Response;
 using Gise.Catalog.Application.Interfaces;
@@ -14,17 +15,19 @@ public sealed class CancelEventCommandHandler : IRequestHandler<CancelEventComma
     private readonly IEventRepository _eventRepository;
     private readonly IOutboxMessageRepository _outboxMessageRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
     private readonly TimeProvider _timeProvider;
 
     public CancelEventCommandHandler(
         IEventRepository eventRepository,
         IOutboxMessageRepository outboxMessageRepository,
-        IUnitOfWork unitOfWork,
+        IUnitOfWork unitOfWork, ICacheService cache,
         TimeProvider timeProvider)
     {
         _eventRepository = eventRepository;
         _outboxMessageRepository = outboxMessageRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
         _timeProvider = timeProvider;
     }
 
@@ -56,6 +59,9 @@ public sealed class CancelEventCommandHandler : IRequestHandler<CancelEventComma
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        await _cache.RemoveAsync(CacheKeys.ForEvent(request.EventId), cancellationToken);
 
         return new CancelEventResponse
         {

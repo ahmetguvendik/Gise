@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Features.Commands.Event.Response;
 using Gise.Catalog.Application.Interfaces;
@@ -13,17 +14,19 @@ public sealed class SetEventPosterCommandHandler : IRequestHandler<SetEventPoste
     private readonly IEventRepository _eventRepository;
     private readonly IStorageService _storageService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
     private readonly TimeProvider _timeProvider;
 
     public SetEventPosterCommandHandler(
         IEventRepository eventRepository,
         IStorageService storageService,
-        IUnitOfWork unitOfWork,
+        IUnitOfWork unitOfWork, ICacheService cache,
         TimeProvider timeProvider)
     {
         _eventRepository = eventRepository;
         _storageService = storageService;
         _unitOfWork = unitOfWork;
+        _cache = cache;
         _timeProvider = timeProvider;
     }
 
@@ -50,6 +53,9 @@ public sealed class SetEventPosterCommandHandler : IRequestHandler<SetEventPoste
 
         entity.PosterKey = string.IsNullOrEmpty(request.PosterKey) ? null : request.PosterKey;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        await _cache.RemoveAsync(CacheKeys.ForEvent(request.EventId), cancellationToken);
 
         return new SetEventPosterResponse
         {
