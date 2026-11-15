@@ -37,6 +37,9 @@ public sealed class EventRepository : IEventRepository
     public async Task<IReadOnlySet<Guid>> GetVenueIdsWithEventsAsync(CancellationToken cancellationToken)
         => (await _context.Events.Select(e => e.VenueId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
 
+    public async Task<IReadOnlyList<Guid>> GetIdsByVenueAsync(Guid venueId, CancellationToken cancellationToken)
+        => await _context.Events.AsNoTracking().Where(e => e.VenueId == venueId).Select(e => e.Id).ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Event>> GetByOrganizerAsync(string organizerId, CancellationToken cancellationToken)
         => await _context.Events
             .AsNoTracking()

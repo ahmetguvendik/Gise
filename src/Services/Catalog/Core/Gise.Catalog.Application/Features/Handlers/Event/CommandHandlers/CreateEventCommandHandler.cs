@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Features.Commands.Event.Response;
 using Gise.Catalog.Application.Interfaces;
@@ -13,15 +14,17 @@ public sealed class CreateEventCommandHandler : IRequestHandler<CreateEventComma
     private readonly IEventRepository _eventRepository;
     private readonly IVenueRepository _venueRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
     public CreateEventCommandHandler(
         IEventRepository eventRepository,
         IVenueRepository venueRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork, ICacheService cache)
     {
         _eventRepository = eventRepository;
         _venueRepository = venueRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task<CreateEventResponse> Handle(CreateEventCommand request, CancellationToken cancellationToken)
@@ -41,6 +44,11 @@ public sealed class CreateEventCommandHandler : IRequestHandler<CreateEventComma
 
         await _eventRepository.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        // Mekânın "etkinliği var" bilgisi (HasEvents) değişti: mekân yanıtları yeniden okunsun.
+        await _cache.RemoveAsync(CacheKeys.Venue(entity.VenueId), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.Venues, cancellationToken);
 
         return new CreateEventResponse
         {

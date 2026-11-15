@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Interfaces;
 using Gise.Catalog.Application.UnitOfWorks;
@@ -11,11 +12,13 @@ public sealed class DeleteEventCommandHandler : IRequestHandler<DeleteEventComma
 {
     private readonly IEventRepository _eventRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
-    public DeleteEventCommandHandler(IEventRepository eventRepository, IUnitOfWork unitOfWork)
+    public DeleteEventCommandHandler(IEventRepository eventRepository, IUnitOfWork unitOfWork, ICacheService cache)
     {
         _eventRepository = eventRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task Handle(DeleteEventCommand request, CancellationToken cancellationToken)
@@ -36,5 +39,13 @@ public sealed class DeleteEventCommandHandler : IRequestHandler<DeleteEventComma
         // Fiyatlar zincirleme silinir. Taslağı başka servis bilmediği için olay gönderilmez.
         _eventRepository.Remove(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        await _cache.RemoveAsync(CacheKeys.Event(request.EventId), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.EventSummary(request.EventId), cancellationToken);
+
+        // Mekânın "etkinliği var" bilgisi (HasEvents) değişti: mekân yanıtları yeniden okunsun.
+        await _cache.RemoveAsync(CacheKeys.Venue(entity.VenueId), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.Venues, cancellationToken);
     }
 }

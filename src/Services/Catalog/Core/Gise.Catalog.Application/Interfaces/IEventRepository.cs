@@ -14,6 +14,9 @@ public interface IEventRepository
     Task<bool> AnyForVenueAsync(Guid venueId, CancellationToken cancellationToken);
     Task<IReadOnlySet<Guid>> GetVenueIdsWithEventsAsync(CancellationToken cancellationToken);
 
+    // Mekândaki bütün etkinliklerin (taslak dahil) kimlikleri; mekân adı değişince etkinlik önbelleğini silmek için.
+    Task<IReadOnlyList<Guid>> GetIdsByVenueAsync(Guid venueId, CancellationToken cancellationToken);
+
     // Organizatörün tüm etkinlikleri (taslaklar dahil), fiyatlarıyla, tarihe göre sıralı.
     Task<IReadOnlyList<Domain.Entities.Event>> GetByOrganizerAsync(string organizerId, CancellationToken cancellationToken);
 

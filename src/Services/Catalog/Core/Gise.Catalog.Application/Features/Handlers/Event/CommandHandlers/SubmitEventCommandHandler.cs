@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Interfaces;
 using Gise.Catalog.Application.UnitOfWorks;
@@ -12,17 +13,19 @@ public sealed class SubmitEventCommandHandler : IRequestHandler<SubmitEventComma
     private readonly IEventRepository _eventRepository;
     private readonly IVenueRepository _venueRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
     private readonly TimeProvider _timeProvider;
 
     public SubmitEventCommandHandler(
         IEventRepository eventRepository,
         IVenueRepository venueRepository,
-        IUnitOfWork unitOfWork,
+        IUnitOfWork unitOfWork, ICacheService cache,
         TimeProvider timeProvider)
     {
         _eventRepository = eventRepository;
         _venueRepository = venueRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
         _timeProvider = timeProvider;
     }
 
@@ -56,5 +59,9 @@ public sealed class SubmitEventCommandHandler : IRequestHandler<SubmitEventComma
         entity.Status = EventStatus.PendingReview;
         entity.ReturnReason = null;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        await _cache.RemoveAsync(CacheKeys.Event(request.EventId), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.EventSummary(request.EventId), cancellationToken);
     }
 }

@@ -23,6 +23,9 @@ public static class ServiceRegistration
         services.AddValidatorsFromAssembly(typeof(ServiceRegistration).Assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
+        // Önbellek doğrulamadan sonra: geçersiz istek önbelleğe hiç bakmaz.
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));
+
         return services;
     }
 }

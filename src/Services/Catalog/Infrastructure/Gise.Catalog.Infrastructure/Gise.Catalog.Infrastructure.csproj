@@ -4,6 +4,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="SkiaSharp" />
     <!-- Docker (Linux) için Skia'nın yerel kütüphanesi; sistem paketlerine ihtiyaç duymaz. -->
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />

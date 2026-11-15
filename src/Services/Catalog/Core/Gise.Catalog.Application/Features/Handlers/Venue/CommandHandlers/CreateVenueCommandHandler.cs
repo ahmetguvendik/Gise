@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Venue.Request;
 using Gise.Catalog.Application.Features.Commands.Venue.Response;
 using Gise.Catalog.Application.Interfaces;
@@ -10,11 +11,13 @@ public sealed class CreateVenueCommandHandler : IRequestHandler<CreateVenueComma
 {
     private readonly IVenueRepository _venueRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
-    public CreateVenueCommandHandler(IVenueRepository venueRepository, IUnitOfWork unitOfWork)
+    public CreateVenueCommandHandler(IVenueRepository venueRepository, IUnitOfWork unitOfWork, ICacheService cache)
     {
         _venueRepository = venueRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task<CreateVenueResponse> Handle(CreateVenueCommand request, CancellationToken cancellationToken)
@@ -28,6 +31,9 @@ public sealed class CreateVenueCommandHandler : IRequestHandler<CreateVenueComma
 
         await _venueRepository.AddAsync(venue, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        await _cache.RemoveAsync(CacheKeys.Venues, cancellationToken);
 
         return new CreateVenueResponse
         {

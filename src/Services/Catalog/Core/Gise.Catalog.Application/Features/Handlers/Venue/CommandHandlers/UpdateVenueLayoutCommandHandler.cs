@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Venue.Request;
 using Gise.Catalog.Application.Features.Commands.Venue.Response;
 using Gise.Catalog.Application.Interfaces;
@@ -12,12 +13,14 @@ public sealed class UpdateVenueLayoutCommandHandler : IRequestHandler<UpdateVenu
     private readonly IVenueRepository _venueRepository;
     private readonly IEventRepository _eventRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
-    public UpdateVenueLayoutCommandHandler(IVenueRepository venueRepository, IEventRepository eventRepository, IUnitOfWork unitOfWork)
+    public UpdateVenueLayoutCommandHandler(IVenueRepository venueRepository, IEventRepository eventRepository, IUnitOfWork unitOfWork, ICacheService cache)
     {
         _venueRepository = venueRepository;
         _eventRepository = eventRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task<UpdateVenueLayoutResponse> Handle(UpdateVenueLayoutCommand request, CancellationToken cancellationToken)
@@ -35,6 +38,10 @@ public sealed class UpdateVenueLayoutCommandHandler : IRequestHandler<UpdateVenu
             venue.Sections.Add(section);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        await _cache.RemoveAsync(CacheKeys.Venue(request.Id), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.Venues, cancellationToken);
 
         return new UpdateVenueLayoutResponse
         {

@@ -24,6 +24,8 @@ spec:
           valueFrom: { secretKeyRef: { name: gise-secrets, key: POSTGRES_PASSWORD } }
         - name: MINIO_ROOT_PASSWORD
           valueFrom: { secretKeyRef: { name: gise-secrets, key: MINIO_ROOT_PASSWORD } }
+        - name: REDIS_PASSWORD
+          valueFrom: { secretKeyRef: { name: gise-secrets, key: REDIS_PASSWORD } }
         - name: ConnectionStrings__Catalog
           value: "Host=postgres;Database=gise_catalog;Username=gise;Password=$(POSTGRES_PASSWORD)"
         - name: Keycloak__InternalAuthority
@@ -34,6 +36,8 @@ spec:
           value: "gise"
         - name: Storage__SecretKey
           value: "$(MINIO_ROOT_PASSWORD)"
+        - name: Redis__Connection
+          value: "redis:6379,password=$(REDIS_PASSWORD)"
 ---
 apiVersion: v1
 kind: Service

@@ -1,3 +1,4 @@
+using Gise.Catalog.Application.Caching;
 using Gise.Catalog.Application.Features.Commands.Event.Request;
 using Gise.Catalog.Application.Interfaces;
 using Gise.Catalog.Application.UnitOfWorks;
@@ -11,11 +12,13 @@ public sealed class ReturnEventCommandHandler : IRequestHandler<ReturnEventComma
 {
     private readonly IEventRepository _eventRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
-    public ReturnEventCommandHandler(IEventRepository eventRepository, IUnitOfWork unitOfWork)
+    public ReturnEventCommandHandler(IEventRepository eventRepository, IUnitOfWork unitOfWork, ICacheService cache)
     {
         _eventRepository = eventRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task Handle(ReturnEventCommand request, CancellationToken cancellationToken)
@@ -29,5 +32,9 @@ public sealed class ReturnEventCommandHandler : IRequestHandler<ReturnEventComma
         entity.Status = EventStatus.Draft;
         entity.ReturnReason = request.Reason.Trim();
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
+        await _cache.RemoveAsync(CacheKeys.Event(request.EventId), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.EventSummary(request.EventId), cancellationToken);
     }
 }
