@@ -61,8 +61,7 @@ public sealed class CancelEventCommandHandler : IRequestHandler<CancelEventComma
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
-        await _cache.RemoveAsync(CacheKeys.Event(request.EventId), cancellationToken);
-        await _cache.RemoveAsync(CacheKeys.EventSummary(request.EventId), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ForEvent(request.EventId), cancellationToken);
 
         return new CancelEventResponse
         {

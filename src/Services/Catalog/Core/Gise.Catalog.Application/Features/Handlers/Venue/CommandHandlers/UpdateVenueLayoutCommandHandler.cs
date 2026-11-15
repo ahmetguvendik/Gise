@@ -40,8 +40,7 @@ public sealed class UpdateVenueLayoutCommandHandler : IRequestHandler<UpdateVenu
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
-        await _cache.RemoveAsync(CacheKeys.Venue(request.Id), cancellationToken);
-        await _cache.RemoveAsync(CacheKeys.Venues, cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ForVenue(request.Id), cancellationToken);
 
         return new UpdateVenueLayoutResponse
         {

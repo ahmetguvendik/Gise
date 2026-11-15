@@ -33,15 +33,11 @@ public sealed class UpdateVenueCommandHandler : IRequestHandler<UpdateVenueComma
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
-        await _cache.RemoveAsync(CacheKeys.Venue(request.Id), cancellationToken);
-        await _cache.RemoveAsync(CacheKeys.Venues, cancellationToken);
-
-        // Mekânın adı ve şehri etkinlik özetine de girer; mekândaki etkinliklerin önbelleği eski adla kalmasın.
+        // Mekânın adı ve şehri etkinlik özetine de girer; mekândaki etkinliklerin önbelleği eski adla kalmasın. Hepsi tek çağrıda.
+        var keys = CacheKeys.ForVenue(request.Id).ToList();
         foreach (var eventId in await _eventRepository.GetIdsByVenueAsync(request.Id, cancellationToken))
-        {
-            await _cache.RemoveAsync(CacheKeys.Event(eventId), cancellationToken);
-            await _cache.RemoveAsync(CacheKeys.EventSummary(eventId), cancellationToken);
-        }
+            keys.AddRange(CacheKeys.ForEvent(eventId));
+        await _cache.RemoveAsync(keys, cancellationToken);
 
         return new UpdateVenueResponse { Id = venue.Id, Name = venue.Name, City = venue.City };
     }

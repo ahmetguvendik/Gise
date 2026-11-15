@@ -55,6 +55,8 @@ public sealed class UpdateEventCommandHandler : IRequestHandler<UpdateEventComma
         if (entity.StartsAt <= _timeProvider.GetUtcNow().UtcDateTime)
             throw BusinessException.EventStarted(entity.Id);
 
+        var previousVenueId = entity.VenueId;
+
         if (request.VenueId != entity.VenueId)
         {
             // Reservation koltuk stoğunu mekânın koltuklarıyla kurar: yayından sonra mekân değişmez.
@@ -96,8 +98,11 @@ public sealed class UpdateEventCommandHandler : IRequestHandler<UpdateEventComma
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
-        await _cache.RemoveAsync(CacheKeys.Event(request.EventId), cancellationToken);
-        await _cache.RemoveAsync(CacheKeys.EventSummary(request.EventId), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ForEvent(request.EventId), cancellationToken);
+
+        // Taslak başka bir mekâna taşındıysa iki mekânın "etkinliği var" (HasEvents) bilgisi de değişti.
+        if (previousVenueId != entity.VenueId)
+            await _cache.RemoveAsync(CacheKeys.ForVenue(previousVenueId).Concat(CacheKeys.ForVenue(entity.VenueId)).ToArray(), cancellationToken);
 
         return new UpdateEventResponse
         {

@@ -48,6 +48,25 @@ public sealed class VenueCachingTests(CatalogApiFactory factory) : IClassFixture
         Assert.True(list!.Single(v => v.Id == venueId).HasEvents);
     }
 
+    // Taslak başka bir mekâna taşınınca iki mekânın HasEvents bilgisi de değişir.
+    [Fact]
+    public async Task Taslak_baska_mekana_tasinirsa_iki_mekanin_HasEvents_bilgisi_guncellenir()
+    {
+        var (venueA, _) = await CatalogScenarios.CreateVenueAsync(factory, "Mekân A");
+        var (venueB, _) = await CatalogScenarios.CreateVenueAsync(factory, "Mekân B");
+        var eventId = await CatalogScenarios.CreateDraftEventAsync(factory, venueA);
+        var anonymous = factory.CreateClient();
+        Assert.True((await anonymous.GetFromJsonAsync<GetVenueByIdResponse>($"/api/venues/{venueA}", Ct))!.HasEvents);
+        Assert.False((await anonymous.GetFromJsonAsync<GetVenueByIdResponse>($"/api/venues/{venueB}", Ct))!.HasEvents);
+
+        var moved = await factory.CreateClientAs("organizator-1", "organizer")
+            .PutAsJsonAsync($"/api/events/{eventId}", new { title = "Taşınan Etkinlik", venueId = venueB, startsAt = DateTimeOffset.UtcNow.AddDays(30) }, Ct);
+        Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
+
+        Assert.False((await anonymous.GetFromJsonAsync<GetVenueByIdResponse>($"/api/venues/{venueA}", Ct))!.HasEvents);
+        Assert.True((await anonymous.GetFromJsonAsync<GetVenueByIdResponse>($"/api/venues/{venueB}", Ct))!.HasEvents);
+    }
+
     [Fact]
     public async Task Taslak_silinince_mekanin_HasEvents_bilgisi_geri_gelir()
     {

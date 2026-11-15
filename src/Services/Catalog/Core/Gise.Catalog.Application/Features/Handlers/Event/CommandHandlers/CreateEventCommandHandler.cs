@@ -47,8 +47,7 @@ public sealed class CreateEventCommandHandler : IRequestHandler<CreateEventComma
 
         // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
         // Mekânın "etkinliği var" bilgisi (HasEvents) değişti: mekân yanıtları yeniden okunsun.
-        await _cache.RemoveAsync(CacheKeys.Venue(entity.VenueId), cancellationToken);
-        await _cache.RemoveAsync(CacheKeys.Venues, cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ForVenue(entity.VenueId), cancellationToken);
 
         return new CreateEventResponse
         {

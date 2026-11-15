@@ -110,8 +110,7 @@ public sealed class SetEventPricesCommandHandler : IRequestHandler<SetEventPrice
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
-        await _cache.RemoveAsync(CacheKeys.Event(request.EventId), cancellationToken);
-        await _cache.RemoveAsync(CacheKeys.EventSummary(request.EventId), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ForEvent(request.EventId), cancellationToken);
 
         return new SetEventPricesResponse
         {

@@ -41,11 +41,9 @@ public sealed class DeleteEventCommandHandler : IRequestHandler<DeleteEventComma
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Değişen veri önbellekte eski kalmasın (Telgraf gibi: kaydettikten sonra anahtar silinir).
-        await _cache.RemoveAsync(CacheKeys.Event(request.EventId), cancellationToken);
-        await _cache.RemoveAsync(CacheKeys.EventSummary(request.EventId), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ForEvent(request.EventId), cancellationToken);
 
         // Mekânın "etkinliği var" bilgisi (HasEvents) değişti: mekân yanıtları yeniden okunsun.
-        await _cache.RemoveAsync(CacheKeys.Venue(entity.VenueId), cancellationToken);
-        await _cache.RemoveAsync(CacheKeys.Venues, cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ForVenue(entity.VenueId), cancellationToken);
     }
 }

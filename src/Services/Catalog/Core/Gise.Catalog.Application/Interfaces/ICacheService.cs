@@ -9,4 +9,7 @@ public interface ICacheService
     Task SetAsync<T>(string key, T value, TimeSpan duration, CancellationToken cancellationToken = default) where T : class;
 
     Task RemoveAsync(string key, CancellationToken cancellationToken = default);
+
+    // Birden çok anahtarı tek Redis çağrısıyla siler.
+    Task RemoveAsync(IReadOnlyCollection<string> keys, CancellationToken cancellationToken = default);
 }

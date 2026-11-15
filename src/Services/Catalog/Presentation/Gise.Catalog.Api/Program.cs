@@ -46,6 +46,9 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+// Redis bağlantısı ilk istekte değil açılışta kurulur: Redis yoksa bekleme (en çok ConnectTimeout) isteklere binmesin.
+_ = app.Services.GetRequiredService<StackExchange.Redis.IConnectionMultiplexer>();
+
 // Şema açılışta migration'larla güncellenir. Aynı anda açılan kopyalar için EF Core
 // veritabanında kilit alır; migration'lar sırayla ve bir kez uygulanır.
 await using (var scope = app.Services.CreateAsyncScope())

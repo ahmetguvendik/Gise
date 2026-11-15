@@ -74,19 +74,22 @@ public sealed class RedisCacheService : ICacheService
         }
     }
 
-    public async Task RemoveAsync(string key, CancellationToken cancellationToken = default)
+    // Silme devre kesiciye bakmaz: silinemeyen anahtar bayat veri demek, o yüzden Redis dönmüşse hemen denenir. Bağlantı yokken
+    // komut kuyruğa alınmadan düşer (FailFast), yani denemek pahalı değil. Başarısızlık günlüğe yazılır; eski kayıt en geç TTL'de biter.
+    public Task RemoveAsync(string key, CancellationToken cancellationToken = default) => RemoveAsync([key], cancellationToken);
+
+    public async Task RemoveAsync(IReadOnlyCollection<string> keys, CancellationToken cancellationToken = default)
     {
-        if (IsCircuitOpen)
+        if (keys.Count == 0)
             return;
 
         try
         {
-            await _redis.GetDatabase().KeyDeleteAsync(key);
+            await _redis.GetDatabase().KeyDeleteAsync(keys.Select(key => (RedisKey)key).ToArray());
         }
         catch (Exception ex) when (ex is RedisException or TimeoutException)
         {
-            // Silinemeyen anahtar bayat veri demek; TTL (5 dk) sınırı olduğu için kalıcı değil, ama günlükte görünmeli.
-            OpenCircuit(ex, "silme", key);
+            OpenCircuit(ex, "silme (kayıt TTL dolana kadar eski kalabilir)", string.Join(", ", keys));
         }
     }
 }

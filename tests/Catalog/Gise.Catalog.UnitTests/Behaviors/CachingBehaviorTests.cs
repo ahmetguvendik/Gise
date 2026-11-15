@@ -34,6 +34,12 @@ public sealed class CachingBehaviorTests
             Store.Remove(key);
             return Task.CompletedTask;
         }
+
+        public Task RemoveAsync(IReadOnlyCollection<string> keys, CancellationToken cancellationToken = default)
+        {
+            foreach (var key in keys) Store.Remove(key);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class CachedQuery : ICacheableQuery

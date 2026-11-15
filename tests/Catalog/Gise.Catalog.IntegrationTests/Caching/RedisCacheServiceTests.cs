@@ -108,7 +108,8 @@ public sealed class RedisCacheServiceTests : IAsyncLifetime
         Assert.Single(logger.Warnings);
     }
 
-    // Ulaşılamayan Redis isteği düşürmez; devre ilk hatada açılır, sonraki çağrılar Redis'e hiç gitmez (tek uyarı).
+    // Ulaşılamayan Redis isteği düşürmez; devre ilk okumada açılır, okuma ve yazma Redis'e gitmez, silme ise yine denenir (bayat veri
+    // kalmasın) ve başarısızlığı günlüğe yazar: iki uyarı.
     [Fact]
     public async Task Ulasilamayan_redis_istegi_dusurmez_ve_devreyi_acar()
     {
@@ -125,7 +126,8 @@ public sealed class RedisCacheServiceTests : IAsyncLifetime
         await service.SetAsync("catalog:test:3", new Sample(), TimeSpan.FromMinutes(1), ct);
         await service.RemoveAsync("catalog:test:4", ct);
 
-        Assert.Single(logger.Warnings);
+        Assert.Equal(2, logger.Warnings.Count);
+        Assert.Contains("silme", logger.Warnings[1]);
     }
 
     // Bağlantıyı kabul edip hiç cevap vermeyen Redis (takılma): istek 500'e düşmemeli, devre açılmalı.

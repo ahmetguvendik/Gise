@@ -25,6 +25,7 @@ public static class ServiceRegistration
             options.AbortOnConnectFail = false;
             options.BacklogPolicy = BacklogPolicy.FailFast;
             var timeout = redis.GetValue("CommandTimeoutMilliseconds", 500);
+            options.ConnectTimeout = 2000;
             options.SyncTimeout = timeout;
             options.AsyncTimeout = timeout;
             return ConnectionMultiplexer.Connect(options);
